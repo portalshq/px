@@ -8,11 +8,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/portalshq/narrativeengine"
+    "url": "https://github.com/portalshq/px"
   },
-  "homepage": "https://github.com/portalshq/narrativeengine#readme",
+  "homepage": "https://github.com/portalshq/px#readme",
   "bugs": {
-    "url": "https://github.com/portalshq/narrativeengine/issues"
+    "url": "https://github.com/portalshq/px/issues"
   },
   "type": "module",
   "main": "dist/index.js",

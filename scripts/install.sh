@@ -6,7 +6,7 @@ set -euo pipefail
 # Configuration
 ###############################################################################
 
-REPO="portalshq/narrativeengine"
+REPO="portalshq/px"
 BINARY_NAME="px"
 MCP_BINARY_NAME="px-mcp-server"
 VERSION="${VERSION:-latest}"

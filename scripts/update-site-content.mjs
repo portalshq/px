@@ -11,10 +11,14 @@ function read(relativePath) {
 
 function firstCodeBlockAfter(markdown, heading) {
   const start = markdown.indexOf(heading)
-  if (start === -1) throw new Error(`Missing authored heading: ${heading}`)
+  if (start === -1) throw new Error(`Missing generated command heading: ${heading}`)
   const match = markdown.slice(start + heading.length).match(/```[^\n]*\n([\s\S]*?)```/)
-  if (!match) throw new Error(`Missing authored code block after: ${heading}`)
+  if (!match) throw new Error(`Missing generated command code block after: ${heading}`)
   return match[1].trim()
+}
+
+function codeBlockForLanguage(markdown, language) {
+  return firstCodeBlockAfter(markdown, `\n\n${language}:`)
 }
 
 function firstParagraphAfter(markdown, heading) {
@@ -50,66 +54,43 @@ function replaceCode(html, id, value) {
   return html.replace(pattern, `$1${escapeHtml(value)}$2`)
 }
 
-const installation = read('docs/authored/installation.md')
-const mcpInstall = read('docs/authored/mcp/install.md')
-const primitives = read('docs/authored/primitives.md')
+const installCommand = read('docs/generated/commands/install.md')
+const initCommand = read('docs/generated/commands/init.md')
+const createCommand = read('docs/generated/commands/create.md')
+const addCommand = read('docs/generated/commands/add.md')
+const presignCommand = read('docs/generated/commands/presign.md')
 const mcpOverview = read('docs/authored/mcp/overview.md')
 const readme = read('README.md')
-const packageJson = JSON.parse(read('typescript/px-sdk/package.json'))
 
-const install = firstCodeBlockAfter(installation, '### Installation Script')
-const codexMcp = firstCodeBlockAfter(mcpInstall, '## Connect with Codex')
-const initialize = [
-  'px init bears --provider local',
-  '',
-  '# Create a character that the world can resolve',
-  'px create character lonnie -u bears -n "Lonnie"',
-].join('\n')
-const representations = firstCodeBlockAfter(primitives, '### Scene Clips as Representations')
-  .split('\n')
-  .slice(0, 2)
-  .join('\n')
-const typescriptSdk = [
-  `import {repoCreateEntity} from '${packageJson.name}'`,
-  '',
-  "const lonnie = repoCreateEntity('bears', 'character', 'lonnie', 'Lonnie')",
-].join('\n')
-const pythonSdk = [
-  'from px_sdk import repo_create_entity',
-  '',
-  "lonnie = repo_create_entity('bears', 'character', 'lonnie', 'Lonnie')",
-].join('\n')
+const install = firstCodeBlockAfter(installCommand, '## Synopsis')
+const initialize = firstCodeBlockAfter(initCommand, '## Examples')
+const create = firstCodeBlockAfter(createCommand, '## Examples')
+const add = firstCodeBlockAfter(addCommand, '## Examples')
+const typescriptSdk = codeBlockForLanguage(presignCommand, 'TypeScript')
+const pythonSdk = codeBlockForLanguage(presignCommand, 'Python')
 
 let html = read(path.relative(repoRoot, sitePath))
 html = html.replace(/\s*<meta name="px-(?:mcp-summary|skills-install)"[^>]*\/>/g, '')
 html = html.replace(/\s*<script[^>]*>[\s\S]*?base\.href=\"\/px\/\"[\s\S]*?<\/script>/g, '')
+html = html.replace('1. Install px + skills', '1. Install a PX dependency')
+html = html.replace('a. Connect MCP with Codex', '2. Initialize a repository')
+html = html.replace('2. Start the Eye-Candy world', '3. Create an entity')
+html = html.replace('TypeScript SDK</p>', 'TypeScript SDK: presign</p>')
+html = html.replace('Python SDK</p>', 'Python SDK: presign</p>')
+html = html.replace('3. Add a representation', '4. Add a representation')
 html = html.replace(
   '<span class="underline decoration-2 underline-offset-4">Explore Portals</span>',
   '<a href="https://portals.works" class="underline decoration-2 underline-offset-4">Explore Portals</a>',
 )
 html = replaceCode(html, 'px-code-1', install)
-html = replaceCode(html, 'px-code-2', codexMcp)
-html = replaceCode(html, 'px-code-3', initialize)
-html = replaceCode(html, 'px-code-4', representations)
+html = replaceCode(html, 'px-code-2', initialize)
+html = replaceCode(html, 'px-code-3', create)
+html = replaceCode(html, 'px-code-4', add)
 html = replaceCode(html, 'px-code-5', typescriptSdk)
 html = replaceCode(html, 'px-code-6', pythonSdk)
 const mcpSummary = escapeHtml(firstParagraphAfter(mcpOverview, '## MCP Server'))
-const skillsSource = installation.includes('### Skills Install')
-  ? firstCodeBlockAfter(installation, '### Skills Install')
-  : install.split('&&').at(-1).trim()
-const skills = escapeHtml(skillsSource)
-
-// README.md is the public mirror of the authored documentation. Generate from
-// docs/authored (the canonical source), but fail the build if the README's
-// public examples drift. This prevents the static page, docs, and README from
-// quietly teaching different commands.
-assertSame('README installation example', install, firstCodeBlockAfter(readme, '### Installation Script'))
-assertSame('README Codex MCP example', codexMcp, firstCodeBlockAfter(readme, '## Connect with Codex'))
-assertSame(
-  'README representation example',
-  representations,
-  firstCodeBlockAfter(readme, '### Scene Clips as Representations').split('\n').slice(0, 2).join('\n'),
-)
+// Keep the authored MCP overview in sync with the public README. Site code
+// examples themselves come only from docs/generated/commands/.
 assertSame(
   'README MCP summary',
   firstParagraphAfter(mcpOverview, '## MCP Server'),
@@ -117,7 +98,7 @@ assertSame(
 )
 const runtimeBase = `<script data-px-base>(function(){if(location.hostname==="portals.works"||location.hostname==="www.portals.works"){var base=document.createElement("base");base.href="/px/";document.head.insertBefore(base,document.head.firstChild);}})();</script>`
 html = html.replace('<link rel="icon"', `${runtimeBase}\n  <link rel="icon"`)
-html = html.replace('</head>', `  <meta name="px-mcp-summary" content="${mcpSummary.replaceAll('"', '&quot;')}" />\n  <meta name="px-skills-install" content="${skills.replaceAll('"', '&quot;')}" />\n</head>`)
+html = html.replace('</head>', `  <meta name="px-mcp-summary" content="${mcpSummary.replaceAll('"', '&quot;')}" />\n</head>`)
 fs.writeFileSync(sitePath, html)
 
-console.log('Updated PX technical examples from docs/authored/.')
+console.log('Updated PX site examples from docs/generated/commands/.')

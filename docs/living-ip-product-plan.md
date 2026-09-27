@@ -297,7 +297,7 @@ Source inspection used PX `8c5ef3646423dc6e5bd77aebfc849985e6105388` and Cloud `
 | `../cloud/packages/text-image-delivery` | Chapter/text/image delivery abstraction. | Bind to immutable release IDs and authorized narrative reads, not mutable arbitrary HEAD. |
 | `../cloud/packages/stubs/identity` | Audience identity/history interface. | Methods are stubs. Implement audience accounts/linking and consent using trusted auth; repository permissions are not audience identity semantics. |
 | `../cloud/packages/sdk` | Manifest validation and CLI shell. | Init/deploy are TODOs. Add real operations and portable bundles; reconcile its `px` executable name with the existing PX CLI rather than shipping conflicting commands. |
-| `../cloud/packages/billing-*` | OpenMeter/Lago interfaces and marketplace calculations. | Add durable metering, reconciliation, contract-based pricing/splits, refund handling and money conservation tests before real settlement. |
+| `../cloud/packages/monetization`, `../cloud/packages/policy`, `../cloud/packages/platform-billing` | Audience-to-creator settlement (tenant-keyed Connect destination charges, ledger, outbox, entitlements), rake and royalty policy, and OpenMeter/Lago tenant invoicing. | Add durable metering, reconciliation, contract-based pricing/splits, refund handling and money conservation tests before real settlement. None of the three has tests except `monetization`. |
 | `../cloud/control-plane/auth-gateway` | Auth implementation and documented trusted boundary. | Reuse qualified authentication/authorization APIs; verify deployed state through existing release gates. |
 | Legacy `../cloud/control-plane` service | Reference implementations for state/outbox patterns. | Explicitly retired; must remain scaled to zero. Do not revive its HTTP handlers or legacy token path. |
 
@@ -322,7 +322,7 @@ Create packages when they own a stable responsibility, contract and test boundar
 | **New `@portalshq/distribution-adapters`** | YouTube/Twitch authorization and lifecycle, inbound chat adapters, outbound receipts, destination recovery. | Existing queue-broadcast/realtime-fanout; server-only secrets. Can be extracted from production-core after first adapter if simpler. |
 | Existing SDK + resolver/narrative adapters | Creator/agent API, exact selectors, export/import and PX seam, context-only integration. | Existing PX/narrative packages; compatibility preserved. |
 | Existing runtime/delivery/fanout packages | Channel composition, viewer transport and media delivery. | Replace process-local authority with coordinator-backed adapters; keep development providers explicit. |
-| Existing billing packages | Meter transport, invoicing and commercial settlement. | Durable ledger/outbox; separate asynchronous workers. |
+| `@portalshq/monetization` + `@portalshq/platform-billing` + `@portalshq/policy` | Meter transport, invoicing and commercial settlement. Money keyed on tenant, not channel. | Durable ledger/outbox; separate asynchronous workers. |
 
 Keep canon policy, sponsor policy, work DAG validation and PX bundle logic as modules initially. Do not create a standalone policy microservice, a second VCS, or a separate database per feature without an independent scaling or ownership need. Native celld snapshot/fork functionality is an upstream or pinned runtime extension behind `SnapshotBackend`; it is not emulated by arbitrary writes into celld's bucket.
 
@@ -599,7 +599,7 @@ Detailed implementation backlog:
 | E12: destinations | distribution-adapters | Authorized YouTube/Twitch rehearsal; inbound dedupe and independent outbound recovery. | E10–E11. |
 | E13: LOD and projections | world-runtime + world-control | No dormant scan loop; reliable due work; bounded catch-up; freshness modes. | E03–E05. |
 | E14: native cuts/world barrier | SnapshotBackend + runtime | Retained source-independent images; all-mutator barrier and channel-state tests. | E04–E05, E13. |
-| E15: commercial ledger | existing billing packages | Durable usage, reconcilable invoices, conservative budgets; contract-based payouts only when enabled. | E02, operational receipts. |
+| E15: commercial ledger | `@portalshq/monetization`, `@portalshq/platform-billing` | Durable usage, reconcilable invoices, conservative budgets; contract-based payouts only when enabled. | E02, operational receipts. |
 | E16: operations qualification | SRE/security + all owners | Backup restore, fault/load tests, isolation, release gate and kill-switch rehearsal. | Required before each paid/public expansion. |
 
 No launch acceptance is “endpoint returns 200.” Each phase demonstrates a user journey and its failure paths. Reuse the twelve prior runtime acceptance scenarios in Appendix A, then add these product-specific gates:
@@ -660,7 +660,7 @@ Requirements coverage:
 - [Channel runtime](../../cloud/packages/runtime-core/src/realtime-engine.ts), [SDK CLI](../../cloud/packages/sdk/src/cli.ts).
 - [Broadcast client contract](../../cloud/packages/queue-broadcast/README.md), [RTMP helper](../../cloud/packages/queue-broadcast/src/streaming/rtmp/rtmp-streamer.ts), [HLS delivery](../../cloud/packages/video-delivery/src/live-session.ts).
 - [External chat ingress](../../cloud/packages/realtime-fanout/src/external-chat.ts), [fanout bus](../../cloud/packages/realtime-fanout/src/fanout-bus.ts), [polls](../../cloud/packages/realtime-fanout/src/polls.ts).
-- [Audience identity stub](../../cloud/packages/stubs/identity/src/identity-provider.ts), [meter transport](../../cloud/packages/billing-metering/src/metering-client.ts), [royalty calculation](../../cloud/packages/billing-marketplace/src/royalty-splitter.ts).
+- [Audience identity stub](../../cloud/packages/stubs/identity/src/identity-provider.ts), [meter transport](../../cloud/packages/platform-billing/src/metering-client.ts), [royalty calculation](../../cloud/packages/policy/src/royalty-splitter.ts), [entitlements](../../cloud/packages/monetization/src/entitlements.ts), [billing boundaries ADR](../../cloud/docs/architecture-decision-records/0009-billing-package-boundaries.md).
 - [Legacy service status](../../cloud/control-plane/README.md), [production security boundary](../../cloud/docs/security/lore-production-security.md).
 
 ## Appendix A. Complete celld + PX technical foundation

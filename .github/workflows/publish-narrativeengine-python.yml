@@ -61,7 +61,7 @@ jobs:
       - run: ls -la target/wheels/
       # Publish via PyPI Trusted Publishing (OIDC): no API token.
       # Requires a trusted publisher on pypi.org for project `narrativeengine`
-      # pointing at portalshq/narrativeengine + this workflow file (+ production env).
+      # pointing at portalshq/px + this workflow file (+ production env).
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: target/wheels/

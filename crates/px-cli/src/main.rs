@@ -751,7 +751,7 @@ fn cmd_install(_base_dir: &Path, target: &str) -> Result<()> {
             emit("px-mcp-server is bundled with the standard PX installer.");
             emit("To repair a missing MCP server, rerun:");
             emit(
-                "  curl -fsSL https://github.com/portalshq/narrativeengine/releases/latest/download/install.sh | bash",
+                "  curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash",
             );
             emit("");
             emit("To use with Codex, add to your config:");

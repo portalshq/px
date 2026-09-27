@@ -20,7 +20,7 @@ jobs:
       - run: cargo publish -p portalshq-px --dry-run
       # Publish via crates.io Trusted Publishing (OIDC): no API token.
       # Requires a trusted publisher on crates.io for crate `portalshq-px`
-      # pointing at portalshq/narrativeengine + this workflow file (+ production env).
+      # pointing at portalshq/px + this workflow file (+ production env).
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
       - run: cargo publish -p portalshq-px
@@ -41,7 +41,7 @@ jobs:
 
       - run: cargo publish -p portalshq-px-cli --dry-run
       # Requires a trusted publisher on crates.io for crate `portalshq-px-cli`
-      # pointing at portalshq/narrativeengine + this workflow file (+ production env).
+      # pointing at portalshq/px + this workflow file (+ production env).
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
       - run: cargo publish -p portalshq-px-cli

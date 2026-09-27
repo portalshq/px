@@ -35,7 +35,7 @@ px://toystory/prop/andy-hat
 ### Installation Script
 
 ```bash
-curl -fsSL https://github.com/portalshq/narrativeengine/releases/latest/download/install.sh | bash && npx skills add portalshq/narrativeengine
+curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash && npx skills add portalshq/px
 ```
 
 The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
@@ -43,7 +43,7 @@ The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent 
 <!-- ### CLI & Server (Rust — compile from source)
 
 ```bash
-git clone https://github.com/cinematiccanvas/px.git
+git clone https://github.com/portalshq/px.git
 cd px
 cargo build --release
 

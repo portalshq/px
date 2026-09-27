@@ -30,13 +30,13 @@ The script handles the entire release:
 
 - Must be on `main` with a clean working tree
 - Must have push access to origin (run `gh auth login` if needed)
-- If the `production` GitHub environment requires approval, approve the workflow run at https://github.com/portalshq/narrativeengine/actions
+- If the `production` GitHub environment requires approval, approve the workflow run at https://github.com/portalshq/px/actions
 
 ### Registry trust (trusted publishing)
 
 All registries publish via OIDC trusted publishing — there are no long-lived
 publish secrets. Each target needs a one-time trusted-publisher entry pointing
-at repo `portalshq/narrativeengine` plus the workflow file (and `production` env):
+at repo `portalshq/px` plus the workflow file (and `production` env):
 
 - npm (`@portalshq/narrativeengine`, `@portalshq/px`): package Settings →
   Trusted Publisher on npmjs.com. Workflows use `id-token: write` and npm ≥ 11.5.1.

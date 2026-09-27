@@ -45,7 +45,7 @@ jobs:
         working-directory: typescript/narrativeengine
       # Publish via npm Trusted Publishing (OIDC): no NODE_AUTH_TOKEN.
       # Requires a trusted publisher on npmjs.com for @portalshq/narrativeengine
-      # pointing at portalshq/narrativeengine + this workflow file (+ production env).
+      # pointing at portalshq/px + this workflow file (+ production env).
       # Provenance attestations are generated automatically.
       - run: npm publish --provenance --access public
         working-directory: typescript/narrativeengine

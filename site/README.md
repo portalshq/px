@@ -21,14 +21,14 @@ always `https://portals.works/px`.
 | OG image (`og:image`, `twitter:image`) | Absolute FQDN asset in `cloud/frontend/public/og-image-px.png`, served from `https://portals.works` |
 | `.nojekyll` | Empty marker required for verbatim Pages serving |
 
-The workflow refreshes the technical code blocks at build time from
-`docs/authored/` on every commit to `main`. `README.md` is checked as the
-public documentation mirror for the installation, Codex MCP, representation,
-and MCP-summary examples; a drift between the authored docs and README fails
-the Pages build. When the authored docs or their README mirror change, the
-generated install, MCP, initialize, representation, TypeScript, and Python
-examples update in the same Pages deployment. The published HTML is static
-after deployment; it does not fetch snippets at runtime.
+The workflow refreshes the site's technical code blocks at build time from
+`docs/generated/commands/` on every commit to `main`: install and init
+synopses/examples, create and add examples, and Python/TypeScript presign
+examples. The update script contains no hand-written command or SDK examples.
+`README.md` is checked as the public documentation mirror for the MCP summary;
+a drift between the authored MCP overview and README fails the Pages build.
+The published HTML is static after deployment; it does not fetch snippets at
+runtime.
 
 Two dead references were intentionally dropped: `styles.card` and
 `styles.sagaBannerFrame` have no CSS-module rules, so omitting them is
@@ -36,7 +36,7 @@ pixel-identical.
 
 ## Deploy
 
-`.github/workflows/pages.yml` refreshes authored content, validates the static
+`.github/workflows/pages.yml` refreshes generated CLI content, validates the static
 site, and uploads `site/` to GitHub Pages on every push to `main`. Run
 `node scripts/update-site-content.mjs` and `node scripts/validate-site.mjs`
 locally before pushing.

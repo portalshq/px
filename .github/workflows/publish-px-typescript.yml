@@ -100,6 +100,6 @@ jobs:
 
       # Publish via npm Trusted Publishing (OIDC): no NODE_AUTH_TOKEN.
       # Requires a trusted publisher on npmjs.com for @portalshq/px
-      # pointing at portalshq/narrativeengine + this workflow file (+ production env).
+      # pointing at portalshq/px + this workflow file (+ production env).
       - run: npm publish --access public
         working-directory: typescript/px-sdk

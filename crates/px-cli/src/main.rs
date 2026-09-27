@@ -131,6 +131,17 @@ fn emit_action(msg: impl AsRef<str>) {
 }
 
 fn main() -> Result<()> {
+    // Windows executables commonly start with a 1 MiB main-thread stack. Clap's
+    // generated command parser plus this large command dispatcher can exceed it.
+    std::thread::Builder::new()
+        .name("px-cli".into())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(run_cli)?
+        .join()
+        .expect("px CLI thread panicked")
+}
+
+fn run_cli() -> Result<()> {
     let cli = Cli::parse();
     let command = command_label(&cli.command);
     let is_piped = !std::io::stdout().is_terminal();

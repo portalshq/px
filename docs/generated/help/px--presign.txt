@@ -125,7 +125,7 @@ Python:
 from px_sdk import presign_representation
 
 result = presign_representation(
-    "25th-chapter/character/nathan-gunn", "item", branch="main", ttl_seconds=900
+    "25th-chapter/character/nathan-gunn", "character_sheet", branch="episode-1", ttl_seconds=900
 )
 ```
 
@@ -136,8 +136,8 @@ import { presignRepresentation } from "@portalshq/px";
 
 const result = await presignRepresentation(
   "25th-chapter/character/nathan-gunn",
-  "item",
-  { branch: "main", ttlSeconds: 900 },
+  "character_sheet",
+  { branch: "episode-1", ttlSeconds: 900 },
 );
 ```
 

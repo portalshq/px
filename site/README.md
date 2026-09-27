@@ -21,10 +21,12 @@ always `https://portals.works/px`.
 | OG image (`og:image`, `twitter:image`) | Absolute FQDN asset in `cloud/frontend/public/og-image-px.png`, served from `https://portals.works` |
 | `.nojekyll` | Empty marker required for verbatim Pages serving |
 
-The workflow refreshes the site's technical code blocks at build time from
-`docs/generated/commands/` on every commit to `main`: install and init
-synopses/examples, create and add examples, and Python/TypeScript presign
-examples. The update script contains no hand-written command or SDK examples.
+The workflow refreshes the site's technical code blocks at build time on every
+commit to `main`. The install command comes from the `Installation Script`
+section of `README.md`; CLI and SDK examples come from
+`docs/generated/commands/`. The update script only substitutes demo-domain
+values into those canonical snippets; command syntax stays owned by the
+documentation.
 `README.md` is checked as the public documentation mirror for the MCP summary;
 a drift between the authored MCP overview and README fails the Pages build.
 The published HTML is static after deployment; it does not fetch snippets at

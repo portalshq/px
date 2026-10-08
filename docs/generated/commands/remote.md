@@ -30,6 +30,7 @@ px remote <COMMAND>
 | add | Add a remote to a repository repository |
 | ls | List remotes on a repository repository |
 | rm | Remove a remote from a repository repository |
+| set | Set the repository's server, overriding the global provider default |
 
 
 ## Source

@@ -473,8 +473,14 @@ impl Resolver {
         options.source.unwrap_or(self.source)
     }
 
-    fn remote_client(&self) -> Result<LoreGrpcClient, PxError> {
-        let server = LoreBackend::configured_server_url(&self.base_path);
+    fn remote_client(&self, repository: Option<&str>) -> Result<LoreGrpcClient, PxError> {
+        let default = LoreBackend::configured_server_url(&self.base_path);
+        let server = match repository {
+            Some(name) => {
+                crate::repo_config::repository_server(&self.base_path.join(name), name, &default)?
+            }
+            None => default,
+        };
         let endpoint = server
             .strip_prefix("lore://")
             .map(|rest| format!("http://{rest}"))
@@ -517,7 +523,7 @@ impl Resolver {
                 "remote provenance is not supported yet".to_string(),
             ));
         }
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(&uri.repository))?;
         let repository = uri.repository.clone();
         let path = uri.manifest_path();
         let branch = options.branch.clone();
@@ -572,7 +578,7 @@ impl Resolver {
         ),
         PxError,
     > {
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(&uri.repository))?;
         let repository_name = uri.repository.clone();
         let branch = options.branch.clone();
         let commit = options.commit.clone();
@@ -650,7 +656,11 @@ impl Resolver {
             .unwrap_or(
                 crate::provider::http::configured_origin(
                     &self.base_path,
-                    &LoreBackend::configured_server_url(&self.base_path),
+                    &crate::repo_config::repository_server(
+                        &self.base_path.join(&uri.repository),
+                        &uri.repository,
+                        &LoreBackend::configured_server_url(&self.base_path),
+                    )?,
                 )
                 .map_err(|e| PxError::Other(e.to_string()))?,
             );
@@ -1503,7 +1513,7 @@ impl Resolver {
     /// List all repositories available.
     pub fn list_repositories(&self) -> Result<Vec<String>, PxError> {
         if self.source != ResolveSource::Local {
-            let client = self.remote_client()?;
+            let client = self.remote_client(None)?;
             return block_on_grpc(async move { client.list_repositories().await });
         }
         let mut repositories = Vec::new();
@@ -1528,7 +1538,7 @@ impl Resolver {
         repository: &str,
         entity_type: &crate::types::EntityType,
     ) -> Result<Vec<String>, PxError> {
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(repository))?;
         let repository_name = repository.to_string();
         let prefix = format!("{}/", entity_type.directory_name());
         let paths = block_on_grpc(async move {
@@ -1559,7 +1569,7 @@ impl Resolver {
 
     /// List repository-relative entity manifest paths from the default branch.
     pub fn list_remote_manifest_paths(&self, repository: &str) -> Result<Vec<String>, PxError> {
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(repository))?;
         let repository_name = repository.to_string();
         block_on_grpc(async move {
             let repo = client.get_repository_by_name(&repository_name).await?;
@@ -1578,13 +1588,16 @@ impl Resolver {
                     && path.ends_with(".yaml")
                     && path.matches('/').count() == 1
             });
+            for path in &paths {
+                crate::repo_config::validate_root_file(path)?;
+            }
             paths.sort();
             Ok(paths)
         })
     }
 
     pub fn list_remote_branches(&self, repository: &str) -> Result<Vec<String>, PxError> {
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(repository))?;
         let repository_name = repository.to_string();
         block_on_grpc(async move {
             let repo = client.get_repository_by_name(&repository_name).await?;
@@ -1601,7 +1614,7 @@ impl Resolver {
     }
 
     pub fn remote_head_hash(&self, repository: &str) -> Result<String, PxError> {
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(repository))?;
         let repository_name = repository.to_string();
         block_on_grpc(async move {
             let repo = client.get_repository_by_name(&repository_name).await?;
@@ -1628,7 +1641,7 @@ impl Resolver {
         file_path: &str,
         limit: usize,
     ) -> Result<Vec<crate::vcs::CommitInfo>, PxError> {
-        let client = self.remote_client()?;
+        let client = self.remote_client(Some(&uri.repository))?;
         let repository_name = uri.repository.clone();
         let file_path = file_path.to_string();
         block_on_grpc(async move {

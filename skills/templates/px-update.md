@@ -33,7 +33,7 @@ For creating or first resolving entities, use `px-resolve`. For repository-level
 
 {{include docs/generated/mcp/px_resolve.md}}
 
-{{include docs/generated/mcp/px_query.md}}
+
 
 {{include docs/generated/mcp/px_add.md}}
 

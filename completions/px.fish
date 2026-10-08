@@ -114,6 +114,7 @@ complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_sub
 complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -l remote-url -d 'Remote URL (required for `remote`). Aliases: --endpoint, --remote_url' -r
 complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -l workspace-id -d 'Workspace ID (for `remote` and `portals-cloud`)' -r
 complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
+complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -l force -d 'Migrate all existing repository remotes, including custom servers'
 complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -l reset -d 'Reset provider configuration before (re)configuring'
 complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -l initial-commit -d 'Bootstrap existing unversioned repositories with an initial commit without prompting'
 complete -c px -n "__fish_px_using_subcommand configure; and not __fish_seen_subcommand_from status help" -l no-initial-commit -d 'Skip bootstrapping existing repositories'
@@ -292,15 +293,21 @@ complete -c px -n "__fish_px_using_subcommand push" -s v -l verbose -d 'Enable v
 complete -c px -n "__fish_px_using_subcommand push" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
 complete -c px -n "__fish_px_using_subcommand push" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
 complete -c px -n "__fish_px_using_subcommand push" -s h -l help -d 'Print help (see more with \'--help\')'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -s v -l verbose -d 'Enable verbose debug logging'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -s h -l help -d 'Print help'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -f -a "add" -d 'Add a remote to a repository repository'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -f -a "ls" -d 'List remotes on a repository repository'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -f -a "rm" -d 'Remove a remote from a repository repository'
-complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from add ls rm help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -s v -l verbose -d 'Enable verbose debug logging'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -s h -l help -d 'Print help'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -f -a "set" -d 'Set the repository\'s server, overriding the global provider default'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -f -a "add" -d 'Add a remote to a repository repository'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -f -a "ls" -d 'List remotes on a repository repository'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -f -a "rm" -d 'Remove a remote from a repository repository'
+complete -c px -n "__fish_px_using_subcommand remote; and not __fish_seen_subcommand_from set add ls rm help" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
+complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from set" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
+complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from set" -s v -l verbose -d 'Enable verbose debug logging'
+complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from set" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
+complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from set" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
+complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from set" -s h -l help -d 'Print help'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from add" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from add" -s v -l verbose -d 'Enable verbose debug logging'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from add" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
@@ -316,6 +323,7 @@ complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from rm" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from rm" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from rm" -s h -l help -d 'Print help'
+complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from help" -f -a "set" -d 'Set the repository\'s server, overriding the global provider default'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from help" -f -a "add" -d 'Add a remote to a repository repository'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from help" -f -a "ls" -d 'List remotes on a repository repository'
 complete -c px -n "__fish_px_using_subcommand remote; and __fish_seen_subcommand_from help" -f -a "rm" -d 'Remove a remote from a repository repository'
@@ -414,6 +422,7 @@ complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_f
 complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from choose" -f -a "backend" -d 'Choose backend provider'
 complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from backend" -f -a "configure" -d 'Configure the version-control backend'
 complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from backend" -f -a "status" -d 'Show the current version-control backend configuration'
+complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from remote" -f -a "set" -d 'Set the repository\'s server, overriding the global provider default'
 complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from remote" -f -a "add" -d 'Add a remote to a repository repository'
 complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from remote" -f -a "ls" -d 'List remotes on a repository repository'
 complete -c px -n "__fish_px_using_subcommand help; and __fish_seen_subcommand_from remote" -f -a "rm" -d 'Remove a remote from a repository repository'

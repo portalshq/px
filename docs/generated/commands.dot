@@ -54,6 +54,8 @@ digraph px_commands {
     "remote" -> "remote_ls";
     "remote_rm" [label="px remote rm"];
     "remote" -> "remote_rm";
+    "remote_set" [label="px remote set"];
+    "remote" -> "remote_set";
     "resolve" [label="px resolve"];
     "px" -> "resolve";
     "revert" [label="px revert"];

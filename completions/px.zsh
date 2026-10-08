@@ -167,6 +167,7 @@ _arguments "${_arguments_options[@]}" : \
 '--workspace-id=[Workspace ID (for \`remote\` and \`portals-cloud\`)]:ID:_default' \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--force[Migrate all existing repository remotes, including custom servers]' \
 '--reset[Reset provider configuration before (re)configuring]' \
 '--initial-commit[Bootstrap existing unversioned repositories with an initial commit without prompting]' \
 '--no-initial-commit[Skip bootstrapping existing repositories]' \
@@ -674,7 +675,21 @@ _arguments "${_arguments_options[@]}" : \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:px-remote-command-$line[1]:"
         case $line[1] in
-            (add)
+            (set)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':repository -- Repository name:_default' \
+':url -- Lore server URL or full repository URL:_default' \
+&& ret=0
+;;
+(add)
 _arguments "${_arguments_options[@]}" : \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
@@ -728,7 +743,11 @@ _arguments "${_arguments_options[@]}" : \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:px-remote-help-command-$line[1]:"
         case $line[1] in
-            (add)
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -1075,7 +1094,11 @@ _arguments "${_arguments_options[@]}" : \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:px-help-remote-command-$line[1]:"
         case $line[1] in
-            (add)
+            (set)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -1579,6 +1602,7 @@ _px__subcmd__help__subcmd__query_commands() {
 (( $+functions[_px__subcmd__help__subcmd__remote_commands] )) ||
 _px__subcmd__help__subcmd__remote_commands() {
     local commands; commands=(
+'set:Set the repository'\''s server, overriding the global provider default' \
 'add:Add a remote to a repository repository' \
 'ls:List remotes on a repository repository' \
 'rm:Remove a remote from a repository repository' \
@@ -1599,6 +1623,11 @@ _px__subcmd__help__subcmd__remote__subcmd__ls_commands() {
 _px__subcmd__help__subcmd__remote__subcmd__rm_commands() {
     local commands; commands=()
     _describe -t commands 'px help remote rm commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__remote__subcmd__set_commands] )) ||
+_px__subcmd__help__subcmd__remote__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help remote set commands' commands "$@"
 }
 (( $+functions[_px__subcmd__help__subcmd__resolve_commands] )) ||
 _px__subcmd__help__subcmd__resolve_commands() {
@@ -1703,6 +1732,7 @@ _px__subcmd__query_commands() {
 (( $+functions[_px__subcmd__remote_commands] )) ||
 _px__subcmd__remote_commands() {
     local commands; commands=(
+'set:Set the repository'\''s server, overriding the global provider default' \
 'add:Add a remote to a repository repository' \
 'ls:List remotes on a repository repository' \
 'rm:Remove a remote from a repository repository' \
@@ -1718,6 +1748,7 @@ _px__subcmd__remote__subcmd__add_commands() {
 (( $+functions[_px__subcmd__remote__subcmd__help_commands] )) ||
 _px__subcmd__remote__subcmd__help_commands() {
     local commands; commands=(
+'set:Set the repository'\''s server, overriding the global provider default' \
 'add:Add a remote to a repository repository' \
 'ls:List remotes on a repository repository' \
 'rm:Remove a remote from a repository repository' \
@@ -1745,6 +1776,11 @@ _px__subcmd__remote__subcmd__help__subcmd__rm_commands() {
     local commands; commands=()
     _describe -t commands 'px remote help rm commands' commands "$@"
 }
+(( $+functions[_px__subcmd__remote__subcmd__help__subcmd__set_commands] )) ||
+_px__subcmd__remote__subcmd__help__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'px remote help set commands' commands "$@"
+}
 (( $+functions[_px__subcmd__remote__subcmd__ls_commands] )) ||
 _px__subcmd__remote__subcmd__ls_commands() {
     local commands; commands=()
@@ -1754,6 +1790,11 @@ _px__subcmd__remote__subcmd__ls_commands() {
 _px__subcmd__remote__subcmd__rm_commands() {
     local commands; commands=()
     _describe -t commands 'px remote rm commands' commands "$@"
+}
+(( $+functions[_px__subcmd__remote__subcmd__set_commands] )) ||
+_px__subcmd__remote__subcmd__set_commands() {
+    local commands; commands=()
+    _describe -t commands 'px remote set commands' commands "$@"
 }
 (( $+functions[_px__subcmd__resolve_commands] )) ||
 _px__subcmd__resolve_commands() {

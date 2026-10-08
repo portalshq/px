@@ -19,11 +19,11 @@ Before generating from an entity:
 1. Resolve repository.yaml from the target branch and gather relevant global properties, representations, and references.
 2. Resolve the entity explicitly from the relevant branch via `px_resolve` (`uri`, plus `branch`): the target branch for canonical state, the revision branch for iterative work.
 3. Gather properties that affect identity, narrative role, style, behavior, continuity, and exclusions.
-4. Gather relevant entity `representations` and `references` (use `px_query` with `uri` and `path` for subtrees).
+4. Gather relevant entity `representations` and `references` (use `px_resolve` with `uri` and `path` for subtrees).
 5. Treat project and entity image/video/audio representations as source-of-truth for observable appearance or sound. Text properties support and constrain them.
 6. Inspect flexible negative-constraint keys such as `negative_constraints`, `exclusions`, `avoid`, `forbidden`, or project-specific equivalents at both scopes.
 7. Keep multi-entity context separated so attributes do not bleed between entities.
 
 ## Branch Semantics
 
-Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` / `px_query` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
+Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.

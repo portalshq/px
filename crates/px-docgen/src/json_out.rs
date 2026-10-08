@@ -32,6 +32,8 @@ struct ArgJson {
     short: Option<char>,
     long: Option<String>,
     takes_value: bool,
+    multiple: bool,
+    possible_values: Vec<String>,
 }
 
 pub fn render_commands_json(
@@ -73,5 +75,7 @@ fn arg_to_json(arg: &crate::model::ArgModel) -> ArgJson {
         short: arg.short,
         long: arg.long.clone(),
         takes_value: arg.takes_value,
+        multiple: arg.multiple,
+        possible_values: arg.possible_values.clone(),
     }
 }

@@ -31,7 +31,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository
@@ -256,23 +256,11 @@ Resolve a PX URI to its manifest or a subtree
 | commit | string | No |  | Resolve at a specific commit hash |
 | format | string | No | yaml | Output format: yaml, json |
 | include\_blobs | boolean | No | false | Hydrate known readable provenance artifacts such as prompts and run records |
+| path | string | No |  | Optional manifest subtree selector. URI fragments take precedence |
 | provenance | boolean | No | false | Include condensed per-file provenance for the manifest and direct representations |
 | uri | string | Yes |  | PX URI. e.g., "px://toystory/character/woody" |
 
 
-
-
-# px_query
-Query a subtree from a manifest
-
-
-## Parameters
-
-| Name | Type | Required | Default | Description |
-|---|---|---|---|---|
-| format | string | No | json | Output format: yaml, json |
-| path | string | Yes |  | Dot-notation path. e.g., "appearances.audienceVotes" |
-| uri | string | Yes |  | PX URI |
 
 
 
@@ -289,14 +277,15 @@ Add a file representation to an entity manifest
 | file | string | Yes |  | File path to the asset |
 | format | string | Yes |  | Asset format. e.g., "png", "glb" |
 | key | string | Yes |  | Representation key. e.g., "reference\_image" |
-| message | string | No | add representation | Commit message |
+| message | string | No |  | Commit message |
+| replace | boolean | No | false | Replace an existing representation only when its content differs |
 | uri | string | Yes |  | PX URI |
 
 
 
 
 # px_set
-Set a property on an entity manifest
+Set one or more properties on an entity manifest
 
 
 ## Parameters
@@ -304,16 +293,15 @@ Set a property on an entity manifest
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | author | string | No | px | Author identifier |
-| key | string | Yes |  | Property key (dot-notation) |
-| message | string | No | set property | Commit message |
+| message | string | No |  | Commit message |
 | uri | string | Yes |  | PX URI |
-| value | string | Yes |  | Property value |
+| values | string or string[] | Yes |  | Repeating key/value pairs. Keys support dot-notation |
 
 
 
 
 # px_commit
-Commit changes to a repository repository
+Commit all repository changes, or only one entity when given its URI
 
 
 ## Parameters
@@ -322,7 +310,7 @@ Commit changes to a repository repository
 |---|---|---|---|---|
 | author | string | No | px | Author identifier |
 | message | string | Yes |  | Commit message |
-| repository | string | Yes |  | Repository name |
+| target | string | Yes |  | Repository name or PX entity URI |
 
 
 
@@ -350,4 +338,3 @@ Switch to a branch
 |---|---|---|---|---|
 | name | string | Yes |  | Branch name to switch to |
 | repository | string | Yes |  | Repository name |
-

@@ -1,6 +1,6 @@
 ---
 name: px-resolve
-description: Create PX entities, resolve PX URIs, and query entity context via px-mcp-server (px_create, px_resolve, px_query), establishing active entity continuity so later refinements automatically persist through px-update. The px CLI is not available for agentic use.
+description: Create PX entities, resolve PX URIs, and query entity context via px-mcp-server (px_create, px_resolve), establishing active entity continuity so later refinements automatically persist through px-update. The px CLI is not available for agentic use.
 ---
 
 # PX Resolve
@@ -30,7 +30,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository
@@ -244,14 +244,14 @@ Before generating from an entity:
 1. Resolve repository.yaml from the target branch and gather relevant global properties, representations, and references.
 2. Resolve the entity explicitly from the relevant branch via `px_resolve` (`uri`, plus `branch`): the target branch for canonical state, the revision branch for iterative work.
 3. Gather properties that affect identity, narrative role, style, behavior, continuity, and exclusions.
-4. Gather relevant entity `representations` and `references` (use `px_query` with `uri` and `path` for subtrees).
+4. Gather relevant entity `representations` and `references` (use `px_resolve` with `uri` and `path` for subtrees).
 5. Treat project and entity image/video/audio representations as source-of-truth for observable appearance or sound. Text properties support and constrain them.
 6. Inspect flexible negative-constraint keys such as `negative_constraints`, `exclusions`, `avoid`, `forbidden`, or project-specific equivalents at both scopes.
 7. Keep multi-entity context separated so attributes do not bleed between entities.
 
 ## Branch Semantics
 
-Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` / `px_query` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
+Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
 
 
 
@@ -266,7 +266,9 @@ Create a new entity manifest
 | author | string | No | px | Author identifier |
 | entity\_id | string | Yes |  | Entity ID (slug). e.g., "woody" |
 | entity\_type | string | Yes |  | Entity type (any non-empty string, e.g. character, location, custom-type) |
+| message | string | No |  | Commit message |
 | name | string | Yes |  | Human-readable name |
+| properties | string or string[] | No |  | Initial property, as key=value. May be repeated |
 | repository | string | Yes |  | Repository name |
 
 
@@ -284,22 +286,6 @@ Resolve a PX URI to its manifest or a subtree
 | commit | string | No |  | Resolve at a specific commit hash |
 | format | string | No | yaml | Output format: yaml, json |
 | include\_blobs | boolean | No | false | Hydrate known readable provenance artifacts such as prompts and run records |
+| path | string | No |  | Optional manifest subtree selector. URI fragments take precedence |
 | provenance | boolean | No | false | Include condensed per-file provenance for the manifest and direct representations |
 | uri | string | Yes |  | PX URI. e.g., "px://toystory/character/woody" |
-
-
-
-
-# px_query
-Query a subtree from a manifest
-
-
-## Parameters
-
-| Name | Type | Required | Default | Description |
-|---|---|---|---|---|
-| format | string | No | json | Output format: yaml, json |
-| path | string | Yes |  | Dot-notation path. e.g., "appearances.audienceVotes" |
-| uri | string | Yes |  | PX URI |
-
-

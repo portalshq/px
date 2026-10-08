@@ -3,7 +3,7 @@ name: px-cli-reference
 description: Read-only reference for px CLI syntax, for humans asking what the command for something is (e.g. how to resolve a URI from a host shell). Never use for execution — agents MUST still execute all PX operations via px-mcp-server (see px-repo, px-resolve, px-update).
 metadata:
   author: portals
-  version: "0.8.25"
+  version: "0.9.0"
 ---
 
 # PX CLI Reference (read-only)
@@ -32,7 +32,7 @@ px resolve px://toystory/scene/pizza-planet --provenance
 
 
 # PX CLI Reference
-The `px` command-line interface (v0.8.25) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
+The `px` command-line interface (v0.9.0) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
 
 
 ## Command Overview
@@ -42,7 +42,7 @@ The `px` command-line interface (v0.8.25) provides tools for creating, resolving
 | [\`px add\`](docs/generated/commands/add.md) | Add a file representation to an entity manifest |
 | [\`px auth\`](docs/generated/commands/auth.md) | Manage secure authentication for the configured Lore provider |
 | [\`px branch\`](docs/generated/commands/branch.md) | Create or list branches |
-| [\`px commit\`](docs/generated/commands/commit.md) | Commit changes to a repository repository |
+| [\`px commit\`](docs/generated/commands/commit.md) | Commit all repository changes, or only one entity when given its URI |
 | [\`px configure\`](docs/generated/commands/configure.md) | Configure version-control backend |
 | [\`px content-hash\`](docs/generated/commands/content-hash.md) | Compute the BLAKE3 content hash of a file |
 | [\`px create\`](docs/generated/commands/create.md) | Create a new entity manifest |
@@ -55,16 +55,17 @@ The `px` command-line interface (v0.8.25) provides tools for creating, resolving
 | [\`px list\`](docs/generated/commands/list.md) | List repositories or entities within a repository |
 | [\`px merge\`](docs/generated/commands/merge.md) | Three-way merge of JSON/YAML values |
 | [\`px presign\`](docs/generated/commands/presign.md) | Create a time-limited public URL for a committed representation |
-| [\`px pull\`](docs/generated/commands/pull.md) | Clone or pull a repository from a remote |
+| [\`px pull\`](docs/generated/commands/pull.md) | Clone or pull PX manifests from a remote (representation files stay remote) |
 | [\`px push\`](docs/generated/commands/push.md) | Push the current branch to its configured upstream remote |
 | [\`px remote\`](docs/generated/commands/remote.md) | Manage remotes on a repository |
 | [\`px resolve\`](docs/generated/commands/resolve.md) | Resolve a PX URI to its manifest or a subtree |
 | [\`px revert\`](docs/generated/commands/revert.md) | Revert a commit by hash (undoes all changes in that commit) |
 | [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest or commit types |
-| [\`px set\`](docs/generated/commands/set.md) | Set a property on an entity manifest |
-| [\`px status\`](docs/generated/commands/status.md) | Show system status |
+| [\`px set\`](docs/generated/commands/set.md) | Set one or more properties on an entity manifest |
+| [\`px status\`](docs/generated/commands/status.md) | Show system status, or working-tree status for one repository |
 | [\`px switch\`](docs/generated/commands/switch.md) | Switch to a branch |
-| [\`px sync\`](docs/generated/commands/sync.md) | Sync with remote |
+| [\`px sync\`](docs/generated/commands/sync.md) | Fetch remote manifests and push local commits |
+| [\`px unset\`](docs/generated/commands/unset.md) | Remove one or more properties or representations from an entity manifest |
 | [\`px validate\`](docs/generated/commands/validate.md) | Validate a manifest against the PX schema |
 
 
@@ -95,8 +96,8 @@ px create character woody -u toystory -n "Woody"
 # Resolve a manifest
 px resolve px://toystory/character/woody
 
-# Resolve a subtree
-px resolve px://toystory/character/woody properties
+# Query a subtree
+px query px://toystory/character/woody properties
 
 # View commit history
 px history px://toystory/character/woody

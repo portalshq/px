@@ -359,18 +359,32 @@ fn run_cli() -> Result<()> {
     };
 
     if let Err(err) = result {
+        let rendered = if cli.verbose {
+            let mut detail = format!("{err:?}");
+            for cause in err.chain() {
+                if let Some(px_core::PxError::LoreFailure { details, .. }) =
+                    cause.downcast_ref::<px_core::PxError>()
+                {
+                    detail.push('\n');
+                    detail.push_str(details);
+                }
+            }
+            detail
+        } else {
+            format!("{err:#}")
+        };
         if is_piped {
             let error_json = serde_json::json!({
                 "level": "error",
-                "error": format!("{err:#}"),
+                "error": rendered,
                 "code": "CLI_ERROR",
             });
             eprintln!("{}", serde_json::to_string(&error_json).unwrap());
         } else {
             if cli.verbose {
-                eprintln!("{:?}", err);
+                eprintln!("{rendered}");
             } else {
-                eprintln!("✗ {command} failed: {err:#}");
+                eprintln!("✗ {command} failed: {rendered}");
             }
         }
         std::process::exit(1);
@@ -555,6 +569,7 @@ fn get_lore_backend(base_dir: &Path) -> LoreBackend {
 /// reads/writes work, but VCS-only operations fail with an informative
 /// [`PxError::BackendNotConfigured`] error.
 fn open_repo(base_dir: &Path, repository: &str) -> Result<Repository> {
+    px_core::repo_config::validate_repository_name(repository)?;
     let repo_path = base_dir.join(repository);
     let vcs: Option<Box<dyn px_core::vcs::VcsBackend>> = Some(Box::new(get_lore_backend(base_dir)));
     Repository::open_optional(&repo_path, vcs).map_err(|e| anyhow::anyhow!(e))
@@ -681,6 +696,7 @@ fn cmd_init(
 }
 
 fn cmd_init_universe(base_dir: &Path, repository: &str, remote: Option<&str>) -> Result<()> {
+    px_core::repo_config::validate_repository_name(repository)?;
     // 1. Create a temporary path for atomic initialization
     // Use a non-dot, valid resource_id prefix so LoreBackend::init (which derives
     // repo_id from path.file_name()) never creates grpcs://…/.__px_init_… on the
@@ -708,21 +724,16 @@ fn cmd_init_universe(base_dir: &Path, repository: &str, remote: Option<&str>) ->
 
     // 2. Perform initialization in temporary path
     emit("Creating repository repository...");
-    // Hint LoreBackend::from_env to read provider.toml from base_dir (not PX_DIR) for portals-cloud
     let vcs: Option<Box<dyn px_core::vcs::VcsBackend>> =
         if px_core::provider::version_control_configured(base_dir) {
-            // Set hint for vcs_lore to read the correct provider.toml
-            unsafe { std::env::set_var("PX_INIT_BASE_DIR", base_dir) };
-            let backend = Box::new(LoreBackend::from_env());
-            unsafe { std::env::remove_var("PX_INIT_BASE_DIR") };
-            Some(backend)
+            Some(Box::new(LoreBackend::from_px_home(base_dir)))
         } else {
             None
         };
     let result = Repository::init_optional(&tmp_path, repository, vcs);
 
     match result {
-        Ok(repo) => {
+        Ok(_repo) => {
             // 3. Success: rename to final destination
             let final_path = base_dir.join(repository);
             std::fs::rename(&tmp_path, &final_path).context(format!(
@@ -735,7 +746,12 @@ fn cmd_init_universe(base_dir: &Path, repository: &str, remote: Option<&str>) ->
                 final_path.display()
             ));
 
+            if final_path.join(".lore").is_dir() {
+                LoreBackend::update_checkout_path(&final_path)?;
+            }
             if let Some(url) = remote {
+                let repo = open_repo(base_dir, repository)?;
+                px_core::repo_config::set_remote(&final_path, repository, url, "custom")?;
                 repo.add_remote("origin", url)
                     .context(format!("failed to add remote origin '{url}'"))?;
                 emit(format!("  Added remote 'origin' → {url}"));
@@ -930,6 +946,7 @@ fn cmd_configure(base_dir: &Path, args: ConfigureArgs) -> Result<()> {
     let has_set_flags = args.remote_url.is_some()
         || args.workspace_id.is_some()
         || args.reset
+        || args.force
         || args.initial_commit
         || args.no_initial_commit;
     if provider_raw.is_none() && !has_set_flags {
@@ -964,16 +981,12 @@ fn cmd_configure(base_dir: &Path, args: ConfigureArgs) -> Result<()> {
             provider_type.as_str()
         ));
     }
+    let old_default = LoreBackend::configured_server_url(base_dir);
+    let migrations =
+        px_core::repo_config::plan_remote_migration(base_dir, &old_default, args.force)?;
     // Validate every argument before touching the existing configuration. In
     // particular, `px configure --reset` must not erase a working provider
     // before reporting that a provider type is required.
-    if args.reset {
-        let config_path = base_dir.join("provider.toml");
-        if config_path.exists() {
-            std::fs::remove_file(&config_path).context("failed to reset provider configuration")?;
-            emit("✓ Reset provider configuration.");
-        }
-    }
     let factory = ProviderFactory::new(base_dir);
     let provider = match provider_type {
         ProviderType::Local => factory.create_provider(ProviderType::Local)?,
@@ -1003,7 +1016,30 @@ fn cmd_configure(base_dir: &Path, args: ConfigureArgs) -> Result<()> {
     let rt = get_tokio_runtime();
     rt.block_on(provider.initialize())
         .context("failed to initialize provider")?;
+    if args.reset {
+        emit("✓ Reset provider configuration.");
+    }
     emit(format!("✓ Configured {} backend.", provider_type.as_str()));
+    let new_default = provider.lore_url_base()?;
+    for migration in migrations {
+        if migration.update {
+            px_core::repo_config::set_remote(
+                &base_dir.join(&migration.repository),
+                &migration.repository,
+                &new_default,
+                "default",
+            )?;
+            emit(format!(
+                "  Updated '{}' remote to {new_default}",
+                migration.repository
+            ));
+        } else {
+            emit(format!(
+                "Repository {} has custom remote URL {}. Not updated. Use px remote set {} <url> to change manually.",
+                migration.repository, migration.previous, migration.repository
+            ));
+        }
+    }
     if let Ok(url) = provider.lore_url_base() {
         emit(format!("  Lore URL: {}", url));
     }
@@ -1246,6 +1282,7 @@ fn cmd_publish(base_dir: &Path, repository: &str) -> Result<()> {
 
 #[derive(Default, serde::Serialize)]
 struct RepositoryStatusReport {
+    current_branch: Option<String>,
     new: Vec<String>,
     modified: Vec<String>,
     deleted: Vec<String>,
@@ -1363,6 +1400,10 @@ fn cmd_status(base_dir: &Path, repository: Option<&str>) -> Result<()> {
         )
         .context("failed to scan repository status")?;
         let mut report = parse_repository_status(&output);
+        report.current_branch = Some(
+            repo.current_branch()
+                .context("failed to identify current branch")?,
+        );
         let revision = report.current_revision.clone();
         let representation_only: Vec<_> = report
             .modified
@@ -1375,6 +1416,7 @@ fn cmd_status(base_dir: &Path, repository: Option<&str>) -> Result<()> {
             .retain(|path| !representation_only.contains(path));
         report.representation_only = representation_only;
         if std::io::stdout().is_terminal() {
+            println!("Branch: {}", report.current_branch.as_deref().unwrap());
             for (label, paths) in [
                 ("New", &report.new),
                 ("Modified", &report.modified),
@@ -2082,7 +2124,7 @@ fn cmd_branch(base_dir: &Path, repository: &str, name: Option<&str>) -> Result<(
 }
 
 fn pull_entity_uri(value: &str) -> Option<PxUri> {
-    if value.contains("://") {
+    if value.contains("://") && !value.starts_with("px://") {
         return None;
     }
     let normalized = if value.starts_with("px://") {
@@ -2093,21 +2135,28 @@ fn pull_entity_uri(value: &str) -> Option<PxUri> {
     normalized.parse().ok()
 }
 
-fn validate_pulled_manifests(path: &Path, required: &[String]) -> Result<()> {
+fn validate_pulled_manifests(path: &Path, repository: &str, required: &[String]) -> Result<()> {
     for file in required {
+        px_core::repo_config::validate_root_file(file)?;
         let manifest = path.join(file);
         if !manifest.is_file() {
             anyhow::bail!(
-                "remote repository is missing required PX manifest '{}'; commit and push it before running px pull",
-                file,
+                "remote repository is missing required PX manifest '{file}'; commit and push it before running px pull"
             );
         }
-        serde_yaml::from_str::<serde_yaml::Value>(
-            &std::fs::read_to_string(&manifest).with_context(|| {
-                format!("failed to read pulled manifest '{}'", manifest.display())
-            })?,
-        )
-        .with_context(|| format!("invalid YAML in pulled manifest '{}'", manifest.display()))?;
+        let value: serde_yaml::Value =
+            serde_yaml::from_str(&std::fs::read_to_string(&manifest)?)
+                .with_context(|| format!("invalid YAML in pulled manifest '{file}'"))?;
+        let id = value
+            .get("id")
+            .and_then(serde_yaml::Value::as_str)
+            .ok_or_else(|| anyhow::anyhow!("pulled manifest '{file}' has no PX identity"))?;
+        let uri: PxUri = id.parse()?;
+        anyhow::ensure!(
+            uri.repository == repository && uri.manifest_path() == *file,
+            "pulled manifest '{file}' belongs to '{}' rather than repository '{repository}'",
+            uri.identity()
+        );
     }
     Ok(())
 }
@@ -2130,7 +2179,14 @@ fn clone_px_pull(remote_url: &str, target: &Path, required: Vec<String>) -> Resu
         let _ = std::fs::remove_dir_all(&temporary);
         return Err(error.into());
     }
-    if let Err(error) = validate_pulled_manifests(&temporary, &required) {
+    if let Err(error) = validate_pulled_manifests(
+        &temporary,
+        target
+            .file_name()
+            .and_then(|s| s.to_str())
+            .context("invalid repository name")?,
+        &required,
+    ) {
         let _ = std::fs::remove_dir_all(&temporary);
         return Err(error);
     }
@@ -2145,8 +2201,10 @@ fn clone_px_pull(remote_url: &str, target: &Path, required: Vec<String>) -> Resu
             target.display()
         );
     }
+    px_core::repo_config::ensure_ignore(&temporary)?;
     std::fs::rename(&temporary, target)
         .with_context(|| format!("failed to finalize clone at '{}'", target.display()))?;
+    LoreBackend::update_checkout_path(target)?;
     Ok(())
 }
 
@@ -2164,18 +2222,19 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
     let entity = pull_entity_uri(url_or_name);
     if let Some(uri) = entity {
         require_backend(base_dir, "clone entity")?;
-        let backend = LoreBackend::from_px_home(base_dir);
-        let remote_url = format!(
-            "{}/{}",
-            backend.remote_url().trim_end_matches('/'),
-            uri.repository
-        );
+        let server = px_core::repo_config::repository_server(
+            &base_dir.join(&uri.repository),
+            &uri.repository,
+            &LoreBackend::configured_server_url(base_dir),
+        )?;
+        let remote_url = format!("{server}/{}", uri.repository);
         let required = vec!["repository.yaml".to_string(), uri.manifest_path()];
         let target = base_dir.join(&uri.repository);
         if target.exists() {
+            validate_pulled_manifests(&target, &uri.repository, &["repository.yaml".into()])?;
             LoreBackend::sync_root_files(&target, &required)
                 .context("failed to synchronize requested entity manifests")?;
-            validate_pulled_manifests(&target, &required)?;
+            validate_pulled_manifests(&target, &uri.repository, &required)?;
             emit_action(format!(
                 "✓ Pulled '{}' into {}",
                 uri.identity(),
@@ -2248,11 +2307,14 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("cannot determine repository name from URL"))?
         };
 
-        if let Err(error) = validate_pulled_manifests(&tmp_path, &["repository.yaml".to_string()]) {
+        if let Err(error) =
+            validate_pulled_manifests(&tmp_path, &name, &["repository.yaml".to_string()])
+        {
             let _ = std::fs::remove_dir_all(&tmp_path);
             return Err(error);
         }
 
+        px_core::repo_config::validate_repository_name(&name)?;
         // Check if the target directory already exists
         let target = base_dir.join(&name);
         if target.exists() {
@@ -2261,9 +2323,11 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
             anyhow::bail!("repository '{name}' already exists at {}", target.display());
         }
 
+        px_core::repo_config::ensure_ignore(&tmp_path)?;
         // Rename temp → final
         std::fs::rename(&tmp_path, &target)
             .context(format!("failed to rename {tmp_name} → {name}"))?;
+        LoreBackend::update_checkout_path(&target)?;
 
         emit(format!(
             "✓ Cloned repository '{name}' to {}",
@@ -2271,18 +2335,24 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
         ));
     } else {
         // ── Pull existing repo OR clone by name ───────────────────
+        px_core::repo_config::validate_repository_name(url_or_name)?;
         let required = repository_manifest_roots(base_dir, url_or_name)?;
         let target_dir = base_dir.join(url_or_name);
         if target_dir.exists() {
+            validate_pulled_manifests(&target_dir, url_or_name, &["repository.yaml".into()])?;
             LoreBackend::sync_root_files(&target_dir, &required)
                 .context("failed to synchronize PX manifests")?;
-            validate_pulled_manifests(&target_dir, &required)?;
+            validate_pulled_manifests(&target_dir, url_or_name, &required)?;
             emit_action(format!("✓ Pulled latest changes for '{url_or_name}'"));
         } else {
             // Doesn't exist locally, construct URL and clone
             require_backend(base_dir, "clone repository")?;
-            let backend_config = LoreBackend::from_px_home(base_dir);
-            let remote_url = format!("{}/{}", backend_config.remote_url(), url_or_name);
+            let server = px_core::repo_config::repository_server(
+                &base_dir.join(url_or_name),
+                url_or_name,
+                &LoreBackend::configured_server_url(base_dir),
+            )?;
+            let remote_url = format!("{server}/{url_or_name}");
 
             emit(format!("  Cloning from {remote_url} …"));
             let target = base_dir.join(url_or_name);
@@ -2311,6 +2381,11 @@ fn cmd_push(base_dir: &Path, repository: &str, remote: &str, branch: Option<&str
 
 fn cmd_remote(base_dir: &Path, cmd: RemoteCmd) -> Result<()> {
     match cmd {
+        RemoteCmd::Set { repository, url } => {
+            let repo = open_repo(base_dir, &repository)?;
+            px_core::repo_config::set_remote(&repo.root, &repository, &url, "custom")?;
+            emit(format!("✓ Set '{repository}' remote to {url}"));
+        }
         RemoteCmd::Add {
             repository,
             name,
@@ -2890,4 +2965,59 @@ fn cmd_verify(uri_str: &str) -> Result<()> {
     emit(format!("⚠ Verify not implemented in v0. URI: {uri_str}"));
     emit("  Future: Ed25519 signature verification.");
     Ok(())
+}
+
+#[cfg(test)]
+mod pull_safety_tests {
+    use super::*;
+    #[test]
+    fn entity_uri_detection_preserves_scheme_and_rejects_foreign_schemes() {
+        assert_eq!(
+            pull_entity_uri("px://bears/character/hero")
+                .unwrap()
+                .repository,
+            "bears"
+        );
+        assert_eq!(
+            pull_entity_uri("bears/character/hero").unwrap().repository,
+            "bears"
+        );
+        assert!(pull_entity_uri("lore://host/bears").is_none());
+    }
+    #[test]
+    fn pulled_manifest_identity_and_paths_are_scoped_to_requested_repository() {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::create_dir(root.path().join("character")).unwrap();
+        std::fs::write(
+            root.path().join("repository.yaml"),
+            "id: px://bears/world/bears\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.path().join("character/hero.yaml"),
+            "id: px://toystory/character/hero\n",
+        )
+        .unwrap();
+        let required = vec!["repository.yaml".into(), "character/hero.yaml".into()];
+        assert!(
+            validate_pulled_manifests(root.path(), "bears", &required)
+                .unwrap_err()
+                .to_string()
+                .contains("toystory")
+        );
+        assert!(
+            validate_pulled_manifests(
+                root.path(),
+                "bears",
+                &["../toystory/character/hero.yaml".into()]
+            )
+            .is_err()
+        );
+        std::fs::write(
+            root.path().join("character/hero.yaml"),
+            "id: px://bears/character/hero\n",
+        )
+        .unwrap();
+        validate_pulled_manifests(root.path(), "bears", &required).unwrap();
+    }
 }

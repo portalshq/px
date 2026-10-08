@@ -19,7 +19,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "key",
@@ -28,7 +30,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "file",
@@ -37,7 +41,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -48,7 +54,9 @@
           "default_value": null,
           "short": null,
           "long": "format",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "message",
@@ -57,7 +65,9 @@
           "default_value": null,
           "short": "m",
           "long": "message",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "author",
@@ -66,7 +76,9 @@
           "default_value": "px",
           "short": "a",
           "long": "author",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -77,7 +89,9 @@
           "default_value": "false",
           "short": null,
           "long": "replace",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "help",
@@ -86,7 +100,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -109,7 +125,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [
@@ -129,7 +147,9 @@
               "default_value": "PORTALS_CLOUD_API_KEY",
               "short": null,
               "long": "api-key-env",
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "flags": [
@@ -140,7 +160,9 @@
               "default_value": "false",
               "short": null,
               "long": "api-key",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             },
             {
               "name": "no_browser",
@@ -149,7 +171,9 @@
               "default_value": "false",
               "short": null,
               "long": "no-browser",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             },
             {
               "name": "help",
@@ -158,7 +182,9 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -181,7 +207,9 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -204,7 +232,9 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -228,7 +258,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "name",
@@ -237,7 +269,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -249,7 +283,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -270,7 +306,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -281,7 +319,9 @@
           "default_value": null,
           "short": "m",
           "long": "message",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "author",
@@ -290,7 +330,9 @@
           "default_value": "px",
           "short": "a",
           "long": "author",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -301,7 +343,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -324,7 +368,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -335,7 +381,9 @@
           "default_value": null,
           "short": null,
           "long": "remote-url",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "workspace_id",
@@ -344,10 +392,23 @@
           "default_value": null,
           "short": null,
           "long": "workspace-id",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
+        {
+          "name": "force",
+          "about": "Migrate all existing repository remotes, including custom servers",
+          "required": false,
+          "default_value": "false",
+          "short": null,
+          "long": "force",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        },
         {
           "name": "reset",
           "about": "Reset provider configuration before (re)configuring",
@@ -355,7 +416,9 @@
           "default_value": "false",
           "short": null,
           "long": "reset",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "initial_commit",
@@ -364,7 +427,9 @@
           "default_value": "false",
           "short": null,
           "long": "initial-commit",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "no_initial_commit",
@@ -373,7 +438,9 @@
           "default_value": "false",
           "short": null,
           "long": "no-initial-commit",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "help",
@@ -382,7 +449,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [
@@ -403,7 +472,9 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -427,7 +498,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -439,7 +512,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -460,7 +535,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "entity_id",
@@ -469,7 +546,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -480,7 +559,9 @@
           "default_value": null,
           "short": "u",
           "long": "repository",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "name",
@@ -489,7 +570,9 @@
           "default_value": null,
           "short": "n",
           "long": "name",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "author",
@@ -498,7 +581,9 @@
           "default_value": "px",
           "short": "a",
           "long": "author",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "properties",
@@ -507,7 +592,9 @@
           "default_value": null,
           "short": null,
           "long": "set",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": true,
+          "possible_values": []
         },
         {
           "name": "message",
@@ -516,7 +603,9 @@
           "default_value": null,
           "short": "m",
           "long": "message",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -527,7 +616,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -548,7 +639,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -559,7 +652,9 @@
           "default_value": null,
           "short": null,
           "long": "base-branch",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "candidate_branch",
@@ -568,7 +663,9 @@
           "default_value": null,
           "short": null,
           "long": "candidate-branch",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "base_commit",
@@ -577,7 +674,9 @@
           "default_value": null,
           "short": null,
           "long": "base-commit",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "candidate_commit",
@@ -586,7 +685,9 @@
           "default_value": null,
           "short": null,
           "long": "candidate-commit",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "format",
@@ -595,7 +696,9 @@
           "default_value": "yaml",
           "short": "f",
           "long": "format",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -606,7 +709,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -629,7 +734,9 @@
           "default_value": "false",
           "short": null,
           "long": "repair",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "help",
@@ -638,7 +745,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -662,7 +771,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -674,7 +785,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -695,7 +808,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -706,7 +821,9 @@
           "default_value": "20",
           "short": "n",
           "long": "limit",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -717,7 +834,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -738,7 +857,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -749,7 +870,9 @@
           "default_value": null,
           "short": null,
           "long": "provider",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "remote_url",
@@ -758,7 +881,9 @@
           "default_value": null,
           "short": null,
           "long": "remote-url",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "workspace_id",
@@ -767,7 +892,9 @@
           "default_value": null,
           "short": null,
           "long": "workspace-id",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "remote",
@@ -776,7 +903,9 @@
           "default_value": null,
           "short": null,
           "long": "origin",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -787,7 +916,9 @@
           "default_value": "false",
           "short": null,
           "long": "reset",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "help",
@@ -796,7 +927,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -817,7 +950,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -829,7 +964,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -850,7 +987,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -861,7 +1000,9 @@
           "default_value": null,
           "short": "t",
           "long": "entity-type",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -872,7 +1013,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -893,7 +1036,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "current",
@@ -902,7 +1047,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "proposed",
@@ -911,7 +1058,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -922,7 +1071,9 @@
           "default_value": "yaml",
           "short": "f",
           "long": "format",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -933,7 +1084,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -954,7 +1107,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "representation",
@@ -963,7 +1118,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -974,7 +1131,9 @@
           "default_value": null,
           "short": null,
           "long": "branch",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "commit",
@@ -983,7 +1142,9 @@
           "default_value": null,
           "short": null,
           "long": "commit",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "ttl_seconds",
@@ -992,7 +1153,9 @@
           "default_value": null,
           "short": null,
           "long": "ttl-seconds",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "http_url",
@@ -1001,7 +1164,9 @@
           "default_value": null,
           "short": null,
           "long": "http-url",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "token_env",
@@ -1010,7 +1175,9 @@
           "default_value": null,
           "short": null,
           "long": "token-env",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "download",
@@ -1019,7 +1186,9 @@
           "default_value": null,
           "short": null,
           "long": "download",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "output",
@@ -1028,7 +1197,9 @@
           "default_value": null,
           "short": null,
           "long": "output",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1039,7 +1210,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1060,7 +1233,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -1072,7 +1247,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1095,7 +1272,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1106,7 +1285,9 @@
           "default_value": "origin",
           "short": null,
           "long": "remote-name",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "branch",
@@ -1115,7 +1296,9 @@
           "default_value": null,
           "short": null,
           "long": "branch",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1126,7 +1309,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1149,7 +1334,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [
@@ -1168,7 +1355,9 @@
               "default_value": null,
               "short": null,
               "long": null,
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             },
             {
               "name": "name",
@@ -1177,7 +1366,9 @@
               "default_value": null,
               "short": null,
               "long": null,
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             },
             {
               "name": "url",
@@ -1186,7 +1377,9 @@
               "default_value": null,
               "short": null,
               "long": null,
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "options": [],
@@ -1198,7 +1391,9 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -1219,7 +1414,9 @@
               "default_value": null,
               "short": null,
               "long": null,
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "options": [],
@@ -1231,7 +1428,9 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -1252,7 +1451,9 @@
               "default_value": null,
               "short": null,
               "long": null,
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             },
             {
               "name": "name",
@@ -1261,7 +1462,9 @@
               "default_value": null,
               "short": null,
               "long": null,
-              "takes_value": true
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "options": [],
@@ -1273,7 +1476,57 @@
               "default_value": null,
               "short": "h",
               "long": "help",
-              "takes_value": false
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "set",
+          "full_path": "remote set",
+          "about": "Set the repository's server, overriding the global provider default",
+          "long_about": null,
+          "usage": "Usage: set <REPOSITORY> <URL>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "repository",
+              "about": "Repository name",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            },
+            {
+              "name": "url",
+              "about": "Lore server URL or full repository URL",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
             }
           ],
           "subcommands": [],
@@ -1297,7 +1550,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "path",
@@ -1306,7 +1561,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1317,7 +1574,9 @@
           "default_value": null,
           "short": null,
           "long": "branch",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "commit",
@@ -1326,7 +1585,9 @@
           "default_value": null,
           "short": null,
           "long": "commit",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "format",
@@ -1335,7 +1596,9 @@
           "default_value": "yaml",
           "short": "f",
           "long": "format",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1346,7 +1609,9 @@
           "default_value": "false",
           "short": null,
           "long": "provenance",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "include_blobs",
@@ -1355,7 +1620,9 @@
           "default_value": "false",
           "short": null,
           "long": "include-blobs",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "help",
@@ -1364,7 +1631,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1385,7 +1654,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1396,7 +1667,9 @@
           "default_value": null,
           "short": "c",
           "long": "commit",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "author",
@@ -1405,7 +1678,9 @@
           "default_value": "px",
           "short": "a",
           "long": "author",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1416,7 +1691,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1437,7 +1714,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1448,7 +1727,9 @@
           "default_value": "json",
           "short": "f",
           "long": "format",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1459,7 +1740,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1480,7 +1763,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "values",
@@ -1489,7 +1774,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": true,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1500,7 +1787,9 @@
           "default_value": null,
           "short": "m",
           "long": "message",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "author",
@@ -1509,7 +1798,9 @@
           "default_value": "px",
           "short": "a",
           "long": "author",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1520,7 +1811,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1541,7 +1834,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -1553,7 +1848,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1574,7 +1871,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "name",
@@ -1583,7 +1882,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -1595,7 +1896,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1616,7 +1919,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [],
@@ -1628,7 +1933,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1649,7 +1956,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "keys",
@@ -1658,7 +1967,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": true,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1669,7 +1980,9 @@
           "default_value": null,
           "short": "m",
           "long": "message",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         },
         {
           "name": "author",
@@ -1678,7 +1991,9 @@
           "default_value": "px",
           "short": "a",
           "long": "author",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1689,7 +2004,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],
@@ -1710,7 +2027,9 @@
           "default_value": null,
           "short": null,
           "long": null,
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "options": [
@@ -1721,7 +2040,9 @@
           "default_value": null,
           "short": null,
           "long": "file",
-          "takes_value": true
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "flags": [
@@ -1732,7 +2053,9 @@
           "default_value": null,
           "short": "h",
           "long": "help",
-          "takes_value": false
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
         }
       ],
       "subcommands": [],

@@ -443,8 +443,8 @@ impl Repository {
                     .unwrap_or_else(|| format!("create {entity_type} {entity_id}"));
                 let hash = vcs.commit(&self.root, &commit_message, author)?;
                 vcs.push(&self.root, None, None).map_err(|error| {
-                    PxError::VcsError(format!(
-                        "push failed after local commit {hash}: {error}; run px push {} when connectivity is restored",
+                    error.context(format!(
+                        "push failed after local commit {hash}; run px push {} when connectivity is restored",
                         self.repository
                     ))
                 })?;
@@ -491,8 +491,8 @@ impl Repository {
                 let parent = Some(vcs.head_hash(&self.root)?);
                 let hash = vcs.commit(&self.root, message, author)?;
                 vcs.push(&self.root, None, None).map_err(|error| {
-                    PxError::VcsError(format!(
-                        "push failed after local commit {hash}: {error}; run px push {} when connectivity is restored",
+                    error.context(format!(
+                        "push failed after local commit {hash}; run px push {} when connectivity is restored",
                         self.repository
                     ))
                 })?;
@@ -637,6 +637,12 @@ impl Repository {
     pub fn switch_branch(&self, name: &str) -> Result<(), PxError> {
         self.require_vcs("switch branch")?
             .switch_branch(&self.root, name)
+    }
+
+    /// Identify the active VCS branch without consulting the global default.
+    pub fn current_branch(&self) -> Result<String, PxError> {
+        self.require_vcs("read current branch")?
+            .current_branch(&self.root)
     }
 
     /// List branches.

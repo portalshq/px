@@ -1,6 +1,6 @@
 ---
 name: px-resolve
-description: Create PX entities, resolve PX URIs, and query entity context via px-mcp-server (px_create, px_resolve, px_query), establishing active entity continuity so later refinements automatically persist through px-update. The px CLI is not available for agentic use.
+description: Create PX entities, resolve PX URIs, and query entity context via px-mcp-server (px_create, px_resolve), establishing active entity continuity so later refinements automatically persist through px-update. The px CLI is not available for agentic use.
 ---
 
 # PX Resolve
@@ -31,5 +31,3 @@ For revising entity content and persisting iterations, use `px-update`. For repo
 {{include docs/generated/mcp/px_create.md}}
 
 {{include docs/generated/mcp/px_resolve.md}}
-
-{{include docs/generated/mcp/px_query.md}}

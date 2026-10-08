@@ -14,7 +14,7 @@
 //! | `log`                        | `lore log --format json`                                 |
 //! | `create_branch`              | `lore branch create <name>`                              |
 //! | `switch_branch`              | `lore branch switch <name>`                              |
-//! | `current_branch`             | `lore branch show`                                       |
+//! | `current_branch`             | `lore branch list --local --json`                                       |
 //! | `head_hash`                  | `lore log --limit 1 --format json`                       |
 //! | `revert`                     | `lore revision revert <hash>`                            |
 //! | `list_branches`              | `lore branch list`                                       |
@@ -89,8 +89,24 @@ impl LoreProcessRunner {
         let bin = Self::binary();
         let mut cmd = Command::new(&bin);
         cmd.args(&args_vec);
+        if tracing::enabled!(tracing::Level::TRACE) {
+            cmd.arg("--debug");
+        }
 
         if let Some(dir) = cwd {
+            if dir.join(".lore").is_dir() && dir.join("repository.yaml").is_file() {
+                let repository = crate::repo_config::checkout_repository(dir)?;
+                crate::repo_config::apply_remote_override(dir, &repository)?;
+                if args_vec
+                    .first()
+                    .is_some_and(|arg| matches!(arg.as_str(), "stage" | "sync" | "push"))
+                    || args_vec
+                        .windows(2)
+                        .any(|args| args == ["revision", "sync"] || args == ["branch", "push"])
+                {
+                    crate::repo_config::ensure_ignore(dir)?;
+                }
+            }
             cmd.current_dir(dir);
         }
 
@@ -118,53 +134,54 @@ impl LoreProcessRunner {
 
         // ── Error translation ────────────────────────────────────────
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
         let exit_code = output.status.code().unwrap_or(-1);
+        let diagnostic = format!("{stdout}\n{stderr}");
 
-        // We categorise known Lore exit codes into PxError variants.
-        // For v0 this is best-effort; the list will grow with production
-        // experience.
-        let px_err = match exit_code {
-            1 => {
-                // Generic error — check for known patterns in stderr.
-                if stderr.contains("not authenticated")
-                    || stderr.contains("authentication required")
-                    || stderr.contains("Unauthenticated")
-                {
-                    PxError::VcsError(
-                        "Portals Cloud authentication is required; run `px auth login` in an interactive terminal and retry"
-                            .to_string(),
-                    )
-                } else if stderr.contains("not a lore workspace")
-                    || stderr.contains("not an initialised lore workspace")
-                {
-                    PxError::VcsError(format!(
-                        "not a lore workspace at {:?}",
-                        cwd.unwrap_or(Path::new("."))
-                    ))
-                } else if stderr.contains("not found") {
-                    PxError::VcsError(format!("path not found in lore workspace: {}", stderr))
-                } else {
-                    PxError::VcsError(format!(
-                        "lore CLI exited with code {}: {}",
-                        exit_code, stderr
-                    ))
-                }
-            }
-            64..=126 => {
-                // Usage / config errors.
-                PxError::VcsError(format!(
-                    "lore CLI configuration error ({}): {}",
-                    exit_code, stderr
-                ))
-            }
-            _ => PxError::VcsError(format!(
-                "lore CLI exited with code {}: {}",
-                exit_code, stderr
-            )),
+        let px_err = PxError::LoreFailure {
+            message: crate::error::clean_lore_error(&diagnostic, exit_code),
+            details: format!(
+                "Lore command {:?} exited with code {exit_code}:\n{stderr}\n{stdout}",
+                args_vec
+            ),
         };
 
         Err(px_err)
     }
+}
+
+fn parse_lore_branches(stdout: &str) -> Result<(Vec<String>, Option<String>), PxError> {
+    let mut branches = BTreeMap::new();
+    let mut current = None;
+    for line in stdout.lines().filter(|line| !line.trim().is_empty()) {
+        let event: serde_json::Value = serde_json::from_str(line)
+            .map_err(|e| PxError::VcsError(format!("invalid Lore branch-list event: {e}")))?;
+        if event.get("tagName").and_then(serde_json::Value::as_str) != Some("branchListEntry") {
+            continue;
+        }
+        let data = &event["data"];
+        if data["location"].as_str() != Some("local") {
+            continue;
+        }
+        let name = data["name"]
+            .as_str()
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| PxError::VcsError("Lore branch-list entry has no name".into()))?;
+        let is_current = data["isCurrent"].as_bool().ok_or_else(|| {
+            PxError::VcsError("Lore branch-list entry has no current-branch flag".into())
+        })?;
+        if branches.insert(name.to_owned(), ()).is_some() {
+            return Err(PxError::VcsError(
+                "Lore returned a duplicate local branch".into(),
+            ));
+        }
+        if is_current && current.replace(name.to_owned()).is_some() {
+            return Err(PxError::VcsError(
+                "Lore returned multiple current local branches".into(),
+            ));
+        }
+    }
+    Ok((branches.into_keys().collect(), current))
 }
 
 fn parse_lore_event_data(stdout: &str, tag: &str) -> Result<serde_json::Value, String> {
@@ -336,13 +353,13 @@ impl LoreBackend {
     /// Construct a backend using a specific PX home rather than whichever
     /// directory happens to be in `PX_DIR`.
     pub fn from_px_home(px_home: &Path) -> Self {
-        if std::env::var("PX_LORE_URL_BASE").is_ok() || std::env::var("PX_WORKSPACE_ID").is_ok() {
-            return Self::from_env();
-        }
-        let workspace_id = std::fs::read_to_string(px_home.join("provider.toml"))
+        let configured_workspace = std::fs::read_to_string(px_home.join("provider.toml"))
             .ok()
             .and_then(|content| toml::from_str::<ProviderConfigToml>(&content).ok())
-            .and_then(|config| config.workspace_id)
+            .and_then(|config| config.workspace_id);
+        let workspace_id = std::env::var("PX_WORKSPACE_ID")
+            .ok()
+            .or(configured_workspace)
             .unwrap_or_else(|| "default".to_string());
         Self::from_provider(&Self::configured_server_url(px_home), &workspace_id)
     }
@@ -373,7 +390,7 @@ impl LoreBackend {
     /// Create a new Lore backend.
     ///
     /// `remote_url` should be a `lore://host/repository` URL.
-    /// `workspace_id` scopes the repository to a multi-tenant workspace.
+    /// `workspace_id` is provider context, never a Lore repository UUID.
     pub fn new(remote_url: &str, workspace_id: &str) -> Self {
         Self {
             remote_url: remote_url.to_string(),
@@ -383,6 +400,17 @@ impl LoreBackend {
 
     pub fn remote_url(&self) -> &str {
         &self.remote_url
+    }
+
+    /// A checkout finalized by rename must update Lore's instance registration.
+    /// Otherwise shared-store GC can regard the temporary path as stale and
+    /// collect content still needed by this checkout. Suppress GC during repair.
+    pub fn update_checkout_path(path: &Path) -> Result<(), PxError> {
+        LoreProcessRunner::run(
+            ["repository", "update-path", "--no-gc", "--non-interactive"],
+            Some(path),
+        )?;
+        Ok(())
     }
 
     /// Clone a remote Lore repository to a local path.
@@ -418,6 +446,7 @@ impl LoreBackend {
             "--non-interactive".to_string(),
         ];
         for root_file in root_files {
+            crate::repo_config::validate_root_file(root_file)?;
             args.push("--root-file".to_string());
             args.push(root_file.clone());
         }
@@ -429,6 +458,7 @@ impl LoreBackend {
     pub fn sync_root_files(dest: &Path, root_files: &[String]) -> Result<(), PxError> {
         let mut args = vec!["revision".to_string(), "sync".to_string()];
         for root_file in root_files {
+            crate::repo_config::validate_root_file(root_file)?;
             args.push("--root-file".to_string());
             args.push(root_file.clone());
         }
@@ -687,7 +717,7 @@ impl VcsBackend for LoreBackend {
     // ── init ─────────────────────────────────────────────────────────
     fn init(&self, path: &Path) -> Result<(), PxError> {
         // For Lore, "init" means:
-        //   1. `lore repository create <repo_url> --id <ws> --repository <server_path>`
+        //   1. `lore repository create <repo_url> --repository <server_path>`
         //   2. `lore clone <repo_url> <local_path>`
         //
         // We derive a repo id from the leaf directory of `path`.
@@ -756,30 +786,30 @@ impl VcsBackend for LoreBackend {
             .join(".lore-server")
             .join(repo_id);
 
+        // A workspace identifier is not a repository UUID. Let Lore mint a
+        // unique ID; forwarding workspace_id as --id aliases every repository
+        // in a workspace when that value happens to be valid hexadecimal.
+        tracing::debug!(workspace_id = %self.workspace_id, "creating repository with a unique Lore ID");
         // Step 1: Create the remote repository.
         LoreProcessRunner::run(
             [
                 "repository",
                 "create",
                 &url,
-                "--id",
-                &self.workspace_id,
                 "--repository",
                 server_path.to_str().unwrap_or("."),
                 "--non-interactive",
             ],
             None,
         )
-        .map_err(|e| {
-            PxError::VcsError(format!("failed to create lore repository '{}': {}", url, e))
-        })?;
+        .map_err(|e| e.context(format!("failed to create lore repository '{url}'")))?;
 
         // Step 2: Clone it locally.
         LoreProcessRunner::run(["clone", &url, path_str, "--non-interactive"], None).map_err(
             |e| {
-                PxError::VcsError(format!(
-                    "failed to clone lore repository to {:?}: {}",
-                    path, e
+                e.context(format!(
+                    "failed to clone lore repository to {}",
+                    path.display()
                 ))
             },
         )?;
@@ -803,6 +833,9 @@ impl VcsBackend for LoreBackend {
         message: &str,
         author: &str,
     ) -> Result<String, PxError> {
+        for file in paths {
+            crate::repo_config::validate_root_file(file)?;
+        }
         let mut args = vec!["stage".to_string(), "--scan".to_string()];
         args.extend(paths.iter().cloned());
         args.push("--non-interactive".to_string());
@@ -854,8 +887,12 @@ impl VcsBackend for LoreBackend {
     }
 
     fn repository_descriptor(&self, repo_path: &Path) -> Result<VcsRepositoryDescriptor, PxError> {
+        let repository = crate::repo_config::checkout_repository(repo_path)?;
+        let server =
+            crate::repo_config::repository_server(repo_path, &repository, &self.remote_url)?;
+        let url = format!("{server}/{repository}");
         let stdout = LoreProcessRunner::run(
-            ["repository", "info", "--json", "--non-interactive"],
+            ["repository", "info", &url, "--json", "--non-interactive"],
             Some(repo_path),
         )?;
         let data = parse_lore_event_data(&stdout, "repositoryData")
@@ -917,6 +954,7 @@ impl VcsBackend for LoreBackend {
         file_path: &str,
         reference: &str,
     ) -> Result<VcsContentAddress, PxError> {
+        crate::repo_config::validate_root_file(file_path)?;
         let stdout = LoreProcessRunner::run(
             [
                 "file",
@@ -1102,40 +1140,20 @@ impl VcsBackend for LoreBackend {
     }
 
     fn current_branch(&self, path: &Path) -> Result<String, PxError> {
-        let stdout = LoreProcessRunner::run(["branch", "show", "--non-interactive"], Some(path))?;
-        Ok(stdout.trim().to_string())
+        let stdout = LoreProcessRunner::run(
+            ["branch", "list", "--local", "--json", "--non-interactive"],
+            Some(path),
+        )?;
+        let (_, current) = parse_lore_branches(&stdout)?;
+        current.ok_or_else(|| PxError::VcsError("Lore did not identify the current local branch; switch to the intended branch before pushing".into()))
     }
 
     fn list_branches(&self, path: &Path) -> Result<Vec<String>, PxError> {
-        let stdout = LoreProcessRunner::run(["branch", "list", "--non-interactive"], Some(path))?;
-        if stdout.is_empty() {
-            return Ok(Vec::new());
-        }
-        // Parse plain text output:
-        //   Local branches:
-        //   * main
-        //     feature-x
-        //   Remote branches:
-        //     main
-        let mut branches = Vec::new();
-        let mut in_local = false;
-        for line in stdout.lines() {
-            let trimmed = line.trim();
-            if trimmed.starts_with("Local branches") {
-                in_local = true;
-                continue;
-            }
-            if trimmed.starts_with("Remote branches") {
-                in_local = false;
-                continue;
-            }
-            if in_local && !trimmed.is_empty() {
-                // Strip "* " prefix for current branch marker.
-                let name = trimmed.strip_prefix("* ").unwrap_or(trimmed);
-                branches.push(name.to_string());
-            }
-        }
-        Ok(branches)
+        let stdout = LoreProcessRunner::run(
+            ["branch", "list", "--local", "--json", "--non-interactive"],
+            Some(path),
+        )?;
+        Ok(parse_lore_branches(&stdout)?.0)
     }
 
     // ── head / revert ────────────────────────────────────────────────
@@ -1257,85 +1275,22 @@ impl VcsBackend for LoreBackend {
         _remote: Option<&str>,
         branch: Option<&str>,
     ) -> Result<(), PxError> {
-        // Fail fast if the checkout still tracks a different Lore server than
-        // the current provider (e.g. Tailscale 100.x vs LAN 192.168.x after
-        // provider.toml was reconfigured). Without this the lore CLI dials the
-        // stale address and the transport error is opaque.
-        // Test hook: `.mock_remote_url` allows unit tests to simulate a stale
-        // checkout without requiring the `lore` binary.
-        let mock_descriptor_remote = std::fs::read_to_string(path.join(".mock_remote_url"))
-            .ok()
-            .map(|s| s.trim().to_string());
-        if let Some(mock_url) = mock_descriptor_remote {
-            if !mock_url.is_empty()
-                && !crate::provider::http::same_server(&mock_url, &self.remote_url)
-            {
-                let repo_name = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("repository");
-                return Err(PxError::VcsError(format!(
-                    "repository remote mismatch: provider is configured for '{}' but repository '{}' at '{}' tracks '{}'. The provider was changed after this repository was created and the checkout still points at the old server. Fix: confirm 'px status' shows the intended provider URL, then re-clone the repository from the new server (e.g. `mv {} {}.bak && px pull lore://{}/{} --base-dir <px-home>` or `px pull {} --base-dir <px-home>` with the updated provider), or run `px doctor` to diagnose. Provider: '{}', repository remote: '{}'",
-                    self.remote_url,
-                    repo_name,
-                    path.display(),
-                    mock_url,
-                    repo_name,
-                    repo_name,
-                    self.remote_url
-                        .trim_end_matches('/')
-                        .trim_start_matches("lore://")
-                        .trim_start_matches("lores://")
-                        .trim_start_matches("grpc://")
-                        .trim_start_matches("grpcs://")
-                        .split('/')
-                        .next()
-                        .unwrap_or("host"),
-                    repo_name,
-                    repo_name,
-                    self.remote_url,
-                    mock_url
-                )));
-            }
-        } else if let Ok(descriptor) = self.repository_descriptor(path)
-            && !descriptor.remote_url.is_empty()
-            && !crate::provider::http::same_server(&descriptor.remote_url, &self.remote_url)
-        {
-            let repo_name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("repository");
-            return Err(PxError::VcsError(format!(
-                "repository remote mismatch: provider is configured for '{}' but repository '{}' at '{}' tracks '{}'. The provider was changed after this repository was created and the checkout still points at the old server. Fix: confirm 'px status' shows the intended provider URL, then re-clone the repository from the new server (e.g. `mv {} {}.bak && px pull lore://{}/{} --base-dir <px-home>` or `px pull {} --base-dir <px-home>` with the updated provider), or run `px doctor` to diagnose. Provider: '{}', repository remote: '{}'",
-                self.remote_url,
-                repo_name,
-                path.display(),
-                descriptor.remote_url,
-                repo_name,
-                repo_name,
-                self.remote_url
-                    .trim_end_matches('/')
-                    .trim_start_matches("lore://")
-                    .trim_start_matches("lores://")
-                    .trim_start_matches("grpc://")
-                    .trim_start_matches("grpcs://")
-                    .split('/')
-                    .next()
-                    .unwrap_or("host"),
-                repo_name,
-                repo_name,
-                self.remote_url,
-                descriptor.remote_url
-            )));
-        }
+        // Sparse Lore clones may not have cached repository metadata yet.
+        // The metadata getter queries the remote and caches its pointer locally;
+        // repository info uses an ephemeral store and cannot repair this key.
+        // Hydrate it before branch push, which otherwise
+        // fails with AddressNotFound while reading its metadata key. The
+        // checkout's server may intentionally differ from the global default.
+        LoreProcessRunner::run(
+            ["repository", "metadata", "get", "--non-interactive"],
+            Some(path),
+        )?;
 
         // Resolve the branch name: prefer the caller-supplied value,
-        // fall back to the workspace's current branch, then "main".
+        // otherwise require the workspace's current branch. Never guess a target.
         let branch_name = match branch {
             Some(b) => b.to_string(),
-            None => self
-                .current_branch(path)
-                .unwrap_or_else(|_| "main".to_string()),
+            None => self.current_branch(path)?,
         };
 
         // Push branch via lore CLI (handles blob upload + branch tip advancement internally)
@@ -1346,49 +1301,7 @@ impl VcsBackend for LoreBackend {
             "--fast-forward-merge",
             "--non-interactive",
         ];
-        if let Err(e) = LoreProcessRunner::run(&args, Some(path)) {
-            // If the transport error mentions a host different from the
-            // configured provider, surface the mismatch hint even when
-            // repository_descriptor was unavailable (e.g. descriptor fetch
-            // failed). This catches stale-address dials that otherwise surface
-            // as opaque gRPC transport errors.
-            let msg = e.to_string();
-            if msg.contains("transport error")
-                || msg.contains("gRPC connection")
-                || msg.contains("acquiring remote")
-            {
-                let mock_url = std::fs::read_to_string(path.join(".mock_remote_url"))
-                    .ok()
-                    .map(|s| s.trim().to_string());
-                if let Some(mock_url) = mock_url {
-                    if !mock_url.is_empty()
-                        && !crate::provider::http::same_server(&mock_url, &self.remote_url)
-                    {
-                        let repo_name = path
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .unwrap_or("repository");
-                        return Err(PxError::VcsError(format!(
-                            "{e} (repository '{}' tracks '{}' but provider is '{}'; re-clone from the new server or run `px doctor`)",
-                            repo_name, mock_url, self.remote_url
-                        )));
-                    }
-                } else if let Ok(descriptor) = self.repository_descriptor(path)
-                    && !descriptor.remote_url.is_empty()
-                    && !crate::provider::http::same_server(&descriptor.remote_url, &self.remote_url)
-                {
-                    let repo_name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("repository");
-                    return Err(PxError::VcsError(format!(
-                        "{e} (repository '{}' tracks '{}' but provider is '{}'; re-clone from the new server or run `px doctor`)",
-                        repo_name, descriptor.remote_url, self.remote_url
-                    )));
-                }
-            }
-            return Err(e);
-        }
+        LoreProcessRunner::run(&args, Some(path))?;
 
         Ok(())
     }
@@ -1399,89 +1312,7 @@ impl VcsBackend for LoreBackend {
         _remote: Option<&str>,
         _branch: Option<&str>,
     ) -> Result<(), PxError> {
-        // Same stale-remote guard as push — pull also dials the checkout's
-        // embedded Lore server and would otherwise hide the provider mismatch
-        // behind a transport error.
-        // Test hook: `.mock_remote_url` as in push().
-        let mock_descriptor_remote = std::fs::read_to_string(path.join(".mock_remote_url"))
-            .ok()
-            .map(|s| s.trim().to_string());
-        if let Some(mock_url) = mock_descriptor_remote {
-            if !mock_url.is_empty()
-                && !crate::provider::http::same_server(&mock_url, &self.remote_url)
-            {
-                let repo_name = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("repository");
-                return Err(PxError::VcsError(format!(
-                    "repository remote mismatch: provider is configured for '{}' but repository '{}' at '{}' tracks '{}'. The provider was changed after this repository was created. Fix: re-clone from the new server or run `px doctor`. Provider: '{}', repository remote: '{}'",
-                    self.remote_url,
-                    repo_name,
-                    path.display(),
-                    mock_url,
-                    self.remote_url,
-                    mock_url
-                )));
-            }
-        } else if let Ok(descriptor) = self.repository_descriptor(path)
-            && !descriptor.remote_url.is_empty()
-            && !crate::provider::http::same_server(&descriptor.remote_url, &self.remote_url)
-        {
-            let repo_name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("repository");
-            return Err(PxError::VcsError(format!(
-                "repository remote mismatch: provider is configured for '{}' but repository '{}' at '{}' tracks '{}'. The provider was changed after this repository was created. Fix: re-clone from the new server or run `px doctor`. Provider: '{}', repository remote: '{}'",
-                self.remote_url,
-                repo_name,
-                path.display(),
-                descriptor.remote_url,
-                self.remote_url,
-                descriptor.remote_url
-            )));
-        }
-        // Sync via lore CLI (handles remote checking + blob download internally)
-        let args = vec!["sync", "--non-interactive", "--reset"];
-        if let Err(e) = LoreProcessRunner::run(&args, Some(path)) {
-            let msg = e.to_string();
-            if msg.contains("transport error")
-                || msg.contains("gRPC connection")
-                || msg.contains("acquiring remote")
-            {
-                let mock_url = std::fs::read_to_string(path.join(".mock_remote_url"))
-                    .ok()
-                    .map(|s| s.trim().to_string());
-                if let Some(mock_url) = mock_url {
-                    if !mock_url.is_empty()
-                        && !crate::provider::http::same_server(&mock_url, &self.remote_url)
-                    {
-                        let repo_name = path
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .unwrap_or("repository");
-                        return Err(PxError::VcsError(format!(
-                            "{e} (repository '{}' tracks '{}' but provider is '{}'; re-clone from the new server or run `px doctor`)",
-                            repo_name, mock_url, self.remote_url
-                        )));
-                    }
-                } else if let Ok(descriptor) = self.repository_descriptor(path)
-                    && !descriptor.remote_url.is_empty()
-                    && !crate::provider::http::same_server(&descriptor.remote_url, &self.remote_url)
-                {
-                    let repo_name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("repository");
-                    return Err(PxError::VcsError(format!(
-                        "{e} (repository '{}' tracks '{}' but provider is '{}'; re-clone from the new server or run `px doctor`)",
-                        repo_name, descriptor.remote_url, self.remote_url
-                    )));
-                }
-            }
-            return Err(e);
-        }
+        LoreProcessRunner::run(["revision", "sync", "--non-interactive"], Some(path))?;
 
         Ok(())
     }
@@ -1579,6 +1410,23 @@ mod structured_output_tests {
     }
 
     #[test]
+    fn workspace_override_preserves_px_home_server_selection() {
+        let home = tempfile::tempdir().unwrap();
+        std::fs::write(home.path().join("provider.toml"), "provider_type = 'remote'\nremote_url = 'lore://server-b:42424'\nworkspace_id = 'configured'\n").unwrap();
+        temp_env::with_vars(
+            [
+                ("PX_LORE_URL_BASE", None),
+                ("PX_WORKSPACE_ID", Some("override")),
+            ],
+            || {
+                let backend = LoreBackend::from_px_home(home.path());
+                assert_eq!(backend.remote_url(), "lore://server-b:42424");
+                assert_eq!(backend.workspace_id, "override");
+            },
+        );
+    }
+
+    #[test]
     fn working_tree_binary_reads_are_lossless() {
         let temp = tempfile::TempDir::new().unwrap();
         let bytes = [0_u8, 0xff, 0x42];
@@ -1597,90 +1445,6 @@ mod structured_output_tests {
                 .to_string()
                 .contains("read_file_bytes_at_ref")
         );
-    }
-}
-
-#[cfg(test)]
-mod stale_remote_tests {
-    use super::*;
-
-    #[test]
-    fn push_fails_fast_on_stale_mock_remote() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        let repo = tmp.path().join("my-repo");
-        std::fs::create_dir_all(repo.join(".lore")).unwrap();
-        std::fs::write(
-            repo.join("repository.yaml"),
-            "id: px://my-repo/world/my-repo\n",
-        )
-        .unwrap();
-        std::fs::write(
-            repo.join(".mock_remote_url"),
-            "lore://100.105.14.118:41337/my-repo",
-        )
-        .unwrap();
-        let backend = LoreBackend::new("lore://192.168.0.27:41337", "default");
-        let err = backend.push(&repo, None, Some("main")).unwrap_err();
-        let msg = err.to_string();
-        assert!(msg.contains("repository remote mismatch"), "msg: {msg}");
-        assert!(msg.contains("100.105.14.118"), "msg: {msg}");
-        assert!(msg.contains("192.168.0.27"), "msg: {msg}");
-    }
-
-    #[test]
-    fn push_succeeds_when_mock_remote_matches() {
-        let tmp = tempfile::TempDir::new().unwrap();
-        let repo = tmp.path().join("my-repo");
-        std::fs::create_dir_all(&repo).unwrap();
-        // No .lore or repository.yaml needed for this path: we test that
-        // push with matching mock does NOT fail at the stale check. It will
-        // still fail later at LoreProcessRunner if lore is missing, but we
-        // use a mock that matches and an empty repo path that would fail at
-        // current_branch. To avoid that, we test the pure same_server logic.
-        // Instead, directly test the file-based stale check succeeds.
-        std::fs::create_dir_all(repo.join(".lore")).unwrap();
-        std::fs::write(
-            repo.join("repository.yaml"),
-            "id: px://my-repo/world/my-repo\n",
-        )
-        .unwrap();
-        std::fs::write(
-            repo.join(".mock_remote_url"),
-            "lore://192.168.0.27:41337/my-repo",
-        )
-        .unwrap();
-        let backend = LoreBackend::new("lore://192.168.0.27:41337", "default");
-        // Should NOT return stale error; it will proceed to try current_branch
-        // and then run `lore branch push`, which will fail because lore is not
-        // installed in this test environment. We just ensure it doesn't fail
-        // with the stale message.
-        let err = backend.push(&repo, None, Some("main")).unwrap_err();
-        assert!(
-            !err.to_string().contains("repository remote mismatch"),
-            "should not be stale: {}",
-            err
-        );
-    }
-
-    #[test]
-    fn same_server_ignores_path_and_repo_suffix() {
-        use crate::provider::http::same_server;
-        assert!(same_server(
-            "lore://192.168.0.27:41337",
-            "lore://192.168.0.27:41337/my-repo"
-        ));
-        assert!(!same_server(
-            "lore://192.168.0.27:41337",
-            "lore://100.105.14.118:41337"
-        ));
-        assert!(same_server(
-            "lore://192.168.0.27:41337",
-            "lore://192.168.0.27:41337"
-        ));
-        assert!(same_server(
-            "grpc://192.168.0.27:41337",
-            "lore://192.168.0.27:41337"
-        ));
     }
 }
 
@@ -1973,6 +1737,19 @@ provider_type = "unknown-provider"
         // With trailing slash.
         let backend2 = LoreBackend::new("lore://host:8700/", "ws");
         assert_eq!(backend2.repo_url("foo"), "lore://host:8700/foo");
+    }
+
+    #[test]
+    fn branch_events_identify_only_the_current_local_branch() {
+        let events = r#"{"tagName":"branchListEntry","data":{"location":"local","name":"classic","isCurrent":false}}
+{"tagName":"branchListEntry","data":{"location":"local","name":"revision-character-hero","isCurrent":true}}
+{"tagName":"branchListEntry","data":{"location":"remote","name":"main","isCurrent":true}}"#;
+        let (branches, current) = parse_lore_branches(events).unwrap();
+        assert_eq!(branches, ["classic", "revision-character-hero"]);
+        assert_eq!(current.as_deref(), Some("revision-character-hero"));
+        assert!(parse_lore_branches(&format!("{events}\n{events}")).is_err());
+        assert!(parse_lore_branches("not JSON").is_err());
+        assert_eq!(parse_lore_branches("").unwrap(), (vec![], None));
     }
 
     #[test]

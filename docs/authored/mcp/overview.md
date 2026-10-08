@@ -12,7 +12,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository

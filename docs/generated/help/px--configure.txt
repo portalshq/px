@@ -30,6 +30,9 @@ Options:
       --workspace-id <ID>
           Workspace ID (for `remote` and `portals-cloud`)
 
+      --force
+          Migrate all existing repository remotes, including custom servers
+
       --local
           Resolve repository reads from an explicitly checked-out local working tree
 

@@ -3,7 +3,7 @@ name: px-repo
 description: Initialize PX repositories, clone/pull repositories, and create branches at the repository level via px-mcp-server (px_init, px_pull, px_branch). The px CLI is not available for agentic use — not for creating or revising individual entities; see px-resolve and px-update for those.
 metadata:
   author: portals
-  version: "0.8.25"
+  version: "0.9.0"
 ---
 
 # PX Skill: Repository Management
@@ -33,7 +33,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository
@@ -230,14 +230,14 @@ Create or list branches
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| name | string | No |  | Branch name to create. Omit to list all branches |
+| name | string | No |  | Branch name to create. Omit to list local branches |
 | repository | string | Yes |  | Repository name |
 
 
 
 
 # px_pull
-Clone or pull a repository from a remote
+Clone or pull PX manifests from a remote (representation files stay remote)
 
 
 ## Parameters
@@ -273,5 +273,3 @@ Switch to a branch
 |---|---|---|---|---|
 | name | string | Yes |  | Branch name to switch to |
 | repository | string | Yes |  | Repository name |
-
-

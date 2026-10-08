@@ -37,6 +37,7 @@ MCP tools exposed by `px-mcp-server`. Agents MUST use these tools; the `px` CLI 
 | [\`px\_remote\_add\`](docs/generated/mcp/px\_remote\_add.md) | Add a remote to a repository repository |
 | [\`px\_remote\_ls\`](docs/generated/mcp/px\_remote\_ls.md) | List remotes on a repository repository |
 | [\`px\_remote\_rm\`](docs/generated/mcp/px\_remote\_rm.md) | Remove a remote from a repository repository |
+| [\`px\_remote\_set\`](docs/generated/mcp/px\_remote\_set.md) | Set the repository's server, overriding the global provider default |
 | [\`px\_remote\`](docs/generated/mcp/px\_remote.md) | Manage remotes on a repository |
 | [\`px\_resolve\`](docs/generated/mcp/px\_resolve.md) | Resolve a PX URI to its manifest or a subtree |
 | [\`px\_revert\`](docs/generated/mcp/px\_revert.md) | Revert a commit by hash (undoes all changes in that commit) |

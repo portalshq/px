@@ -41,6 +41,7 @@ Examples: px configure                          # show current config px configu
 
 | Flag | Description |
 |---|---|
+|     --force | Migrate all existing repository remotes, including custom servers |
 |     --initial-commit | Bootstrap existing unversioned repositories with an initial commit without prompting |
 |     --no-initial-commit | Skip bootstrapping existing repositories |
 |     --reset | Reset provider configuration before (re)configuring |

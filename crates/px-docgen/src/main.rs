@@ -240,7 +240,7 @@ fn main() -> Result<()> {
             }
         }
         Err(e) => {
-            eprintln!("px-docgen: per-skill composition skipped: {e}");
+            return Err(e.context("failed to compose generated skills"));
         }
     }
 

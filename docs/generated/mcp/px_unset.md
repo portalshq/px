@@ -15,7 +15,7 @@ Remove one or more properties or representations from an entity manifest
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | author | string | No | px | Author identifier |
-| keys | string | Yes |  | Keys to remove. \`representations.<key>\` removes a representation |
+| keys | string or string[] | Yes |  | Keys to remove. \`representations.<key>\` removes a representation |
 | message | string | No |  | Commit message |
 | uri | string | Yes |  | PX URI |
 

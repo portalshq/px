@@ -325,21 +325,22 @@ provenance:
 
 ## Repository Layout
 
-Each repository is a Git repository on disk:
+Each repository is a Lore working tree on disk:
 
 ```text
-toystory/                    ← repository root (Git repo)
+toystory/                    ← repository root (Lore checkout)
+├── .lore/                    ← Lore version-control state
 ├── .px/
 │   └── config.yaml          ← repository configuration
 ├── repository.yaml            ← world manifest
-├── characters/
+├── character/
 │   ├── woody.yaml
 │   └── slinky.yaml
-├── locations/
+├── location/
 │   └── andys-room.yaml
-├── scenes/
+├── scene/
 │   └── pizza-planet.yaml
-└── props/
+└── prop/
 ```
 
 

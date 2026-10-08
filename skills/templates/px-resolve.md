@@ -14,7 +14,7 @@ Reference these guidelines when:
 - Creating new entities (e.g., characters, locations, items, events)
 - Resolving PX URIs into manifests
 - Querying subtree data for creative workflows
-For revising entity content and persisting iterations, use `px-update`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For revising entity content and persisting iterations, use `px-update`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 {{include docs/authored/mcp/overview.md}}
 

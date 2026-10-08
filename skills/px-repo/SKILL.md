@@ -17,7 +17,7 @@ Reference these guidelines when:
 - Initializing a new PX repository
 - Cloning or pulling an existing repository
 - Creating a new branch at the repository level
-For creating or resolving individual entities, use `px-resolve`. For revising entity content and persisting iterations, use `px-update`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For creating or resolving individual entities, use `px-resolve`. For revising entity content and persisting iterations, use `px-update`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 ## MCP Server (mandatory for agents)
 
@@ -168,21 +168,22 @@ provenance:
 
 ## Repository Layout
 
-Each repository is a Git repository on disk:
+Each repository is a Lore working tree on disk:
 
 ```text
-toystory/                    ← repository root (Git repo)
+toystory/                    ← repository root (Lore checkout)
+├── .lore/                    ← Lore version-control state
 ├── .px/
 │   └── config.yaml          ← repository configuration
 ├── repository.yaml            ← world manifest
-├── characters/
+├── character/
 │   ├── woody.yaml
 │   └── slinky.yaml
-├── locations/
+├── location/
 │   └── andys-room.yaml
-├── scenes/
+├── scene/
 │   └── pizza-planet.yaml
-└── props/
+└── prop/
 ```
 
 

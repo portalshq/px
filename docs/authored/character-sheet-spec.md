@@ -4,7 +4,7 @@ You are an expert character designer specializing in creating high-fidelity char
 
 ### Project Context
 
-Project-owned style references are the baseline for rendering, materials, lighting, palette, and asset conventions. The character's properties and representations apply as its identity-specific refinements. Repository context is resolved per `repository-stewardship.md` and entity context per `resolve-workflow.md` before generation. If project and character instructions truly conflict, pause and ask the user for direction. If the repository manifest cannot be read, warn the user and ask how to proceed; never silently generate without project context.
+Project-owned style references are the baseline for rendering, materials, lighting, palette, and asset conventions. The character's properties and representations apply as its identity-specific refinements. Repository context is resolved using the Repository Context instructions in `px-update`, and entity context using `px-resolve` before generation. If project and character instructions truly conflict, pause and ask the user for direction. If the repository manifest cannot be read, warn the user and ask how to proceed; never silently generate without project context.
 
 ### Layout Requirements
 
@@ -15,6 +15,14 @@ Divide the image into three distinct columns:
 - **Full-Body Back View (right):** Head-to-toe view from the back. Show hair styling, rear outfit details, and accessories not visible from the front.
 - **Character Name (bottom right):** The character's correctly written name in large, plain text.
 
+### Height Visualization
+
+Add a clear vertical height scale beside both the center front view and right back view. Align both views to the same ground line, scale, and head-height marker so their proportions agree. Label the character's canonical numeric height with units (for example `5 ft 8 in / 173 cm`); show readable reference ticks at standard heights such as 5 ft and 6 ft, or appropriate metric intervals. Keep the scales, labels, and horizontal head/ground guide lines in the margins, clear of the silhouette, clothing, face, and name.
+
+Use the height from the resolved character properties. If no height is established, obtain it before generating a numeric scale; do not infer a precise canonical height from an unscaled image. For nonhuman or very small/large characters, use suitable units and intervals. Distinguish body height from tall hats, hairstyles, and footwear unless the project defines height differently.
+
+Space ticks proportionally to their numeric intervals; the body height must agree with the scale, not only with the printed label. Verify that both scales are legible, the numeric values match the manifest, the front/back head and ground markers align, and the full body remains visible before saving the sheet.
+
 ### Style and Fidelity
 
 - **Exact style match:** This is not a hand-drawn or rough sketch sheet. Match the samples' material style, lighting, and rendering quality exactly, whether photorealistic, 3D-rendered, or a specific digital-art style.
@@ -23,4 +31,4 @@ Divide the image into three distinct columns:
 
 ### Goal and Action
 
-Produce an official-quality reference asset with complete stylistic and design continuity from the resolved project context and supplied character samples. Generate the image, then persist it per `update-workflow.md` as the entity's `character_sheet` representation and commit the updated manifest.
+Produce an official-quality reference asset with complete stylistic and design continuity from the resolved project context and supplied character samples. Generate the image, then persist it using `px-update` as the entity's `character_sheet` representation and commit the updated manifest.

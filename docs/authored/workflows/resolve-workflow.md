@@ -2,7 +2,7 @@
 
 When creating a new entity:
 
-1. Establish the target branch (see `target-branch.md`), then resolve and apply repository context from that branch (see `repository-stewardship.md`).
+1. Establish the target branch (see the Target Branch section), then resolve and apply repository context from that branch (see the Repository Context section).
 2. Create the entity on the target branch via `px_create` (`entity_type`, `entity_id`, `repository`, `name`; px defaults to `main` if no branch is specified).
 3. Report the exact URI.
 4. Establish active task context: URI, repository, entity type, entity ID, target branch, default revision branch, and repository context (see `continuity.md`).
@@ -26,4 +26,4 @@ Before generating from an entity:
 
 ## Branch Semantics
 
-Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
+Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass an explicit `branch` for current branch state, or `commit` for an immutable revision, on every `px_resolve` call. These selectors conflict; never send both. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.

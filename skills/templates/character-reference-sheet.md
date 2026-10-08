@@ -1,6 +1,6 @@
 ---
 name: character-reference-sheet
-description: Create a high-fidelity three-view character reference sheet from character samples. Use whenever a user asks to create a character, character sheet, or reference sheet.
+description: Create a high-fidelity three-view character reference sheet with canonical numeric height scales beside the front and back views. Use whenever a user asks to create a character, character sheet, or reference sheet.
 ---
 
 # Character Reference Sheet

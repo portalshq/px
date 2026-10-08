@@ -14,7 +14,7 @@ Reference these guidelines when:
 - Creating new entities (e.g., characters, locations, items, events)
 - Resolving PX URIs into manifests
 - Querying subtree data for creative workflows
-For revising entity content and persisting iterations, use `px-update`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For revising entity content and persisting iterations, use `px-update`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 ## MCP Server (mandatory for agents)
 
@@ -165,21 +165,22 @@ provenance:
 
 ## Repository Layout
 
-Each repository is a Git repository on disk:
+Each repository is a Lore working tree on disk:
 
 ```text
-toystory/                    ← repository root (Git repo)
+toystory/                    ← repository root (Lore checkout)
+├── .lore/                    ← Lore version-control state
 ├── .px/
 │   └── config.yaml          ← repository configuration
 ├── repository.yaml            ← world manifest
-├── characters/
+├── character/
 │   ├── woody.yaml
 │   └── slinky.yaml
-├── locations/
+├── location/
 │   └── andys-room.yaml
-├── scenes/
+├── scene/
 │   └── pizza-planet.yaml
-└── props/
+└── prop/
 ```
 
 
@@ -206,7 +207,7 @@ The **target branch** is whichever branch the entity's accepted work is meant to
 
 1. If the user named a branch for this work (e.g., "we're doing this on the `classic` branch"), that branch is the target.
 2. Otherwise, the branch the entity was created on or first resolved from is the target.
-3. Otherwise, default to `main`. when a branch is not specified, px defaults to `main`.
+3. Otherwise, resolve the repository's configured default branch (and the provider/global default if needed). Do not assume it is `main`.
 
 Establish the target branch at creation/first-resolve time and carry it forward for the rest of the task. Every promotion promotes to the **resolved target branch**, never a hardcoded `main`. When reporting or asking about promotion, name the target branch explicitly (e.g., "promote to `classic`") rather than saying "main" generically.
 
@@ -227,7 +228,7 @@ Later turns that keep refining the same entity are continuity work. They must tr
 
 When creating a new entity:
 
-1. Establish the target branch (see `target-branch.md`), then resolve and apply repository context from that branch (see `repository-stewardship.md`).
+1. Establish the target branch (see the Target Branch section), then resolve and apply repository context from that branch (see the Repository Context section).
 2. Create the entity on the target branch via `px_create` (`entity_type`, `entity_id`, `repository`, `name`; px defaults to `main` if no branch is specified).
 3. Report the exact URI.
 4. Establish active task context: URI, repository, entity type, entity ID, target branch, default revision branch, and repository context (see `continuity.md`).
@@ -251,7 +252,7 @@ Before generating from an entity:
 
 ## Branch Semantics
 
-Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
+Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass an explicit `branch` for current branch state, or `commit` for an immutable revision, on every `px_resolve` call. These selectors conflict; never send both. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
 
 
 

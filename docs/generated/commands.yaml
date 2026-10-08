@@ -122,6 +122,8 @@ commands:
       - name: "workspace_id"
         about: "Workspace ID (for `remote` and `portals-cloud`)"
     flags:
+      - name: "force"
+        about: "Migrate all existing repository remotes, including custom servers"
       - name: "reset"
         about: "Reset provider configuration before (re)configuring"
       - name: "initial_commit"
@@ -215,12 +217,15 @@ commands:
   - name: "head"
     full_path: "head"
     about: "Show the current HEAD commit hash"
-    usage: "Usage: head <REPOSITORY>"
+    usage: "Usage: head [OPTIONS] <REPOSITORY>"
     hidden: false
     arguments:
       - name: "repository"
         about: "Repository name"
         required: true
+    options:
+      - name: "branch"
+        about: "Read the head of a specific branch"
     flags:
       - name: "help"
         about: "Print help"
@@ -581,6 +586,21 @@ commands:
             required: true
           - name: "name"
             about: "Remote name to remove"
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "set"
+        full_path: "remote set"
+        about: "Set the repository's server, overriding the global provider default"
+        usage: "Usage: set <REPOSITORY> <URL>"
+        hidden: false
+        arguments:
+          - name: "repository"
+            about: "Repository name"
+            required: true
+          - name: "url"
+            about: "Lore server URL or full repository URL"
             required: true
         flags:
           - name: "help"

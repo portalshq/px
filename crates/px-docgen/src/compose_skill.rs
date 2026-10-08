@@ -43,7 +43,7 @@ pub fn compose_all_skills(
         let composed = templates::expand_template(&content, workspace_root, &variables)
             .with_context(|| format!("failed to expand template for skill '{skill_name}'"))?;
 
-        results.push((skill_name.clone(), composed));
+        results.push((skill_name.clone(), format!("{}\n", composed.trim_end())));
     }
 
     Ok(results)

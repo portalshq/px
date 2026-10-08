@@ -6,14 +6,14 @@ source: mcp
 ---
 
 
-# px_head
-Show the current HEAD commit hash
+# px_remote_set
+Set the repository's server, overriding the global provider default
 
 
 ## Parameters
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| branch | string | No |  | Read the head of a specific branch |
 | repository | string | Yes |  | Repository name |
+| url | string | Yes |  | Lore server URL or full repository URL |
 

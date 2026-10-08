@@ -3,7 +3,7 @@ name: px-repo
 description: Initialize PX repositories, clone/pull repositories, and create branches at the repository level via px-mcp-server (px_init, px_pull, px_branch). The px CLI is not available for agentic use — not for creating or revising individual entities; see px-resolve and px-update for those.
 metadata:
   author: portals
-  version: "0.8.25"
+  version: "0.9.0"
 ---
 
 # PX Skill: Repository Management
@@ -17,7 +17,7 @@ Reference these guidelines when:
 - Initializing a new PX repository
 - Cloning or pulling an existing repository
 - Creating a new branch at the repository level
-For creating or resolving individual entities, use `px-resolve`. For revising entity content and persisting iterations, use `px-update`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For creating or resolving individual entities, use `px-resolve`. For revising entity content and persisting iterations, use `px-update`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 ## MCP Server (mandatory for agents)
 
@@ -33,7 +33,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository
@@ -168,21 +168,22 @@ provenance:
 
 ## Repository Layout
 
-Each repository is a Git repository on disk:
+Each repository is a Lore working tree on disk:
 
 ```text
-toystory/                    ← repository root (Git repo)
+toystory/                    ← repository root (Lore checkout)
+├── .lore/                    ← Lore version-control state
 ├── .px/
 │   └── config.yaml          ← repository configuration
 ├── repository.yaml            ← world manifest
-├── characters/
+├── character/
 │   ├── woody.yaml
 │   └── slinky.yaml
-├── locations/
+├── location/
 │   └── andys-room.yaml
-├── scenes/
+├── scene/
 │   └── pizza-planet.yaml
-└── props/
+└── prop/
 ```
 
 
@@ -230,14 +231,14 @@ Create or list branches
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| name | string | No |  | Branch name to create. Omit to list all branches |
+| name | string | No |  | Branch name to create. Omit to list local branches |
 | repository | string | Yes |  | Repository name |
 
 
 
 
 # px_pull
-Clone or pull a repository from a remote
+Clone or pull PX manifests from a remote (representation files stay remote)
 
 
 ## Parameters
@@ -273,5 +274,3 @@ Switch to a branch
 |---|---|---|---|---|
 | name | string | Yes |  | Branch name to switch to |
 | repository | string | Yes |  | Repository name |
-
-

@@ -35,6 +35,13 @@ pub struct Cli {
 /// Subcommands for `px remote`.
 #[derive(Subcommand, Debug)]
 pub enum RemoteCmd {
+    /// Set the repository's server, overriding the global provider default.
+    Set {
+        /// Repository name.
+        repository: String,
+        /// Lore server URL or full repository URL.
+        url: String,
+    },
     /// Add a remote to a repository repository.
     Add {
         /// Repository name.
@@ -151,6 +158,10 @@ pub struct ConfigureArgs {
     /// Workspace ID (for `remote` and `portals-cloud`).
     #[arg(long, alias = "workspace", value_name = "ID")]
     pub workspace_id: Option<String>,
+
+    /// Migrate all existing repository remotes, including custom servers.
+    #[arg(long)]
+    pub force: bool,
 
     /// Reset provider configuration before (re)configuring.
     #[arg(long)]
@@ -740,6 +751,10 @@ The SDKs return the same fields as the CLI JSON output.
     Head {
         /// Repository name.
         repository: String,
+
+        /// Read the head of a specific branch.
+        #[arg(long)]
+        branch: Option<String>,
     },
 
     /// Validate a manifest against the PX schema.

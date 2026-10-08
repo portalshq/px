@@ -316,6 +316,9 @@ _px_generated() {
             px__subcmd__help__subcmd__remote,rm)
                 cmd="px__subcmd__help__subcmd__remote__subcmd__rm"
                 ;;
+            px__subcmd__help__subcmd__remote,set)
+                cmd="px__subcmd__help__subcmd__remote__subcmd__set"
+                ;;
             px__subcmd__remote,add)
                 cmd="px__subcmd__remote__subcmd__add"
                 ;;
@@ -328,6 +331,9 @@ _px_generated() {
             px__subcmd__remote,rm)
                 cmd="px__subcmd__remote__subcmd__rm"
                 ;;
+            px__subcmd__remote,set)
+                cmd="px__subcmd__remote__subcmd__set"
+                ;;
             px__subcmd__remote__subcmd__help,add)
                 cmd="px__subcmd__remote__subcmd__help__subcmd__add"
                 ;;
@@ -339,6 +345,9 @@ _px_generated() {
                 ;;
             px__subcmd__remote__subcmd__help,rm)
                 cmd="px__subcmd__remote__subcmd__help__subcmd__rm"
+                ;;
+            px__subcmd__remote__subcmd__help,set)
+                cmd="px__subcmd__remote__subcmd__help__subcmd__set"
                 ;;
             *)
                 ;;
@@ -857,7 +866,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__configure)
-            opts="-d -v -h --provider --remote-url --workspace-id --reset --initial-commit --no-initial-commit --base-dir --verbose --remote --local --help status help"
+            opts="-d -v -h --provider --remote-url --workspace-id --force --reset --initial-commit --no-initial-commit --base-dir --verbose --remote --local --help status help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1103,12 +1112,16 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__head)
-            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            opts="-d -v -h --branch --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --branch)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --base-dir)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -1545,7 +1558,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__help__subcmd__remote)
-            opts="add ls rm"
+            opts="set add ls rm"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1587,6 +1600,20 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__help__subcmd__remote__subcmd__rm)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__remote__subcmd__set)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2037,7 +2064,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__remote)
-            opts="-d -v -h --base-dir --verbose --remote --local --help add ls rm help"
+            opts="-d -v -h --base-dir --verbose --remote --local --help set add ls rm help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2081,7 +2108,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__remote__subcmd__help)
-            opts="add ls rm help"
+            opts="set add ls rm help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2150,6 +2177,20 @@ _px_generated() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        px__subcmd__remote__subcmd__help__subcmd__set)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         px__subcmd__remote__subcmd__ls)
             opts="-d -v -h --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -2173,6 +2214,28 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__remote__subcmd__rm)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__remote__subcmd__set)
             opts="-d -v -h --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

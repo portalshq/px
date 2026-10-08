@@ -17,7 +17,7 @@ Reference these guidelines when:
 - Initializing a new PX repository
 - Cloning or pulling an existing repository
 - Creating a new branch at the repository level
-For creating or resolving individual entities, use `px-resolve`. For revising entity content and persisting iterations, use `px-update`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For creating or resolving individual entities, use `px-resolve`. For revising entity content and persisting iterations, use `px-update`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 {{include docs/authored/mcp/overview.md}}
 

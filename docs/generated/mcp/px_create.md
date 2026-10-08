@@ -19,6 +19,6 @@ Create a new entity manifest
 | entity\_type | string | Yes |  | Entity type (any non-empty string, e.g. character, location, custom-type) |
 | message | string | No |  | Commit message |
 | name | string | Yes |  | Human-readable name |
-| properties | string | No |  | Initial property, as key=value. May be repeated |
+| properties | string or string[] | No |  | Initial property, as key=value. May be repeated |
 | repository | string | Yes |  | Repository name |
 

@@ -32,6 +32,8 @@ pub struct ParamSpec {
     pub cli_name: Option<String>,
     pub required: bool,
     pub output_format: bool,
+    #[serde(default)]
+    pub multiple: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -65,7 +67,9 @@ pub fn build_cli_args(tool: &GeneratedTool, arguments: &Value) -> Result<Vec<Str
         match param.kind {
             ParamKind::Argument => {
                 if let Some(value) = value.filter(|value| !value.is_null()) {
-                    args.push(value_to_cli_string(value)?);
+                    for value in cli_values(param, value) {
+                        args.push(value_to_cli_string(value)?);
+                    }
                 } else if param.required {
                     return Err(anyhow!("missing required argument '{}'", param.name));
                 }
@@ -79,8 +83,10 @@ pub fn build_cli_args(tool: &GeneratedTool, arguments: &Value) -> Result<Vec<Str
                     args.push(cli_name.clone());
                     args.push("json".to_string());
                 } else if let Some(value) = value.filter(|value| !value.is_null()) {
-                    args.push(cli_name.clone());
-                    args.push(value_to_cli_string(value)?);
+                    for value in cli_values(param, value) {
+                        args.push(cli_name.clone());
+                        args.push(value_to_cli_string(value)?);
+                    }
                 } else if param.required {
                     return Err(anyhow!("missing required option '{}'", param.name));
                 }
@@ -98,6 +104,15 @@ pub fn build_cli_args(tool: &GeneratedTool, arguments: &Value) -> Result<Vec<Str
     }
 
     Ok(args)
+}
+
+fn cli_values<'a>(param: &ParamSpec, value: &'a Value) -> Vec<&'a Value> {
+    if param.multiple
+        && let Some(values) = value.as_array()
+    {
+        return values.iter().collect();
+    }
+    vec![value]
 }
 
 fn validate_arguments(
@@ -140,7 +155,28 @@ fn validate_arguments(
                     validate_string_like(&param.name, value)?;
                     continue;
                 }
-                validate_value_against_schema(&param.name, value, &tool.input_schema)?;
+                let schema = tool
+                    .input_schema
+                    .get("properties")
+                    .and_then(|properties| properties.get(&param.name))
+                    .unwrap_or(&Value::Null);
+                if param.multiple {
+                    if param.required && value.as_array().is_some_and(Vec::is_empty) {
+                        return Err(anyhow!("argument '{}' must not be empty", param.name));
+                    }
+                    // Generated repeatable schemas accept a scalar for compatibility
+                    // and an array whose members each become a separate CLI value.
+                    let item_schema = schema
+                        .get("anyOf")
+                        .and_then(Value::as_array)
+                        .and_then(|variants| variants.first())
+                        .unwrap_or(schema);
+                    for item in cli_values(param, value) {
+                        validate_value_against_schema(&param.name, item, item_schema)?;
+                    }
+                } else {
+                    validate_value_against_schema(&param.name, value, schema)?;
+                }
             }
         }
     }
@@ -148,12 +184,7 @@ fn validate_arguments(
     Ok(())
 }
 
-fn validate_value_against_schema(name: &str, value: &Value, input_schema: &Value) -> Result<()> {
-    let schema = input_schema
-        .get("properties")
-        .and_then(|properties| properties.get(name))
-        .unwrap_or(&Value::Null);
-
+fn validate_value_against_schema(name: &str, value: &Value, schema: &Value) -> Result<()> {
     if let Some(values) = schema.get("enum").and_then(Value::as_array) {
         let Some(value_str) = value.as_str() else {
             return Err(anyhow!("argument '{name}' must be a string"));
@@ -575,6 +606,81 @@ mod tests {
             !add_repr_args
                 .windows(2)
                 .any(|pair| pair == ["--format", "json"])
+        );
+    }
+
+    #[test]
+    fn repeated_set_values_preserve_exact_provenance_json() {
+        let tool = generated_tools()
+            .into_iter()
+            .find(|t| t.name == "px_set")
+            .unwrap();
+        let provenance = r#"{"prompt_text":"A tall character, full body\nheight 173 cm","model":"sheet-v2","parameters":{"seed":42}}"#;
+        let args = build_cli_args(
+            &tool,
+            &json!({
+                "uri": "px://storybook/character/atlas",
+                "values": ["metadata.generation.character_sheet", provenance,
+                           "properties.height", "173 cm"]
+            }),
+        )
+        .unwrap();
+        assert_eq!(
+            &args[..6],
+            &[
+                "set",
+                "px://storybook/character/atlas",
+                "metadata.generation.character_sheet",
+                provenance,
+                "properties.height",
+                "173 cm"
+            ]
+        );
+        assert!(
+            tool.input_schema["properties"]["values"]["anyOf"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v["type"] == "array")
+        );
+        for values in [
+            json!([]),
+            json!(["key", {"nested": "object"}]),
+            json!([["nested"]]),
+        ] {
+            assert!(
+                build_cli_args(
+                    &tool,
+                    &json!({"uri":"px://storybook/character/atlas", "values":values})
+                )
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn repeated_options_emit_each_flag_and_keep_scalar_compatibility() {
+        let tool = generated_tools()
+            .into_iter()
+            .find(|t| t.name == "px_create")
+            .unwrap();
+        let args = build_cli_args(
+            &tool,
+            &json!({
+                "repository": "storybook", "entity_type": "character", "entity_id": "atlas", "name": "Atlas", "properties": ["height=173 cm", "name=Atlas"]
+            }),
+        )
+        .unwrap();
+        assert!(
+            args.windows(4)
+                .any(|v| v == ["--set", "height=173 cm", "--set", "name=Atlas"])
+        );
+        assert!(
+            build_cli_args(
+                &tool,
+                &json!({"repository":"storybook", "entity_type":"character", "entity_id":"atlas", "name":"Atlas", "properties":"name=Atlas"})
+            )
+            .is_ok()
         );
     }
 

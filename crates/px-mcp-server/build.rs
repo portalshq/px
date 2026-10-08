@@ -76,7 +76,8 @@ fn tool_for(command: &Value) -> Value {
             "kind": "argument",
             "cli_name": Value::Null,
             "required": arg["required"].as_bool().unwrap_or(false),
-            "output_format": false
+            "output_format": false,
+            "multiple": arg["multiple"].as_bool().unwrap_or(false)
         }));
     }
 
@@ -94,7 +95,8 @@ fn tool_for(command: &Value) -> Value {
             "kind": "option",
             "cli_name": format!("--{}", opt["long"].as_str().unwrap_or(opt["name"].as_str().unwrap()).replace('_', "-")),
             "required": opt["required"].as_bool().unwrap_or(false),
-            "output_format": is_output_format(opt)
+            "output_format": is_output_format(opt),
+            "multiple": opt["multiple"].as_bool().unwrap_or(false)
         }));
     }
 
@@ -181,7 +183,16 @@ fn schema_for_param(param: &Value, kind: &str) -> Value {
         }
     }
 
-    Value::Object(schema)
+    let scalar = Value::Object(schema);
+    if kind != "flag" && param["multiple"].as_bool().unwrap_or(false) {
+        let mut array = json!({"type": "array", "items": scalar.clone()});
+        if param["required"].as_bool().unwrap_or(false) {
+            array["minItems"] = json!(1);
+        }
+        json!({"anyOf": [scalar, array]})
+    } else {
+        scalar
+    }
 }
 
 fn possible_values(param: &Value) -> Vec<String> {

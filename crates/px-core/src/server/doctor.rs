@@ -13,7 +13,6 @@ use super::{
     cert::generate_certificates, config::generate_local_config, install::LoreInstaller,
     manager::ServerManager, version::verify_lore_installation,
 };
-use crate::vcs::VcsBackend;
 
 /// PX doctor for diagnostics and repair
 pub struct PxDoctor {
@@ -348,117 +347,48 @@ impl PxDoctor {
         }
     }
 
-    /// Detect checkouts that still track a different Lore server than the
-    /// current provider (e.g. Tailscale 100.x vs LAN 192.168.x after
-    /// provider.toml was edited). This is the class of bug that surfaces as
-    /// `gRPC connection to http://100.105.14.118:41337/: transport error`.
+    /// Validate checkout-specific remotes. Different servers are intentional
+    /// in a mixed-server PX home; configuration errors are what need repair.
     fn check_repository_remote_consistency(&self) -> CheckResult {
         let name = "Repository Remote Consistency";
-        let mut pm = crate::provider::ProviderManager::new(&self.px_home);
-        let provider = match pm.load_configured_provider() {
-            Ok(Some(p)) => p,
-            Ok(None) => {
-                return CheckResult {
-                    name: name.to_string(),
-                    passed: true,
-                    message: "No provider configured; skip checkout consistency check".to_string(),
-                    severity: CheckSeverity::Info,
-                };
-            }
-            Err(_) => {
-                return CheckResult {
-                    name: name.to_string(),
-                    passed: false,
-                    message: "Provider configuration invalid; fix provider.toml".to_string(),
-                    severity: CheckSeverity::Error,
-                };
-            }
-        };
-        let configured_url = match provider.lore_url_base() {
-            Ok(u) => u,
-            Err(e) => {
-                return CheckResult {
-                    name: name.to_string(),
-                    passed: false,
-                    message: format!("Failed to resolve provider URL: {e}"),
-                    severity: CheckSeverity::Error,
-                };
-            }
-        };
-        let mut mismatched = Vec::new();
-        let mut checked = 0usize;
-        let Ok(entries) = std::fs::read_dir(&self.px_home) else {
-            return CheckResult {
-                name: name.to_string(),
-                passed: true,
-                message: "PX home not readable; skip checkout check".to_string(),
-                severity: CheckSeverity::Info,
-            };
-        };
-        for entry in entries.flatten() {
-            let repo_path = entry.path();
-            if !repo_path.is_dir() {
-                continue;
-            }
-            if !repo_path.join("repository.yaml").exists() {
-                continue;
-            }
-            // Only consider real Lore checkouts (have .lore).
-            if !repo_path.join(".lore").exists() {
-                continue;
-            }
-            checked += 1;
-            // Test hook: if `.mock_remote_url` exists (used by unit tests to
-            // avoid requiring the `lore` binary), use it instead of calling the
-            // CLI. This has no effect in production.
-            let descriptor_remote_url =
-                if let Ok(mock) = std::fs::read_to_string(repo_path.join(".mock_remote_url")) {
-                    mock.trim().to_string()
-                } else {
-                    let backend = crate::vcs_lore::LoreBackend::from_px_home(&self.px_home);
-                    // Repository descriptor requires lore CLI; if it fails we treat that
-                    // as a separate lore-installation issue, not a consistency failure.
-                    match backend.repository_descriptor(&repo_path) {
-                        Ok(d) => d.remote_url,
-                        Err(_) => continue,
-                    }
-                };
-            if descriptor_remote_url.is_empty() {
-                continue;
-            }
-            if !crate::provider::http::same_server(&descriptor_remote_url, &configured_url) {
-                let repo_name = repo_path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("unknown")
-                    .to_string();
-                mismatched.push(format!(
-                    "{} tracks {} but provider is {}",
-                    repo_name, descriptor_remote_url, configured_url
-                ));
+        let default = crate::vcs_lore::LoreBackend::configured_server_url(&self.px_home);
+        let mut failures = Vec::new();
+        let mut checked = 0;
+        if let Ok(entries) = std::fs::read_dir(&self.px_home) {
+            for entry in entries.flatten() {
+                let root = entry.path();
+                if !root.join("repository.yaml").is_file() || !root.join(".lore").is_dir() {
+                    continue;
+                }
+                checked += 1;
+                let repository = entry.file_name().to_string_lossy().into_owned();
+                if let Err(error) =
+                    crate::repo_config::repository_server(&root, &repository, &default)
+                {
+                    failures.push(format!("{repository}: {error}"));
+                }
             }
         }
-        if mismatched.is_empty() {
-            CheckResult {
-                name: name.to_string(),
-                passed: true,
-                message: if checked == 0 {
-                    "No Lore checkouts to verify".to_string()
-                } else {
-                    format!("All {checked} checkout(s) match provider {configured_url}")
-                },
-                severity: CheckSeverity::Info,
-            }
-        } else {
-            CheckResult {
-                name: name.to_string(),
-                passed: false,
-                message: format!(
-                    "Stale checkout remote(s): {}. Provider is {configured_url}. Fix: re-clone affected repositories from the new server (e.g. `mv <repo> <repo>.bak && px pull lore://<new-host>:41337/<repo>`) or run with updated provider. See `px status` and `px configure`.",
-                    mismatched.join("; ")
-                ),
-                severity: CheckSeverity::Error,
-            }
+        CheckResult {
+            name: name.into(),
+            passed: failures.is_empty(),
+            message: if !failures.is_empty() {
+                format!(
+                    "Invalid repository remote(s): {}. Fix .px/config.yaml or use px remote set <repository> <url>",
+                    failures.join("; ")
+                )
+            } else if checked == 0 {
+                "No Lore checkouts to verify".into()
+            } else {
+                format!(
+                    "All {checked} checkout remote(s) are valid; different repository servers are supported"
+                )
+            },
+            severity: if failures.is_empty() {
+                CheckSeverity::Info
+            } else {
+                CheckSeverity::Error
+            },
         }
     }
 
@@ -775,8 +705,8 @@ mod tests {
         )
         .unwrap();
         std::fs::write(
-            repo.join(".mock_remote_url"),
-            "lore://192.168.0.27:41337/my-repo",
+            repo.join(".lore/config.toml"),
+            "remote_url = 'lore://192.168.0.27:41337'",
         )
         .unwrap();
 
@@ -791,7 +721,7 @@ mod tests {
     }
 
     #[test]
-    fn test_repository_remote_consistency_fails_when_stale() {
+    fn test_repository_remote_consistency_accepts_another_server() {
         let tmp = TempDir::new().unwrap();
         let px_home = tmp.path();
         std::fs::write(
@@ -807,22 +737,20 @@ mod tests {
         )
         .unwrap();
         std::fs::write(
-            repo.join(".mock_remote_url"),
-            "lore://100.105.14.118:41337/25th-chapter",
+            repo.join(".lore/config.toml"),
+            "remote_url = 'lore://100.105.14.118:41337'",
         )
         .unwrap();
 
         let doctor = PxDoctor::new(px_home);
         let check = doctor.check_repository_remote_consistency();
-        assert!(!check.passed, "stale remote should fail");
-        assert_eq!(check.severity, CheckSeverity::Error);
-        assert!(
-            check.message.contains("Stale checkout"),
-            "message: {}",
-            check.message
-        );
-        assert!(check.message.contains("100.105.14.118"));
-        assert!(check.message.contains("192.168.0.27"));
+        assert!(check.passed, "custom remote should pass: {}", check.message);
+        assert_eq!(check.severity, CheckSeverity::Info);
+        std::fs::create_dir(repo.join(".px")).unwrap();
+        std::fs::write(repo.join(".px/config.yaml"), "remote_url: [invalid]\n").unwrap();
+        let invalid = doctor.check_repository_remote_consistency();
+        assert!(!invalid.passed);
+        assert!(invalid.message.contains("Invalid repository remote"));
     }
 
     #[test]
@@ -862,8 +790,8 @@ mod tests {
         )
         .unwrap();
         std::fs::write(
-            repo.join(".mock_remote_url"),
-            "lore://192.168.0.27:41337/my-repo",
+            repo.join(".lore/config.toml"),
+            "remote_url = 'lore://192.168.0.27:41337'",
         )
         .unwrap();
 

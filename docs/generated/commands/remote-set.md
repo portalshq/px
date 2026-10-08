@@ -6,13 +6,13 @@ source: clap
 ---
 
 
-# px head
-Show the current HEAD commit hash
+# px remote set
+Set the repository's server, overriding the global provider default
 
 
 ## Synopsis
 ```bash
-px head [OPTIONS] <REPOSITORY>
+px set <REPOSITORY> <URL>
 ```
 
 
@@ -21,13 +21,7 @@ px head [OPTIONS] <REPOSITORY>
 | Name | Description | Required |
 |---|---|---|
 | repository | Repository name | Yes |
-
-
-## Options
-
-| Flag | Description | Default |
-|---|---|---|
-|     --branch | Read the head of a specific branch |  |
+| url | Lore server URL or full repository URL | Yes |
 
 
 ## Flags
@@ -37,11 +31,6 @@ px head [OPTIONS] <REPOSITORY>
 | -h, --help | Print help |
 
 
-## Aliases
-- head-hash
-- head_hash
-
-
 ## Source
-`crates/px-cli/src/main.rs` — `head` command
+`crates/px-cli/src/main.rs` — `set` command
 

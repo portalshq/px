@@ -1566,3 +1566,458 @@ fn test_local_lore_resolve_provenance_and_include_blobs() {
         false
     );
 }
+
+/// Pull one repository in a shared PX home and ensure its sibling (including
+/// VCS state) is byte-for-byte unchanged. This exercises real Lore scoping.
+#[cfg(feature = "local-e2e")]
+#[test]
+fn pull_does_not_contaminate_other_repositories() {
+    fn snapshot(root: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
+        fn walk(
+            root: &Path,
+            dir: &Path,
+            result: &mut std::collections::BTreeMap<PathBuf, Vec<u8>>,
+        ) {
+            for entry in fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    walk(root, &path, result);
+                } else {
+                    result.insert(
+                        path.strip_prefix(root).unwrap().to_owned(),
+                        fs::read(path).unwrap(),
+                    );
+                }
+            }
+        }
+        let mut result = std::collections::BTreeMap::new();
+        walk(root, root, &mut result);
+        result
+    }
+    // Use private ports and stores rather than the user's localhost server.
+    // Keep the server home alive until the child has exited.
+    struct TestServer(std::process::Child);
+    impl Drop for TestServer {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+    let server_home = TempDir::new().unwrap();
+    let rpc_listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let rpc_port = rpc_listener.local_addr().unwrap().port();
+    let http_listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let http_port = http_listener.local_addr().unwrap().port();
+    let config = px_core::server::config::generate_local_config(server_home.path()).unwrap();
+    let text = fs::read_to_string(&config.config_path)
+        .unwrap()
+        .replace("port = 41337", &format!("port = {rpc_port}"))
+        .replace("port = 41339", &format!("port = {http_port}"));
+    fs::write(&config.config_path, text).unwrap();
+    drop(rpc_listener);
+    drop(http_listener);
+    let log_path = server_home.path().join("server.log");
+    let log = fs::File::create(&log_path).unwrap();
+    let mut server = TestServer(
+        std::process::Command::new("loreserver")
+            .arg("--config")
+            .arg(&config.config_dir)
+            .args(["--env", "local"])
+            .stdout(log.try_clone().unwrap())
+            .stderr(log)
+            .spawn()
+            .unwrap(),
+    );
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    let started = std::time::Instant::now();
+    loop {
+        let healthy = runtime.block_on(async {
+            reqwest::Client::new()
+                .get(format!("http://127.0.0.1:{http_port}/health_check"))
+                .timeout(std::time::Duration::from_secs(1))
+                .send()
+                .await
+                .is_ok_and(|r| r.status().is_success())
+        });
+        if healthy {
+            break;
+        }
+        assert!(
+            server.0.try_wait().unwrap().is_none() && started.elapsed().as_secs() < 15,
+            "test server failed: {}",
+            fs::read_to_string(&log_path).unwrap()
+        );
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+    let home = TempDir::new().unwrap();
+    let server_url = format!("lore://127.0.0.1:{rpc_port}");
+    fs::write(home.path().join("provider.toml"), format!("provider_type = 'remote'\nremote_url = '{server_url}'\nworkspace_id = '00000000000000000000000000000001'\n")).unwrap();
+    let test_px = || {
+        let mut cmd = px_cmd();
+        cmd.env_remove("PX_LORE_URL_BASE")
+            .env("PX_WORKSPACE_ID", "00000000000000000000000000000001");
+        cmd
+    };
+    let bears = unique_universe_name("bears");
+    let toys = unique_universe_name("toystory");
+    for repo in [&bears, &toys] {
+        test_px()
+            .args(["init", repo])
+            .arg("--base-dir")
+            .arg(home.path())
+            .assert()
+            .success();
+        test_px()
+            .args([
+                "create",
+                "character",
+                "hero",
+                "--repository",
+                repo,
+                "--name",
+                repo,
+            ])
+            .arg("--base-dir")
+            .arg(home.path())
+            .assert()
+            .success();
+    }
+    assert_ne!(
+        fs::read(home.path().join(&bears).join(".lore/id")).unwrap(),
+        fs::read(home.path().join(&toys).join(".lore/id")).unwrap(),
+        "repositories must not share the workspace ID as their Lore identity"
+    );
+    // Changing the global default must not redirect either established checkout.
+    test_px()
+        .args([
+            "configure",
+            "remote",
+            "--remote-url",
+            "lore://127.0.0.1:1",
+            "--no-initial-commit",
+        ])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    test_px()
+        .args(["remote", "set", &bears, &server_url])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    let before = snapshot(&home.path().join(&toys));
+    test_px()
+        .args(["pull", &bears])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    assert_eq!(snapshot(&home.path().join(&toys)), before);
+    let manifest =
+        fs::read_to_string(home.path().join(&bears).join("character/hero.yaml")).unwrap();
+    assert!(manifest.contains(&bears));
+    assert!(!manifest.contains(&toys));
+    test_px()
+        .args(["sync", &bears])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    test_px()
+        .args([
+            "resolve",
+            &format!("px://{bears}/character/hero"),
+            "--branch",
+            "main",
+        ])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(&bears));
+    assert_eq!(snapshot(&home.path().join(&toys)), before);
+
+    // Native Lore filtering must exclude both system files and custom rules.
+    let root = home.path().join(&bears);
+    fs::write(root.join(".pxignore"), "cache/\n").unwrap();
+    fs::write(root.join(".DS_Store"), "Finder metadata").unwrap();
+    fs::write(root.join("character/.DS_Store"), "nested Finder metadata").unwrap();
+    fs::create_dir(root.join("cache")).unwrap();
+    fs::write(root.join("cache/scratch.txt"), "ignored cache").unwrap();
+    fs::write(root.join("character/notes.txt"), "track this file").unwrap();
+    test_px()
+        .args(["commit", &bears, "--message", "Verify file filtering"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    test_px()
+        .args(["push", &bears, "--branch", "main"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    use px_core::vcs::VcsBackend;
+    let backend = px_core::vcs_lore::LoreBackend::from_px_home(home.path());
+    let revision = backend.head_hash(&root).unwrap();
+    for path in [".DS_Store", "character/.DS_Store", "cache/scratch.txt"] {
+        assert!(
+            backend
+                .read_file_bytes_at_ref(&root, path, Some(&revision))
+                .is_err(),
+            "{path} must not be tracked"
+        );
+    }
+    assert_eq!(
+        backend
+            .read_file_bytes_at_ref(&root, "character/notes.txt", Some(&revision))
+            .unwrap(),
+        b"track this file"
+    );
+
+    // Follow the documented revision workflow and retain generation provenance
+    // on the same entity across iterations. All state is on the private server.
+    let uri = format!("px://{bears}/character/hero");
+    for args in [
+        vec!["branch", &bears, "classic"],
+        vec!["switch", &bears, "classic"],
+        vec!["push", &bears, "--branch", "classic"],
+        vec!["branch", &bears, "revision-character-hero"],
+        vec!["switch", &bears, "revision-character-hero"],
+        vec!["push", &bears, "--branch", "revision-character-hero"],
+    ] {
+        test_px()
+            .args(args)
+            .arg("--base-dir")
+            .arg(home.path())
+            .assert()
+            .success();
+    }
+    test_px()
+        .args(["resolve", &uri, "--branch", "revision-character-hero"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    assert_eq!(
+        backend.current_branch(&root).unwrap(),
+        "revision-character-hero"
+    );
+    let status = test_px()
+        .args(["status", &bears])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(status.status.success());
+    let status: serde_json::Value = serde_json::from_slice(&status.stdout).unwrap();
+    assert_eq!(status["current_branch"], "revision-character-hero");
+    let input = create_test_image(home.path(), "reference.png");
+    let output = home.path().join("output.txt");
+    let prompt_path = home.path().join("prompt.txt");
+    let exact_prompt = "Full body Atlas, height 173 cm.\nAvoid cropped feet.";
+    fs::write(&output, "generated test fixture, first iteration").unwrap();
+    fs::write(&prompt_path, exact_prompt).unwrap();
+    let input_hash = px_core::ContentHash::from_file(&input).unwrap();
+    let prompt_hash = px_core::ContentHash::from_file(&prompt_path).unwrap();
+    for (key, file, format) in [
+        ("reference_front", &input, "png"),
+        ("character_sheet_prompt", &prompt_path, "txt"),
+        ("character_sheet", &output, "txt"),
+    ] {
+        test_px()
+            .args(["add", &uri, key])
+            .arg(file)
+            .args(["--format", format])
+            .arg("--base-dir")
+            .arg(home.path())
+            .assert()
+            .success();
+    }
+    let mut provenance = serde_json::json!({
+        "provider": "test-fixture", "model": "fixture-v1",
+        "prompt_text": exact_prompt, "prompt_hash": prompt_hash.as_str(),
+        "parameters": {"seed":42,"aspect_ratio":"3:2","negative_prompt":"cropped feet"},
+        "model_parameters": {"seed":42},
+        "inputs": [{"uri":uri,"representation":"reference_front","revision":backend.head_hash(&root).unwrap(),"hash":input_hash.as_str()}],
+        "date_created":"2026-10-07T00:00:00Z", "date_updated":"2026-10-07T00:00:00Z",
+        "timestamp":"2026-10-07T00:00:00Z", "job_id":"fixture-job-1"
+    });
+    let save_metadata = |value: &serde_json::Value| {
+        test_px()
+            .args(["set", &uri, "metadata.generation.character_sheet"])
+            .arg(value.to_string())
+            .arg("--base-dir")
+            .arg(home.path())
+            .assert()
+            .success();
+    };
+    save_metadata(&provenance);
+    fs::write(&output, "generated test fixture, second iteration").unwrap();
+    test_px()
+        .args(["add", &uri, "character_sheet"])
+        .arg(&output)
+        .args(["--format", "txt", "--replace"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    provenance["date_updated"] = "2026-10-07T00:01:00Z".into();
+    provenance["timestamp"] = "2026-10-07T00:01:00Z".into();
+    provenance["job_id"] = "fixture-job-2".into();
+    save_metadata(&provenance);
+    let resolved = test_px()
+        .args([
+            "resolve",
+            &uri,
+            "--branch",
+            "revision-character-hero",
+            "--format",
+            "json",
+        ])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(
+        resolved.status.success(),
+        "{}",
+        String::from_utf8_lossy(&resolved.stderr)
+    );
+    let saved: serde_json::Value = serde_json::from_slice(&resolved.stdout).unwrap();
+    assert_eq!(saved["id"], uri);
+    assert_eq!(
+        saved["metadata"]["generation"]["character_sheet"],
+        provenance
+    );
+    for (key, file) in [
+        ("reference_front", &input),
+        ("character_sheet_prompt", &prompt_path),
+        ("character_sheet", &output),
+    ] {
+        assert_eq!(
+            saved["representations"][key]["hash"],
+            px_core::ContentHash::from_file(file).unwrap().as_str()
+        );
+    }
+    let target = test_px()
+        .args(["resolve", &uri, "--branch", "classic", "--format", "json"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(target.status.success());
+    let target: serde_json::Value = serde_json::from_slice(&target.stdout).unwrap();
+    assert!(
+        target["representations"].get("character_sheet").is_none(),
+        "saving iterations must not implicitly promote"
+    );
+    assert_eq!(snapshot(&home.path().join(&toys)), before);
+    // Apply a specifically accepted version to its non-main target. This is a
+    // separate action; merely saving the revision above left classic intact.
+    let source_revision = backend.head_hash(&root).unwrap();
+    let head = test_px()
+        .args(["head", &bears, "--branch", "revision-character-hero"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(head.status.success());
+    let head: serde_json::Value = serde_json::from_slice(&head.stdout).unwrap();
+    assert_eq!(head["head"], source_revision);
+    let pinned = test_px()
+        .args([
+            "resolve",
+            &uri,
+            "--commit",
+            &source_revision,
+            "--format",
+            "json",
+        ])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(pinned.status.success());
+    let pinned: serde_json::Value = serde_json::from_slice(&pinned.stdout).unwrap();
+    assert_eq!(pinned, saved);
+    let local_head = test_px()
+        .args(["head", &bears, "--branch", "revision-character-hero"])
+        .env("PX_RESOLVE_SOURCE", "local")
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(local_head.status.success());
+    let local_head: serde_json::Value = serde_json::from_slice(&local_head.stdout).unwrap();
+    assert_eq!(local_head["head"], source_revision);
+    test_px()
+        .args(["switch", &bears, "classic"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    for (key, file, format) in [
+        ("reference_front", &input, "png"),
+        ("character_sheet_prompt", &prompt_path, "txt"),
+        ("character_sheet", &output, "txt"),
+    ] {
+        test_px()
+            .args(["add", &uri, key])
+            .arg(file)
+            .args(["--format", format, "--message"])
+            .arg(format!("Promote revision-character-hero {source_revision}"))
+            .arg("--base-dir")
+            .arg(home.path())
+            .assert()
+            .success();
+    }
+    save_metadata(&provenance);
+    let promoted = test_px()
+        .args(["resolve", &uri, "--branch", "classic", "--format", "json"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(promoted.status.success());
+    let promoted: serde_json::Value = serde_json::from_slice(&promoted.stdout).unwrap();
+    assert_eq!(promoted["representations"], saved["representations"]);
+    assert_eq!(
+        promoted["metadata"]["generation"],
+        saved["metadata"]["generation"]
+    );
+
+    // A newly initialized checkout takes the new provider default. Use a second
+    // address of the private server, distinct from the pinned numeric address.
+    let next_default = format!("lore://localhost:{rpc_port}");
+    test_px()
+        .args([
+            "configure",
+            "remote",
+            "--remote-url",
+            &next_default,
+            "--no-initial-commit",
+        ])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    let new_repo = unique_universe_name("new-default");
+    test_px()
+        .args(["init", &new_repo])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
+    assert_eq!(
+        px_core::repo_config::repository_server(
+            &home.path().join(&new_repo),
+            &new_repo,
+            "lore://wrong-default:1"
+        )
+        .unwrap(),
+        next_default
+    );
+    assert_eq!(snapshot(&home.path().join(&toys)), before);
+}

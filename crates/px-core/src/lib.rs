@@ -73,3 +73,5 @@ pub use vcs::{
     VcsRepositoryDescriptor,
 };
 pub use vcs_lore::LoreBackend;
+
+pub mod repo_config;

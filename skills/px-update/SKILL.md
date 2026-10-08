@@ -7,6 +7,36 @@ description: Persist changes to existing PX entities via px-mcp-server (px_add, 
 
 Use this skill whenever existing PX entity content changes, especially during iterative creative work.
 
+## Quick Reference: Create → Revise → Save → Verify → Promote
+
+1. Establish the existing entity URI and target branch from task context; never assume the target is `main`. For resolve/presign, supply **either** `branch` for the moving branch head **or** `commit` for a pinned revision; never send both.
+2. Resolve project and entity context. If `revision-<entity-type>-<entity-id>` does not exist, switch to the target branch first and create it there; switch to the revision branch and publish it with `px_push(repository, branch)` before remote resolution. If it already exists, switch to it. Verify `px_status(repository)` reports the intended `current_branch` before any mutation.
+3. Track all reference inputs and record their BLAKE3 hashes before generation. Follow the Provenance Checklist below.
+4. Generate, add representations and provenance to the same entity, then commit and push the revision in this turn. Tools that auto-commit/push already satisfy this step; do not commit twice.
+5. Pin the saved revision with `px_head(repository, branch)` and resolve using that returned `commit` alone. Mutation summaries may show PX metadata IDs; do not treat those as Lore commit selectors. Verify representations, prompt text, metadata, and hashes. A push failure means the revision is local only: report the recovery command and retry only when the underlying issue is resolved.
+6. Promote the verified revision only after explicit user acceptance, to the resolved target branch. Verify the target's hashes match the accepted revision. Otherwise keep iterating on the revision branch.
+
+## Provenance Checklist
+
+Before any generation:
+
+- Resolve the project and entity from their explicit branches, including existing reference representations.
+- Check whether each input file is already tracked in PX by its BLAKE3 hash. If absent, add it as a reference representation on the active revision branch with `px_add`; use a stable key such as `reference_front`. Hash the actual bytes with `px_content_hash`, and verify the committed representation. Do not rely on a filename, a temporary URL, or a SHA-256 digest as identity.
+- Keep iterations on the same entity URI. A new output or prompt is a new revision, not a new entity. Create distinct entities only for requested identity variants.
+
+With each generated asset, record:
+
+- Exact prompt text, including negative prompts; save prompt text as a UTF-8 representation such as `character_sheet_prompt`, with its BLAKE3 hash.
+- Provider and exact model identifier returned by the generation tool. Record an unknown identifier as unavailable; never invent a model/version.
+- All supplied generation parameters (seed, size, aspect ratio, guidance, steps, references, and tool-specific settings). Do not guess hidden defaults. Identify non-default values under `model_parameters`.
+- Every input's PX URI, revision, representation key, and BLAKE3 file hash, including project style references. Obtain the immutable Lore commit with `px_head(repository, branch)` when pinning an input; a PX mutation summary ID is not a Lore commit selector.
+- UTC timestamp, generation job ID when available, and per-asset `date_created` and `date_updated`. Preserve `date_created` for the stable representation key; advance `date_updated` for each new output.
+
+Store structured per-asset details under `metadata.generation.<representation_key>` when they do not fit the supported `provenance` fields. Keep provider/model, `prompt_text`, `prompt_hash`, `parameters`, `model_parameters`, `inputs`, timestamps, and `job_id` there. Save the exact prompt as an addressable representation as well. A prompt hash alone cannot recover the prompt. Use `px_set` with an explicitly prefixed top-level key and a JSON-encoded value, for example `values: ["metadata.generation.character_sheet", "{...}"]`. Multiple key/value pairs can be saved together in that array; each JSON value remains one string. Bare keys are narrative properties. `px_set` accepts `metadata`, `provenance`, `references`, and `representations` prefixes and auto-commits/pushes on the current branch. Verify the active branch first. For direct manifest-file edits, use one `px_commit`, then `px_push`.
+
+After saving, resolve the explicit revision branch (or its pinned commit, never both selectors together) and verify the output representation, prompt representation/text, provenance fields, and input/output BLAKE3 hashes against the files actually used. Remote provenance hydration may be unsupported: verify the manifest's metadata and representation hashes with ordinary branch resolution; inspect committed prompt bytes through the available file tools. Do not claim provenance is verified if a required field or artifact is inaccessible.
+
+
 ## When to Apply
 
 Reference these guidelines when:
@@ -15,7 +45,7 @@ Reference these guidelines when:
 - Generating new assets as part of a workflow
 - Storing assets back into the entity manifest
 - Refining, regenerating, selecting, rejecting, endorsing, or promoting an entity whose PX URI was established earlier in the task
-For creating or first resolving entities, use `px-resolve`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For creating or first resolving entities, use `px-resolve`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 ## MCP Server (mandatory for agents)
 
@@ -31,7 +61,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository
@@ -62,7 +92,7 @@ The **target branch** is whichever branch the entity's accepted work is meant to
 
 1. If the user named a branch for this work (e.g., "we're doing this on the `classic` branch"), that branch is the target.
 2. Otherwise, the branch the entity was created on or first resolved from is the target.
-3. Otherwise, default to `main`. when a branch is not specified, px defaults to `main`.
+3. Otherwise, resolve the repository's configured default branch (and the provider/global default if needed). Do not assume it is `main`.
 
 Establish the target branch at creation/first-resolve time and carry it forward for the rest of the task. Every promotion promotes to the **resolved target branch**, never a hardcoded `main`. When reporting or asking about promotion, name the target branch explicitly (e.g., "promote to `classic`") rather than saying "main" generically.
 
@@ -98,100 +128,37 @@ If the user selects an older variant, restore that content as a new commit at th
 
 ## Promotion to the Target Branch
 
-Promotion moves the endorsed tip of a revision branch onto the target branch. **Promotion always requires a signal of acceptance** — either the user stating it explicitly, or the agent proactively asking and getting a yes, or (in exactly one case below) an auto-promotion that is disclosed to the user. Silence is never acceptance.
+Saving a generated candidate on a revision branch does not accept it as canonical. **Promotion requires explicit user acceptance of the version and destination.** A direct request to promote, merge, make canonical, or use this version going forward counts; so does a clear yes to a promotion question. Do not ask again when acceptance is already established. Silence, general thanks, or changing tasks is not acceptance.
 
-There are five points in a workflow where acceptance is checked. Each is a **proactive ask**, except dependency-triggered promotion, which is an **auto-promotion with disclosure**.
-
-### 1. End-of-turn ask
-After committing a revision to the revision branch, close the turn by asking, briefly, whether to promote it to the target branch or keep iterating.
-
-> "Atlas updated on the revision branch. Should I promote this to `<target-branch>`, or do we need more changes?"
-
-### 2. Sentiment-triggered ask
-Treat conversational affirmations ("looks great," "perfect," "that's the one," "thanks") as a signal the user is likely satisfied — but this alone is **not** acceptance. Ask explicitly before promoting.
-
-> "Glad you like it! Want me to promote this to `<target-branch>`?"
-
-### 3. Context-switch ask
-If the user pivots to a new PX URI or a different task while the current entity has an unpromoted revision-branch tip, pause and ask before executing the switch.
-
-> "Before we move on to the spaceship engine — want me to merge the recent Atlas revisions into `<target-branch>` first?"
-
-### 4. Dependency-triggered auto-promotion (the one exception)
-If the user asks to use a currently-revised entity in a new downstream context (e.g., "generate a scene using Atlas" while Atlas sits on a revision branch), auto-promote the endorsed revision-branch tip to the target branch immediately, without asking first — downstream generation must read from the target branch for continuity. Always disclose that this happened; do not promote silently.
-
-> "Using the latest Atlas revision — I've promoted it to `<target-branch>` so the scene generation stays consistent."
-
-### 5. Milestone bulk-merge ask
-When the user indicates a session, task, or milestone is complete, check for any unpromoted `revision-*` branches across entities touched in the task. Summarize them and ask for one bulk approval.
-
-> "You have unmerged revisions for Atlas and the Spaceship. Shall I promote both to `<target-branch>` before we wrap up?"
-
-### Explicit user statement
-The user can always state acceptance directly, and this satisfies the acceptance requirement immediately — at any of the checkpoints above, in reply to one of the proactive asks, or unprompted. Do not require a fixed magic phrase like "lock it in": interpret the intent behind whatever wording the user actually uses. This includes, at minimum:
-
-- **Direct commands:** "lock it in," "make it canonical," "promote it," "merge it," "commit it to `<target-branch>`," "ship it."
-- **Direct affirmatives in answer to a proactive ask:** "yes," "yep," "do it," "go ahead," "please," "sure," a thumbs-up-equivalent reply — any of these said in direct response to one of the five checkpoint questions counts as acceptance for that specific promotion.
-- **Instructions that presuppose promotion:** "move to the next entity" (after being asked whether to promote first), "that's final," "we're done with Atlas," "use that version going forward."
-If a reply is ambiguous as acceptance (e.g., it's unclear whether "yes" answers the promotion question or something else asked in the same turn), resolve it from context or ask a one-line clarification rather than guessing either way. Explicit statement is a valid mechanism but, per the above, is never the *only* mechanism the agent relies on — the agent must still proactively ask per checkpoints 1–3 and 5, and disclose per checkpoint 4.
-
-### If declined or unresolved
-If the user says not yet, keep working on the revision branch and re-ask at the next natural checkpoint (points 1–5 above). Never promote to the target branch without a yes from one of these five paths.
+After verifying a saved revision, ask briefly whether to promote to the named target branch or keep iterating. At a milestone, one question can cover all outstanding revisions. Continue independent work while a promotion decision is pending. If a downstream task needs an unaccepted revision, resolve which version the user intends before promoting it; do not auto-promote merely because it is a dependency.
 
 ## Executing a Promotion
 
-Once acceptance is confirmed (by any path above):
-
-1. Resolve the endorsed revision branch at its current tip via `px_resolve`.
-2. Switch to the target branch via `px_switch`.
-3. Apply the same content-addressed representations/properties from the endorsed revision.
-4. Commit with a promotion message naming the source revision branch and commit via `px_commit`.
-5. Resolve the target branch and verify representation hashes match the endorsed revision.
-If promotion cannot complete without overwriting unrelated dirty content on the target branch, stop and report that promotion was blocked. Do not reset, revert, or discard user-authored content.
+1. Resolve the accepted revision branch and record its commit and representation hashes.
+2. Switch to the resolved target branch and check for unrelated dirty content. If applying the revision would overwrite it, report the conflict and preserve the user's work.
+3. Apply the accepted representations, properties, references, and provenance as a new target-branch commit. Do not rewrite history or replace unrelated entities.
+4. Commit with a message naming the source branch and commit, then push the target branch. Auto-committing tools do not require an extra commit.
+5. Resolve the target branch and verify the accepted representation, prompt, reference, and provenance hashes match. Report success only after verification; if push failed, report the local commit and recovery command.
 
 ## Reporting
 
-Revision saved, awaiting acceptance:
+Saved: `PX: <URI> saved on <revision-branch> at <commit>; <key> verified. Promote to <target-branch>, or keep iterating?`
 
-```text
-PX: Atlas revision saved on revision-character-atlas at a1b2c3d; character_sheet updated; <target-branch> unchanged.
-Should I promote this to <target-branch>, or do we need more changes?
-```
+Promoted: `PX: <URI> promoted to <target-branch> at <commit> from <revision-branch> <source-commit>; hashes verified.`
 
-Promoted:
-
-```text
-PX: Atlas promoted to <target-branch> at d4e5f6a from revision-character-atlas a1b2c3d.
-```
-
-Auto-promoted for a dependency:
-
-```text
-PX: Atlas revision auto-promoted to <target-branch> at d4e5f6a to satisfy downstream generation.
-```
-
-Failed:
-
-```text
-PX persistence failed: Atlas revision was generated but not committed.
-```
+Failed: `PX persistence failed: <URI> generated but not committed` (or `committed locally; push failed`, according to the actual state).
 
 
 ## Update Pipeline
 
-1. Switch to the target branch if not already there.
-2. Resolve the repository.yaml and gather the relevant project context (see `repository-stewardship.md`).
-3. Resolve the entity explicitly from the active revision branch via `px_resolve` (`uri`, `branch`), not from implicit defaults.
-4. Gather every relevant project and entity property, representation, reference, and negative constraint that affects identity, continuity, style, exclusions, or the requested medium (use `px_query` with `uri` and `path` for subtrees).
-5. Generate or edit the requested content using the resolved project and entity context as the source of truth.
-6. Persist the result in the same turn:
-   - `px_add` (`uri`, `key`, `file`, `format`, `message`) for asset revisions
-   - `px_set` (`uri`, `key`, `value`) for simple property-only updates
-   - when several files/properties form one logical revision, update the structured manifest and make one `px_commit` (`repository`, `message`) after updating
-7. Store assets by BLAKE3 content hash, not SHA-256 — `px_content_hash` (`file`) should return a `blake3:` value.
-8. Record generation provenance with the revision: `model`, `prompt_hash`, `parameters` (when relevant), `derived_from` (source URIs/commits/hashes), `created_at` (when available).
-9. Verify branch-specific resolution after the commit — check that the representation key, hash, and description match the accepted revision.
-9. In the final response, report persistence in one concise line, then apply the relevant acceptance checkpoint (see `promotion.md`).
+1. Resolve the target branch and project context from `repository.yaml`.
+2. If the revision branch is absent, switch to the target first and create the revision branch there. Switch to the revision branch. Publish a newly created branch with `px_push` before resolving it remotely. Verify the current branch before mutating; every tool that supports `branch` receives it explicitly.
+3. Resolve the same entity URI from the active revision branch via `px_resolve` and gather relevant properties, representations, references, and exclusions.
+4. Follow the Provenance Checklist: add untracked inputs as reference representations before generation; verify their BLAKE3 hashes.
+5. Generate or edit the content using that context, preserving the entity URI and stable representation keys.
+6. Persist output, exact prompts, input hashes, and generation metadata in the same turn. `px_add` and `px_set` auto-commit and push. For structured manifest changes, call `px_commit` once, then `px_push` for that branch; commit alone does not publish.
+7. Resolve the explicit revision branch and verify the saved assets, prompt text, provenance, and BLAKE3 hashes. If saving or pushing failed, report the actual state and recovery action; do not promote or claim remote persistence.
+8. Report the saved URI, branch, and revision. Promote only with explicit acceptance (see Promotion to the Target Branch above); name the resolved target branch.
 
 ## Data Placement
 
@@ -208,15 +175,15 @@ Do not use commit `parent` fields as validation truth unless the current PX/Lore
 
 Some PX tools auto-commit (`px_add`, `px_set`). Do not call `px_commit` afterward unless you intentionally made additional uncommitted changes.
 
-Note: `px_add`, `px_set`, `px_create`, and `px_unset` stage, commit, and push automatically. `px_resolve` reads the configured server by default, so successful mutations are immediately visible to other clients. If a push fails, the commit remains local and PX reports the recovery command. Use `px resolve --local <uri>` only to inspect uncommitted filesystem changes.
+Note: `px_add`, `px_set`, `px_create`, and `px_unset` stage, commit, and push automatically. `px_resolve` reads the configured server by default, so successful mutations are immediately visible to other clients. If a push fails, the commit remains local and PX reports the recovery command. For local inspection of uncommitted changes, use available file/status tools. Agents must use MCP for PX operations; the local CLI mode described in `ask-px` is for humans.
 
 ## Character Creation and Character Sheets
 
 Treat a request to create a character, character sheet, reference sheet, or other character visual as a persistence workflow. Do not leave generated assets only in the conversation or on a local filesystem.
 
-1. Create or resolve the character entity on its target branch (see `resolve-workflow.md`).
+1. Create or resolve the character entity on its target branch (use `px-resolve`), then create/switch to its revision branch before adding generated assets.
 2. Add every accepted generated asset with a stable semantic representation key via `px_add`. Use `character_sheet` for a complete three-view reference sheet and `portrait` for a portrait.
-3. Commit the representation and any properties that describe the accepted character in the same turn (`px_add` and `px_set` may commit automatically; otherwise run one `px_commit` after updating the manifest).
+3. Commit the representation and any properties that describe the accepted character in the same turn (`px_add` and `px_set` may commit automatically; otherwise run one `px_commit` after updating the manifest and push the revision branch).
 4. Resolve the entity from the branch that received the commit and confirm its manifest contains the expected representation key, URI, format, and BLAKE3 hash.
 
 Keep the manifest current whenever a character is created or a character sheet is generated. A file is not complete until it is represented in the entity manifest and committed to PX.
@@ -227,9 +194,9 @@ When the user asks to create a variant of an existing entity, create a new entit
 
 1. Resolve the base entity and its target branch.
 2. Create a distinct entity ID that describes the variant via `px_create`, for example `claire-cole-summer-dress` for `px://25th-chapter/character/claire-cole-summer-dress`.
-3. Persist the variant's applicable properties and representations via `px_set` / `px_add`, then commit its manifest via `px_commit`.
+3. Persist the variant's applicable properties and representations via `px_set` / `px_add`; these tools auto-commit and push. Commit separately only for additional direct file edits.
 4. Update the base entity's `properties.variants` value to the complete, deduplicated list of PX URIs for every known variant, including the new URI. Preserve existing entries; do not record local paths or bare IDs.
-5. Commit the base-manifest update and resolve both entities to verify the variant and the base entity's `variants` property.
+5. Resolve both entities after the auto-committed base-manifest update to verify the variant and the base entity's `variants` property.
 
 For example, the base entity `px://25th-chapter/character/claire-cole` keeps:
 
@@ -256,23 +223,9 @@ Resolve a PX URI to its manifest or a subtree
 | commit | string | No |  | Resolve at a specific commit hash |
 | format | string | No | yaml | Output format: yaml, json |
 | include\_blobs | boolean | No | false | Hydrate known readable provenance artifacts such as prompts and run records |
+| path | string | No |  | Optional manifest subtree selector. URI fragments take precedence |
 | provenance | boolean | No | false | Include condensed per-file provenance for the manifest and direct representations |
 | uri | string | Yes |  | PX URI. e.g., "px://toystory/character/woody" |
-
-
-
-
-# px_query
-Query a subtree from a manifest
-
-
-## Parameters
-
-| Name | Type | Required | Default | Description |
-|---|---|---|---|---|
-| format | string | No | json | Output format: yaml, json |
-| path | string | Yes |  | Dot-notation path. e.g., "appearances.audienceVotes" |
-| uri | string | Yes |  | PX URI |
 
 
 
@@ -289,14 +242,15 @@ Add a file representation to an entity manifest
 | file | string | Yes |  | File path to the asset |
 | format | string | Yes |  | Asset format. e.g., "png", "glb" |
 | key | string | Yes |  | Representation key. e.g., "reference\_image" |
-| message | string | No | add representation | Commit message |
+| message | string | No |  | Commit message |
+| replace | boolean | No | false | Replace an existing representation only when its content differs |
 | uri | string | Yes |  | PX URI |
 
 
 
 
 # px_set
-Set a property on an entity manifest
+Set one or more properties on an entity manifest
 
 
 ## Parameters
@@ -304,16 +258,15 @@ Set a property on an entity manifest
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | author | string | No | px | Author identifier |
-| key | string | Yes |  | Property key (dot-notation) |
-| message | string | No | set property | Commit message |
+| message | string | No |  | Commit message |
 | uri | string | Yes |  | PX URI |
-| value | string | Yes |  | Property value |
+| values | string or string[] | Yes |  | Repeating key/value pairs. Keys support dot-notation |
 
 
 
 
 # px_commit
-Commit changes to a repository repository
+Commit all repository changes, or only one entity when given its URI
 
 
 ## Parameters
@@ -322,7 +275,7 @@ Commit changes to a repository repository
 |---|---|---|---|---|
 | author | string | No | px | Author identifier |
 | message | string | Yes |  | Commit message |
-| repository | string | Yes |  | Repository name |
+| target | string | Yes |  | Repository name or PX entity URI |
 
 
 
@@ -351,3 +304,79 @@ Switch to a branch
 | name | string | Yes |  | Branch name to switch to |
 | repository | string | Yes |  | Repository name |
 
+
+
+
+# px_branch
+Create or list branches
+
+
+## Parameters
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| name | string | No |  | Branch name to create. Omit to list local branches |
+| repository | string | Yes |  | Repository name |
+
+
+
+
+# px_status
+Show system status, or working-tree status for one repository
+
+
+## Parameters
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| repository | string | No |  | Repository name |
+
+
+
+
+# px_head
+Show the current HEAD commit hash
+
+
+## Parameters
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| branch | string | No |  | Read the head of a specific branch |
+| repository | string | Yes |  | Repository name |
+
+
+
+
+# px_push
+Push the current branch to its configured upstream remote
+
+
+## Parameters
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| branch | string | No |  | Branch to push (default: current branch) |
+| remote | string | No | origin | Remote name (default: tracking branch's remote, or "origin") |
+| repository | string | Yes |  | Repository name |
+
+
+
+
+# px_presign
+Create a time-limited public URL for a committed representation
+
+
+## Parameters
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| branch | string | No |  | Resolve at a specific branch |
+| commit | string | No |  | Resolve at a specific commit hash |
+| download | string | No |  | Download the representation after creating its presigned URL. Optionally set its destination |
+| http\_url | string | No |  | Explicit Lore HTTP origin, such as http://127.0.0.1:41339 |
+| output | string | No |  | Destination for --download. Defaults to the entity asset directory |
+| representation | string | Yes |  | Representation name (manifest key), e.g. item. Its URI is relative to the entity's asset directory |
+| token\_env | string | No |  | Environment variable containing a repository-scoped bearer token |
+| ttl\_seconds | string | No |  | Requested lifetime in seconds; Lore enforces its configured bounds |
+| uri | string | Yes |  | Entity ID, e.g. 25th-chapter/character/nathan-gunn. The px:// prefix is optional; fragments are not supported |

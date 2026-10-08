@@ -1,6 +1,6 @@
 ---
 name: px-resolve
-description: Create PX entities, resolve PX URIs, and query entity context via px-mcp-server (px_create, px_resolve, px_query), establishing active entity continuity so later refinements automatically persist through px-update. The px CLI is not available for agentic use.
+description: Create PX entities, resolve PX URIs, and query entity context via px-mcp-server (px_create, px_resolve), establishing active entity continuity so later refinements automatically persist through px-update. The px CLI is not available for agentic use.
 ---
 
 # PX Resolve
@@ -14,7 +14,7 @@ Reference these guidelines when:
 - Creating new entities (e.g., characters, locations, items, events)
 - Resolving PX URIs into manifests
 - Querying subtree data for creative workflows
-For revising entity content and persisting iterations, use `px-update`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `px-cli-reference` (read-only; never execute CLI commands).
+For revising entity content and persisting iterations, use `px-update`. For repository-level init/pull/branch, use `px-repo`. For questions about `px` CLI syntax from humans, use `ask-px` (read-only; never execute CLI commands).
 
 ## MCP Server (mandatory for agents)
 
@@ -30,7 +30,7 @@ Every PX command is available as an MCP tool with a `px_` prefix and dashes/spac
 
 - `px_resolve` — resolve a PX URI to its manifest or a subtree
 - `px_create` — create a new entity manifest
-- `px_query` — query a subtree from a manifest
+- `px_resolve` with `path` — query a subtree from a manifest
 - `px_set` — set a property on an entity manifest
 - `px_add` — add a file representation to an entity manifest
 - `px_commit` — commit changes to a repository
@@ -165,21 +165,22 @@ provenance:
 
 ## Repository Layout
 
-Each repository is a Git repository on disk:
+Each repository is a Lore working tree on disk:
 
 ```text
-toystory/                    ← repository root (Git repo)
+toystory/                    ← repository root (Lore checkout)
+├── .lore/                    ← Lore version-control state
 ├── .px/
 │   └── config.yaml          ← repository configuration
 ├── repository.yaml            ← world manifest
-├── characters/
+├── character/
 │   ├── woody.yaml
 │   └── slinky.yaml
-├── locations/
+├── location/
 │   └── andys-room.yaml
-├── scenes/
+├── scene/
 │   └── pizza-planet.yaml
-└── props/
+└── prop/
 ```
 
 
@@ -206,7 +207,7 @@ The **target branch** is whichever branch the entity's accepted work is meant to
 
 1. If the user named a branch for this work (e.g., "we're doing this on the `classic` branch"), that branch is the target.
 2. Otherwise, the branch the entity was created on or first resolved from is the target.
-3. Otherwise, default to `main`. when a branch is not specified, px defaults to `main`.
+3. Otherwise, resolve the repository's configured default branch (and the provider/global default if needed). Do not assume it is `main`.
 
 Establish the target branch at creation/first-resolve time and carry it forward for the rest of the task. Every promotion promotes to the **resolved target branch**, never a hardcoded `main`. When reporting or asking about promotion, name the target branch explicitly (e.g., "promote to `classic`") rather than saying "main" generically.
 
@@ -227,7 +228,7 @@ Later turns that keep refining the same entity are continuity work. They must tr
 
 When creating a new entity:
 
-1. Establish the target branch (see `target-branch.md`), then resolve and apply repository context from that branch (see `repository-stewardship.md`).
+1. Establish the target branch (see the Target Branch section), then resolve and apply repository context from that branch (see the Repository Context section).
 2. Create the entity on the target branch via `px_create` (`entity_type`, `entity_id`, `repository`, `name`; px defaults to `main` if no branch is specified).
 3. Report the exact URI.
 4. Establish active task context: URI, repository, entity type, entity ID, target branch, default revision branch, and repository context (see `continuity.md`).
@@ -244,14 +245,14 @@ Before generating from an entity:
 1. Resolve repository.yaml from the target branch and gather relevant global properties, representations, and references.
 2. Resolve the entity explicitly from the relevant branch via `px_resolve` (`uri`, plus `branch`): the target branch for canonical state, the revision branch for iterative work.
 3. Gather properties that affect identity, narrative role, style, behavior, continuity, and exclusions.
-4. Gather relevant entity `representations` and `references` (use `px_query` with `uri` and `path` for subtrees).
+4. Gather relevant entity `representations` and `references` (use `px_resolve` with `uri` and `path` for subtrees).
 5. Treat project and entity image/video/audio representations as source-of-truth for observable appearance or sound. Text properties support and constrain them.
 6. Inspect flexible negative-constraint keys such as `negative_constraints`, `exclusions`, `avoid`, `forbidden`, or project-specific equivalents at both scopes.
 7. Keep multi-entity context separated so attributes do not bleed between entities.
 
 ## Branch Semantics
 
-Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass the `branch` argument explicitly on every `px_resolve` / `px_query` call. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
+Resolve from the target branch for canonical state. Resolve from `revision-<entity-type>-<entity-id>` for iterative work. Pass an explicit `branch` for current branch state, or `commit` for an immutable revision, on every `px_resolve` call. These selectors conflict; never send both. Do not rely on whichever branch happens to be checked out. Do not store VCS branch-head data in manifests. Branch heads and commit history belong to PX/Lore version control.
 
 
 
@@ -266,7 +267,9 @@ Create a new entity manifest
 | author | string | No | px | Author identifier |
 | entity\_id | string | Yes |  | Entity ID (slug). e.g., "woody" |
 | entity\_type | string | Yes |  | Entity type (any non-empty string, e.g. character, location, custom-type) |
+| message | string | No |  | Commit message |
 | name | string | Yes |  | Human-readable name |
+| properties | string or string[] | No |  | Initial property, as key=value. May be repeated |
 | repository | string | Yes |  | Repository name |
 
 
@@ -284,22 +287,6 @@ Resolve a PX URI to its manifest or a subtree
 | commit | string | No |  | Resolve at a specific commit hash |
 | format | string | No | yaml | Output format: yaml, json |
 | include\_blobs | boolean | No | false | Hydrate known readable provenance artifacts such as prompts and run records |
+| path | string | No |  | Optional manifest subtree selector. URI fragments take precedence |
 | provenance | boolean | No | false | Include condensed per-file provenance for the manifest and direct representations |
 | uri | string | Yes |  | PX URI. e.g., "px://toystory/character/woody" |
-
-
-
-
-# px_query
-Query a subtree from a manifest
-
-
-## Parameters
-
-| Name | Type | Required | Default | Description |
-|---|---|---|---|---|
-| format | string | No | json | Output format: yaml, json |
-| path | string | Yes |  | Dot-notation path. e.g., "appearances.audienceVotes" |
-| uri | string | Yes |  | PX URI |
-
-

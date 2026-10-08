@@ -17,5 +17,5 @@ Set one or more properties on an entity manifest
 | author | string | No | px | Author identifier |
 | message | string | No |  | Commit message |
 | uri | string | Yes |  | PX URI |
-| values | string | Yes |  | Repeating key/value pairs. Keys support dot-notation |
+| values | string or string[] | Yes |  | Repeating key/value pairs. Keys support dot-notation |
 

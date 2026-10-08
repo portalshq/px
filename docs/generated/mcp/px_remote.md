@@ -9,7 +9,7 @@ source: mcp
 # px_remote
 Manage remotes on a repository
 
-Subcommands: add, ls, rm
+Subcommands: add, ls, rm, set
 
 Parameters: none.
 

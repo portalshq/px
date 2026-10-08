@@ -582,7 +582,11 @@ pub fn render_mcp_tool_page(cmd: &CommandModel, meta: &DocMeta) -> String {
     for a in &cmd.arguments {
         rows.push(vec![
             mcp_param_name(&a.name),
-            mcp_param_type(&a.name, false).to_string(),
+            if a.multiple {
+                format!("{0} or {0}[]", mcp_param_type(&a.name, false))
+            } else {
+                mcp_param_type(&a.name, false).to_string()
+            },
             if a.required {
                 "Yes".to_string()
             } else {
@@ -599,7 +603,11 @@ pub fn render_mcp_tool_page(cmd: &CommandModel, meta: &DocMeta) -> String {
         let name = mcp_param_name(&o.name);
         rows.push(vec![
             name.clone(),
-            mcp_param_type(&name, false).to_string(),
+            if o.multiple {
+                format!("{0} or {0}[]", mcp_param_type(&name, false))
+            } else {
+                mcp_param_type(&name, false).to_string()
+            },
             if o.required {
                 "Yes".to_string()
             } else {

@@ -1,7 +1,7 @@
 ---
 generated: "true"
 generator: px-docgen
-version: 0.9.0
+version: 0.9.1
 source: clap
 ---
 

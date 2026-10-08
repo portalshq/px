@@ -343,6 +343,7 @@ complete -c px -n "__fish_px_using_subcommand switch" -s v -l verbose -d 'Enable
 complete -c px -n "__fish_px_using_subcommand switch" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
 complete -c px -n "__fish_px_using_subcommand switch" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
 complete -c px -n "__fish_px_using_subcommand switch" -s h -l help -d 'Print help'
+complete -c px -n "__fish_px_using_subcommand head" -l branch -d 'Read the head of a specific branch' -r
 complete -c px -n "__fish_px_using_subcommand head" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
 complete -c px -n "__fish_px_using_subcommand head" -s v -l verbose -d 'Enable verbose debug logging'
 complete -c px -n "__fish_px_using_subcommand head" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'

@@ -1785,6 +1785,7 @@ fn pull_does_not_contaminate_other_repositories() {
         vec!["push", &bears, "--branch", "classic"],
         vec!["branch", &bears, "revision-character-hero"],
         vec!["switch", &bears, "revision-character-hero"],
+        vec!["push", &bears, "--branch", "revision-character-hero"],
     ] {
         test_px()
             .args(args)
@@ -1793,6 +1794,12 @@ fn pull_does_not_contaminate_other_repositories() {
             .assert()
             .success();
     }
+    test_px()
+        .args(["resolve", &uri, "--branch", "revision-character-hero"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .assert()
+        .success();
     assert_eq!(
         backend.current_branch(&root).unwrap(),
         "revision-character-hero"
@@ -1910,6 +1917,41 @@ fn pull_does_not_contaminate_other_repositories() {
     // Apply a specifically accepted version to its non-main target. This is a
     // separate action; merely saving the revision above left classic intact.
     let source_revision = backend.head_hash(&root).unwrap();
+    let head = test_px()
+        .args(["head", &bears, "--branch", "revision-character-hero"])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(head.status.success());
+    let head: serde_json::Value = serde_json::from_slice(&head.stdout).unwrap();
+    assert_eq!(head["head"], source_revision);
+    let pinned = test_px()
+        .args([
+            "resolve",
+            &uri,
+            "--commit",
+            &source_revision,
+            "--format",
+            "json",
+        ])
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(pinned.status.success());
+    let pinned: serde_json::Value = serde_json::from_slice(&pinned.stdout).unwrap();
+    assert_eq!(pinned, saved);
+    let local_head = test_px()
+        .args(["head", &bears, "--branch", "revision-character-hero"])
+        .env("PX_RESOLVE_SOURCE", "local")
+        .arg("--base-dir")
+        .arg(home.path())
+        .output()
+        .unwrap();
+    assert!(local_head.status.success());
+    let local_head: serde_json::Value = serde_json::from_slice(&local_head.stdout).unwrap();
+    assert_eq!(local_head["head"], source_revision);
     test_px()
         .args(["switch", &bears, "classic"])
         .arg("--base-dir")

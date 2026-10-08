@@ -751,6 +751,10 @@ The SDKs return the same fields as the CLI JSON output.
     Head {
         /// Repository name.
         repository: String,
+
+        /// Read the head of a specific branch.
+        #[arg(long)]
+        branch: Option<String>,
     },
 
     /// Validate a manifest against the PX schema.

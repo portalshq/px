@@ -1614,13 +1614,24 @@ impl Resolver {
     }
 
     pub fn remote_head_hash(&self, repository: &str) -> Result<String, PxError> {
+        self.remote_branch_head_hash(repository, None)
+    }
+
+    /// Pin a named remote branch, preserving the default-head API for callers
+    /// that do not supply a version selector.
+    pub fn remote_branch_head_hash(
+        &self,
+        repository: &str,
+        branch: Option<&str>,
+    ) -> Result<String, PxError> {
+        let branch_name = branch.map(str::to_owned);
         let client = self.remote_client(Some(repository))?;
         let repository_name = repository.to_string();
         block_on_grpc(async move {
             let repo = client.get_repository_by_name(&repository_name).await?;
             let branch = client
                 .for_repository_id(repo.id)
-                .get_branch_by_name(&repo.default_branch_name)
+                .get_branch_by_name(branch_name.as_deref().unwrap_or(&repo.default_branch_name))
                 .await?;
             Ok(hex::encode(branch.latest))
         })

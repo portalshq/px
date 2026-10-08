@@ -813,6 +813,7 @@ _arguments "${_arguments_options[@]}" : \
 ;;
 (head)
 _arguments "${_arguments_options[@]}" : \
+'--branch=[Read the head of a specific branch]:BRANCH:_default' \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '-v[Enable verbose debug logging]' \

@@ -639,6 +639,12 @@ impl Repository {
             .switch_branch(&self.root, name)
     }
 
+    /// Read an immutable commit selector from the named branch.
+    pub fn branch_head_hash(&self, branch: &str) -> Result<String, PxError> {
+        self.require_vcs("read branch head")?
+            .resolve_branch_head(&self.root, branch)
+    }
+
     /// Identify the active VCS branch without consulting the global default.
     pub fn current_branch(&self) -> Result<String, PxError> {
         self.require_vcs("read current branch")?

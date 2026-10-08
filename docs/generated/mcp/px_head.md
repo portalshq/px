@@ -14,5 +14,6 @@ Show the current HEAD commit hash
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| branch | string | No |  | Read the head of a specific branch |
 | repository | string | Yes |  | Repository name |
 

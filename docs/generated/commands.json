@@ -758,7 +758,7 @@
       "full_path": "head",
       "about": "Show the current HEAD commit hash",
       "long_about": null,
-      "usage": "Usage: head <REPOSITORY>",
+      "usage": "Usage: head [OPTIONS] <REPOSITORY>",
       "aliases": [
         "head-hash",
         "head_hash"
@@ -776,7 +776,19 @@
           "possible_values": []
         }
       ],
-      "options": [],
+      "options": [
+        {
+          "name": "branch",
+          "about": "Read the head of a specific branch",
+          "required": false,
+          "default_value": null,
+          "short": null,
+          "long": "branch",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        }
+      ],
       "flags": [
         {
           "name": "help",

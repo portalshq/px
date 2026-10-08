@@ -1112,12 +1112,16 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__head)
-            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            opts="-d -v -h --branch --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --branch)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --base-dir)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0

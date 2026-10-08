@@ -12,7 +12,7 @@ Show the current HEAD commit hash
 
 ## Synopsis
 ```bash
-px head <REPOSITORY>
+px head [OPTIONS] <REPOSITORY>
 ```
 
 
@@ -21,6 +21,13 @@ px head <REPOSITORY>
 | Name | Description | Required |
 |---|---|---|
 | repository | Repository name | Yes |
+
+
+## Options
+
+| Flag | Description | Default |
+|---|---|---|
+|     --branch | Read the head of a specific branch |  |
 
 
 ## Flags

@@ -217,12 +217,15 @@ commands:
   - name: "head"
     full_path: "head"
     about: "Show the current HEAD commit hash"
-    usage: "Usage: head <REPOSITORY>"
+    usage: "Usage: head [OPTIONS] <REPOSITORY>"
     hidden: false
     arguments:
       - name: "repository"
         about: "Repository name"
         required: true
+    options:
+      - name: "branch"
+        about: "Read the head of a specific branch"
     flags:
       - name: "help"
         about: "Print help"

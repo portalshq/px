@@ -328,7 +328,9 @@ fn run_cli() -> Result<()> {
         Commands::Sign { uri } => cmd_sign(&uri),
         Commands::Verify { uri } => cmd_verify(&uri),
         Commands::Switch { repository, name } => cmd_switch(&base_dir, &repository, &name),
-        Commands::Head { repository } => cmd_head_hash(&base_dir, &repository),
+        Commands::Head { repository, branch } => {
+            cmd_head_hash(&base_dir, &repository, branch.as_deref())
+        }
         Commands::Validate { uri, file } => {
             cmd_validate(&base_dir, uri.as_deref(), file.as_deref())
         }
@@ -2688,11 +2690,15 @@ fn cmd_switch(base_dir: &Path, repository: &str, name: &str) -> Result<()> {
     Ok(())
 }
 
-fn cmd_head_hash(base_dir: &Path, repository: &str) -> Result<()> {
+fn cmd_head_hash(base_dir: &Path, repository: &str, branch: Option<&str>) -> Result<()> {
     let hash = if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() == Some("local") {
-        open_repo(base_dir, repository)?.head_hash()
+        let repo = open_repo(base_dir, repository)?;
+        match branch {
+            Some(branch) => repo.branch_head_hash(branch),
+            None => repo.head_hash(),
+        }
     } else {
-        Resolver::new(base_dir).remote_head_hash(repository)
+        Resolver::new(base_dir).remote_branch_head_hash(repository, branch)
     }
     .context("failed to get HEAD hash")?;
     if !std::io::stdout().is_terminal() {

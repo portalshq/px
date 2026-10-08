@@ -6,6 +6,7 @@ Arguments:
   <REPOSITORY>  Repository name
 
 Options:
+      --branch <BRANCH>      Read the head of a specific branch
   -d, --base-dir <BASE_DIR>  Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]
   -v, --verbose              Enable verbose debug logging
       --remote               Resolve repository reads through the configured Lore server (the default)

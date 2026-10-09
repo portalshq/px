@@ -11083,3 +11083,118 @@ section[id],
 main[id] {
   scroll-margin-top: 1rem;
 }
+
+/* Demo slot: keep the frame size stable when the video replaces the placeholder. */
+.px-demo {
+  padding: 48px 20px 64px;
+}
+
+.px-demo-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.px-demo-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.px-demo-eyebrow {
+  margin-bottom: 16px;
+  color: var(--px-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.px-demo-description {
+  max-width: 340px;
+}
+
+.px-demo-placeholder {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid #333;
+  border-radius: var(--radius-sm);
+  background: #111;
+  color: #fff;
+}
+
+.px-demo-mark {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  color: var(--px-yellow);
+  font-size: 12px;
+}
+
+.px-demo-message {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.px-demo-play {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--px-yellow);
+  color: var(--px-ink);
+}
+
+.px-demo-status {
+  font-size: clamp(18px, 2.5vw, 28px);
+  line-height: 1.2;
+}
+
+.px-demo-caption {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  color: #aaa;
+  font-size: 11px;
+}
+
+@media (min-width: 768px) {
+  .px-demo {
+    padding: 64px 40px 80px;
+  }
+}
+
+@media (max-width: 767px) {
+  .px-demo-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .px-demo-mark {
+    top: 16px;
+    left: 16px;
+    font-size: 10px;
+  }
+
+  .px-demo-play {
+    width: 48px;
+    height: 48px;
+  }
+
+  .px-demo-message {
+    gap: 12px;
+  }
+
+  .px-demo-caption {
+    bottom: 12px;
+    left: 16px;
+    font-size: 9px;
+  }
+}

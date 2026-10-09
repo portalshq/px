@@ -11086,7 +11086,7 @@ main[id] {
 
 /* The demo and BUILD ONCE banner share one container width. */
 .px-demo {
-  padding: 48px 20px 64px;
+  padding: 0 20px 64px;
 }
 
 .px-demo-inner {
@@ -11102,11 +11102,8 @@ main[id] {
   margin-bottom: 28px;
 }
 
-.px-demo-eyebrow {
-  margin-bottom: 16px;
-  color: var(--px-dim);
-  font-size: 11px;
-  text-transform: uppercase;
+.px-demo-banner {
+  min-height: 64px;
 }
 
 .px-demo-description {
@@ -11130,7 +11127,7 @@ main[id] {
 
 @media (min-width: 768px) {
   .px-demo {
-    padding: 64px 40px 80px;
+    padding: 0 40px 80px;
   }
 }
 

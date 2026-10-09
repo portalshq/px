@@ -11084,7 +11084,7 @@ main[id] {
   scroll-margin-top: 1rem;
 }
 
-/* Demo slot: keep the frame size stable when the video replaces the placeholder. */
+/* The demo and BUILD ONCE banner share one container width. */
 .px-demo {
   padding: 48px 20px 64px;
 }
@@ -11113,55 +11113,19 @@ main[id] {
   max-width: 340px;
 }
 
-.px-demo-placeholder {
-  position: relative;
-  display: grid;
-  place-items: center;
+.px-demo-video {
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border: 1px solid #333;
   border-radius: var(--radius-sm);
   background: #111;
-  color: #fff;
 }
 
-.px-demo-mark {
-  position: absolute;
-  top: 24px;
-  left: 24px;
-  color: var(--px-yellow);
-  font-size: 12px;
-}
-
-.px-demo-message {
-  display: grid;
-  justify-items: center;
-  gap: 16px;
-  text-align: center;
-}
-
-.px-demo-play {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--px-yellow);
-  color: var(--px-ink);
-}
-
-.px-demo-status {
-  font-size: clamp(18px, 2.5vw, 28px);
-  line-height: 1.2;
-}
-
-.px-demo-caption {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
-  color: #aaa;
-  font-size: 11px;
+.px-demo-video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 @media (min-width: 768px) {
@@ -11177,24 +11141,4 @@ main[id] {
     gap: 16px;
   }
 
-  .px-demo-mark {
-    top: 16px;
-    left: 16px;
-    font-size: 10px;
-  }
-
-  .px-demo-play {
-    width: 48px;
-    height: 48px;
-  }
-
-  .px-demo-message {
-    gap: 12px;
-  }
-
-  .px-demo-caption {
-    bottom: 12px;
-    left: 16px;
-    font-size: 9px;
-  }
 }

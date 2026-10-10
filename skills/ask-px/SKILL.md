@@ -3,7 +3,7 @@ name: ask-px
 description: Explain PX architecture, document version tracking, repository remotes, and create/iterate/promote/resolve workflows. Use for conceptual PX questions and human CLI syntax questions; use px-repo, px-resolve, or px-update to perform operations via MCP.
 metadata:
   author: portals
-  version: "0.9.1"
+  version: "0.9.2"
 ---
 
 # Ask PX
@@ -49,7 +49,7 @@ These template includes keep the reference in sync with documentation generation
 
 
 # PX CLI Reference
-The `px` command-line interface (v0.9.1) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
+The `px` command-line interface (v0.9.2) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
 
 
 ## Command Overview

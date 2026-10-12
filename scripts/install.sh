@@ -112,6 +112,7 @@ TMP_FILE="$TMP_DIR/$ASSET"
 MCP_FILE="$TMP_DIR/$MCP_ASSET"
 
 cleanup() {
+    # Only cleanup temp directory, not installed binaries
     rm -rf "$TMP_DIR"
 }
 
@@ -122,7 +123,10 @@ curl \
     --location \
     --progress-bar \
     "$URL" \
-    --output "$TMP_FILE"
+    --output "$TMP_FILE" || {
+    echo "Error: Failed to download px binary"
+    exit 1
+}
 
 chmod +x "$TMP_FILE"
 
@@ -134,12 +138,22 @@ curl \
     --location \
     --progress-bar \
     "$MCP_URL" \
-    --output "$MCP_FILE"
+    --output "$MCP_FILE" || {
+    echo "Error: Failed to download px-mcp-server binary"
+    exit 1
+}
 
 chmod +x "$MCP_FILE"
 
-mv -f "$TMP_FILE" "$INSTALL_DIR/$BINARY_NAME"
-mv -f "$MCP_FILE" "$INSTALL_DIR/$MCP_BINARY_NAME"
+mv -f "$TMP_FILE" "$INSTALL_DIR/$BINARY_NAME" || {
+    echo "Error: Failed to install px binary"
+    exit 1
+}
+
+mv -f "$MCP_FILE" "$INSTALL_DIR/$MCP_BINARY_NAME" || {
+    echo "Error: Failed to install px-mcp-server binary"
+    exit 1
+}
 
 ###############################################################################
 # Install skills
@@ -156,16 +170,31 @@ else
     SKILLS_DIR="$USERPROFILE/.agents/skills"
 fi
 
-# Clean existing skills directory to avoid stale/previous skills
+# Define px-specific skills
+PX_SKILLS=(
+    "ask-px"
+    "character-reference-sheet"
+    "px-repo"
+    "px-resolve"
+    "px-update"
+)
+
+# Clean only px-specific skills to avoid stale/previous versions
+# Preserve any custom skills the user may have installed
 if [[ -d "$SKILLS_DIR" ]]; then
-    echo "Cleaning existing skills directory..."
-    if ! rm -rf "$SKILLS_DIR"/*; then
-        echo "Warning: Failed to clean skills directory. Installation may have stale skills."
-    fi
+    echo "Cleaning existing px skills..."
+    for skill in "${PX_SKILLS[@]}"; do
+        if [[ -d "$SKILLS_DIR/$skill" ]]; then
+            rm -rf "$SKILLS_DIR/$skill"
+        fi
+    done
 fi
 
 # Create skills directory
-mkdir -p "$SKILLS_DIR"
+if ! mkdir -p "$SKILLS_DIR"; then
+    echo "Error: Failed to create skills directory"
+    exit 1
+fi
 
 # Download skills archive
 if [[ -n "$BASE_URL" ]]; then
@@ -201,9 +230,17 @@ else
     echo "Falling back to GitHub raw content..."
 
     # Fallback: download skills directly from GitHub raw content
-    # Use the appropriate git ref: version tag if specified, otherwise main
+    # Use the appropriate git ref: version tag if specified, otherwise resolve latest tag
     if [[ "$VERSION" == "latest" ]]; then
-        GIT_REF="main"
+        # Resolve the actual latest release tag to avoid version mismatch
+        LATEST_TAG=$(curl --silent --location "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1')
+        if [[ -n "$LATEST_TAG" ]]; then
+            GIT_REF="$LATEST_TAG"
+            echo "Resolved latest tag: $GIT_REF"
+        else
+            echo "Warning: Could not resolve latest tag, falling back to main"
+            GIT_REF="main"
+        fi
     else
         # Add 'v' prefix if not present for git tags
         if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -215,13 +252,11 @@ else
 
     GITHUB_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${GIT_REF}/skills"
 
-    SKILLS_LIST=(
-        "ask-px/SKILL.md"
-        "character-reference-sheet/SKILL.md"
-        "px-repo/SKILL.md"
-        "px-resolve/SKILL.md"
-        "px-update/SKILL.md"
-    )
+    # Build skill file paths from PX_SKILLS array
+    SKILLS_LIST=()
+    for skill in "${PX_SKILLS[@]}"; do
+        SKILLS_LIST+=("${skill}/SKILL.md")
+    done
 
     ALL_SKILLS_DOWNLOADED=true
 

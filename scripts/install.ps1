@@ -79,15 +79,29 @@ $SKILLS_TMP = Join-Path $TMP_DIR $SKILLS_ARCHIVE
 try {
     # Download px binary
     Invoke-WebRequest -Uri $URL -OutFile $TMP_FILE -UseBasicParsing
+} catch {
+    Write-Error "Error: Failed to download px binary"
+    exit 1
+}
 
+try {
     # Download px-mcp-server binary
     Write-Host
     Write-Host "Installing ${MCP_BINARY_NAME}..."
     Invoke-WebRequest -Uri $MCP_URL -OutFile $MCP_FILE -UseBasicParsing
+} catch {
+    Write-Error "Error: Failed to download px-mcp-server binary"
+    exit 1
+}
 
+try {
     # Move binaries to install directory
     Copy-Item -Path $TMP_FILE -Destination (Join-Path $InstallDir $BINARY_NAME) -Force
     Copy-Item -Path $MCP_FILE -Destination (Join-Path $InstallDir $MCP_BINARY_NAME) -Force
+} catch {
+    Write-Error "Error: Failed to install binaries"
+    exit 1
+}
 
    ###############################################################################
     # Install skills
@@ -97,13 +111,28 @@ try {
     Write-Host "Installing agent skills..."
 
     $SKILLS_DIR = Join-Path $env:USERPROFILE ".agents\skills"
-    
-    # Clean existing skills directory to avoid stale/previous skills
+
+    # Define px-specific skills
+    $PX_SKILLS = @(
+        "ask-px"
+        "character-reference-sheet"
+        "px-repo"
+        "px-resolve"
+        "px-update"
+    )
+
+    # Clean only px-specific skills to avoid stale/previous versions
+    # Preserve any custom skills the user may have installed
     if (Test-Path $SKILLS_DIR) {
-        Write-Host "Cleaning existing skills directory..."
-        Remove-Item -Path "$SKILLS_DIR\*" -Recurse -Force
+        Write-Host "Cleaning existing px skills..."
+        foreach ($skill in $PX_SKILLS) {
+            $skillPath = Join-Path $SKILLS_DIR $skill
+            if (Test-Path $skillPath) {
+                Remove-Item -Path $skillPath -Recurse -Force
+            }
+        }
     }
-    
+
     if (-not (Test-Path $SKILLS_DIR)) {
         New-Item -ItemType Directory -Path $SKILLS_DIR -Force | Out-Null
     }
@@ -123,9 +152,23 @@ try {
         Write-Host "Falling back to GitHub raw content..."
 
         # Fallback: download skills directly from GitHub raw content
-        # Use the appropriate git ref: version tag if specified, otherwise main
+        # Use the appropriate git ref: version tag if specified, otherwise resolve latest tag
         if ($Version -eq "latest") {
-            $GIT_REF = "main"
+            # Resolve the actual latest release tag to avoid version mismatch
+            try {
+                $latestResponse = Invoke-WebRequest -Uri "https://api.github.com/repos/${REPO}/releases/latest" -UseBasicParsing
+                $latestTag = ($latestResponse.Content | ConvertFrom-Json).tag_name
+                if ($latestTag) {
+                    $GIT_REF = $latestTag
+                    Write-Host "Resolved latest tag: $GIT_REF"
+                } else {
+                    Write-Warning "Could not resolve latest tag, falling back to main"
+                    $GIT_REF = "main"
+                }
+            } catch {
+                Write-Warning "Could not resolve latest tag, falling back to main"
+                $GIT_REF = "main"
+            }
         } else {
             # Add 'v' prefix if not present for git tags
             if ($Version -match '^\d+\.\d+\.\d+$') {
@@ -137,13 +180,10 @@ try {
 
         $GITHUB_RAW_BASE = "https://raw.githubusercontent.com/${REPO}/${GIT_REF}/skills"
 
-        $SKILLS_LIST = @(
-            "ask-px/SKILL.md"
-            "character-reference-sheet/SKILL.md"
-            "px-repo/SKILL.md"
-            "px-resolve/SKILL.md"
-            "px-update/SKILL.md"
-        )
+        # Build skill file paths from PX_SKILLS array
+        $SKILLS_LIST = foreach ($skill in $PX_SKILLS) {
+            "${skill}/SKILL.md"
+        }
 
         $ALL_SKILLS_DOWNLOADED = $true
 

@@ -28,7 +28,7 @@ fn checkout(home: &Path, name: &str, server: &str) {
 
 fn fake_lore(temp: &TempDir, body: &str) -> std::path::PathBuf {
     let file = temp.path().join("lore-fixture");
-    fs::write(&file, format!("#!/bin/sh\nif [ \"$1\" = repository ] && [ \"$2\" = info ]; then\n  printf '%s\\n' '{{\"tagName\":\"repositoryData\",\"data\":{{\"id\":\"00000000000000000000000000000001\",\"remoteUrl\":\"lore://server-a:41337\"}}}}'\n  exit 0\nfi\n{body}\n")).unwrap();
+    fs::write(&file, format!("#!/bin/sh\nif [ \"$1\" = repository ] && [ \"$2\" = info ]; then\n  printf '%s\\n' '{{\"tagName\":\"repositoryData\",\"data\":{{\"id\":\"00000000000000000000000000000001\",\"remoteUrl\":\"lore://server-a:41337\"}}}}'\n  exit 0\nfi\nif [ \"$1\" = repository ] && [ \"$2\" = metadata ] && [ \"$3\" = get ]; then\n  exit 0\nfi\nif [ \"$1\" = branch ] && [ \"$2\" = current ]; then\n  printf '%s\\n' 'main'\n  exit 0\nfi\n{body}\n")).unwrap();
     fs::set_permissions(&file, fs::Permissions::from_mode(0o755)).unwrap();
     file
 }

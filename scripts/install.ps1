@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 $REPO = "portalshq/px"
 $BINARY_NAME = "px"
 $MCP_BINARY_NAME = "px-mcp-server"
-$SKILLS_ARCHIVE = "px-skills.tar.gz"
+$SKILLS_ARCHIVE = "px-skills.zip"
 
 ###############################################################################
 # Detect platform
@@ -105,16 +105,11 @@ try {
     try {
         Invoke-WebRequest -Uri $SKILLS_URL -OutFile $SKILLS_TMP -UseBasicParsing
 
-        # Extract skills
-        if (Get-Command tar -ErrorAction SilentlyContinue) {
-            tar -xzf $SKILLS_TMP -C $SKILLS_DIR
-            Write-Host "Skills installed to $SKILLS_DIR"
-        } else {
-            Write-Error "Error: tar is required to extract skills. Please install tar or use a Unix-like shell."
-            exit 1
-        }
+        # Extract skills using native PowerShell cmdlet
+        Expand-Archive -Path $SKILLS_TMP -DestinationPath $SKILLS_DIR -Force
+        Write-Host "Skills installed to $SKILLS_DIR"
     } catch {
-        Write-Warning "Failed to download skills archive from $SKILLS_URL"
+        Write-Warning "Failed to download or extract skills archive from $SKILLS_URL"
         Write-Warning "Skills will need to be installed manually."
         Write-Warning "Visit https://github.com/portalshq/px for instructions."
     }

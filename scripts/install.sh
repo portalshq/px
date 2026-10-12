@@ -9,7 +9,7 @@ set -euo pipefail
 REPO="portalshq/px"
 BINARY_NAME="px"
 MCP_BINARY_NAME="px-mcp-server"
-SKILLS_ARCHIVE="px-skills.tar.gz"
+SKILLS_ARCHIVE="px-skills.zip"
 VERSION="${VERSION:-latest}"
 BASE_URL="${PX_INSTALL_BASE_URL:-}"
 
@@ -28,6 +28,7 @@ require curl
 require chmod
 require uname
 require mktemp
+require unzip
 
 ###############################################################################
 # Detect platform
@@ -176,11 +177,11 @@ if curl \
     "$SKILLS_URL" \
     --output "$SKILLS_TMP"; then
     # Extract skills to the skills directory
-    if command -v tar >/dev/null 2>&1; then
-        tar -xzf "$SKILLS_TMP" -C "$SKILLS_DIR"
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -q "$SKILLS_TMP" -d "$SKILLS_DIR"
         echo "Skills installed to $SKILLS_DIR"
     else
-        echo "Error: tar is required to extract skills"
+        echo "Error: unzip is required to extract skills"
         exit 1
     fi
 else

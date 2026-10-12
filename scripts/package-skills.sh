@@ -7,26 +7,27 @@ cd "$ROOT_DIR"
 
 SKILLS_DIR="$ROOT_DIR/skills"
 OUTPUT_DIR="$ROOT_DIR/target/skills-archive"
-OUTPUT_FILE="$OUTPUT_DIR/px-skills.tar.gz"
+OUTPUT_FILE="$OUTPUT_DIR/px-skills.zip"
 
 echo "Packaging skills from $SKILLS_DIR"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
-# Create tar.gz archive with skills (excluding templates)
-tar -czf "$OUTPUT_FILE" \
-    -C "$SKILLS_DIR" \
-    --exclude='.DS_Store' \
-    --exclude='templates' \
+# Create zip archive with skills (excluding templates)
+cd "$SKILLS_DIR"
+zip -r "$OUTPUT_FILE" \
     ask-px \
     character-reference-sheet \
     px-repo \
     px-resolve \
-    px-update
+    px-update \
+    -x "*.DS_Store" \
+    -x "templates/*"
+cd "$ROOT_DIR"
 
 echo "Skills packaged to $OUTPUT_FILE"
 
 # Show contents
 echo "Archive contents:"
-tar -tzf "$OUTPUT_FILE"
+unzip -l "$OUTPUT_FILE"

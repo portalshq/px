@@ -307,6 +307,10 @@ pub enum Commands {
         /// Skip files with missing content addresses (e.g., stale .DS_Store from historical commits).
         #[arg(long)]
         skip_missing: bool,
+
+        /// Force push even if branch already exists on remote (bypass fast-forward check).
+        #[arg(long)]
+        force: bool,
     },
 
     /// Create a new entity manifest.
@@ -726,6 +730,10 @@ The SDKs return the same fields as the CLI JSON output.
         /// Branch to push (default: current branch).
         #[arg(long)]
         branch: Option<String>,
+
+        /// Force push even if branch already exists on remote (bypass fast-forward check).
+        #[arg(long)]
+        force: bool,
     },
 
     /// Manage remotes on a repository.

@@ -245,7 +245,7 @@ impl RepositoryApi {
             ProviderType::PortalsCloud | ProviderType::Remote => {
                 // Cloud/Remote: commit and push
                 // If push fails, we need to rollback the commit to keep local state consistent
-                match lore_backend.push(&repo_handle.path, None, None) {
+                match lore_backend.push(&repo_handle.path, None, None, false) {
                     Ok(_) => {
                         info!("Published and synchronized: {}", commit_hash);
                     }
@@ -441,7 +441,7 @@ impl RepositoryApi {
                         )
                     })?;
 
-                match lore_backend.push(&repo_handle.path, None, None) {
+                match lore_backend.push(&repo_handle.path, None, None, false) {
                     Ok(_) => {
                         info!("Repository synchronized");
                         Ok(())

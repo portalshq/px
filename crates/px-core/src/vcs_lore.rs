@@ -1307,6 +1307,7 @@ impl VcsBackend for LoreBackend {
         path: &Path,
         _remote: Option<&str>,
         branch: Option<&str>,
+        force: bool,
     ) -> Result<(), PxError> {
         // Sparse Lore clones may not have cached repository metadata yet.
         // The metadata getter queries the remote and caches its pointer locally;
@@ -1327,14 +1328,16 @@ impl VcsBackend for LoreBackend {
         };
 
         // Push branch via lore CLI (handles blob upload + branch tip advancement internally)
-        let args = vec![
+        let mut args: Vec<&str> = vec![
             "branch",
             "push",
             &branch_name,
-            "--fast-forward-merge",
             "--non-interactive",
         ];
-        LoreProcessRunner::run(&args, Some(path))?;
+        if !force {
+            args.push("--fast-forward-merge");
+        }
+        LoreProcessRunner::run(args, Some(path))?;
 
         Ok(())
     }

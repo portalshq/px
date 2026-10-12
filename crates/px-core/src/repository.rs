@@ -442,7 +442,7 @@ impl Repository {
                     .map(ToOwned::to_owned)
                     .unwrap_or_else(|| format!("create {entity_type} {entity_id}"));
                 let hash = vcs.commit(&self.root, &commit_message, author)?;
-                vcs.push(&self.root, None, None).map_err(|error| {
+                vcs.push(&self.root, None, None, false).map_err(|error| {
                     error.context(format!(
                         "push failed after local commit {hash}; run px push {} when connectivity is restored",
                         self.repository
@@ -490,7 +490,7 @@ impl Repository {
             Some(vcs) => {
                 let parent = Some(vcs.head_hash(&self.root)?);
                 let hash = vcs.commit(&self.root, message, author)?;
-                vcs.push(&self.root, None, None).map_err(|error| {
+                vcs.push(&self.root, None, None, false).map_err(|error| {
                     error.context(format!(
                         "push failed after local commit {hash}; run px push {} when connectivity is restored",
                         self.repository
@@ -702,8 +702,8 @@ impl Repository {
     }
 
     /// Push the current branch to a remote.
-    pub fn push(&self, remote: Option<&str>, branch: Option<&str>) -> Result<(), PxError> {
-        self.require_vcs("push")?.push(&self.root, remote, branch)
+    pub fn push(&self, remote: Option<&str>, branch: Option<&str>, force: bool) -> Result<(), PxError> {
+        self.require_vcs("push")?.push(&self.root, remote, branch, force)
     }
 
     /// Pull the current branch from a remote.
@@ -982,7 +982,7 @@ mod tests {
         let err = repo.head_hash().unwrap_err();
         assert!(matches!(err, PxError::BackendNotConfigured { .. }));
 
-        let err = repo.push(Some("origin"), None).unwrap_err();
+        let err = repo.push(Some("origin"), None, false).unwrap_err();
         assert!(matches!(err, PxError::BackendNotConfigured { .. }));
 
         // The error message guides the user toward configuration.

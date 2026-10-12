@@ -298,7 +298,7 @@ pub trait VcsBackend: Send + Sync {
     fn list_remotes(&self, path: &Path) -> Result<Vec<(String, String)>, PxError>;
 
     /// Push the current branch to its upstream / a named remote.
-    fn push(&self, path: &Path, remote: Option<&str>, branch: Option<&str>) -> Result<(), PxError>;
+    fn push(&self, path: &Path, remote: Option<&str>, branch: Option<&str>, force: bool) -> Result<(), PxError>;
 
     /// Pull the current branch from its upstream / a named remote.
     fn pull(&self, path: &Path, remote: Option<&str>, branch: Option<&str>) -> Result<(), PxError>;

@@ -212,7 +212,8 @@ fn run_cli() -> Result<()> {
         Commands::Sync {
             repository,
             skip_missing,
-        } => cmd_sync(&base_dir, &repository, skip_missing),
+            force,
+        } => cmd_sync(&base_dir, &repository, skip_missing, force),
         Commands::Create {
             entity_type,
             entity_id,
@@ -329,7 +330,8 @@ fn run_cli() -> Result<()> {
             repository,
             remote,
             branch,
-        } => cmd_push(&base_dir, &repository, &remote, branch.as_deref()),
+            force,
+        } => cmd_push(&base_dir, &repository, &remote, branch.as_deref(), force),
         Commands::Remote(cmd) => cmd_remote(&base_dir, cmd),
         Commands::Sign { uri } => cmd_sign(&uri),
         Commands::Verify { uri } => cmd_verify(&uri),
@@ -1282,7 +1284,7 @@ fn cmd_doctor(base_dir: &Path, repair: bool) -> Result<()> {
 
 fn cmd_publish(base_dir: &Path, repository: &str) -> Result<()> {
     let repo = open_repo(base_dir, repository)?;
-    repo.push(Some("origin"), None)
+    repo.push(Some("origin"), None, false)
         .context("failed to publish to remote")?;
     emit_action(format!("✓ Published '{repository}'."));
     Ok(())
@@ -1489,12 +1491,12 @@ fn cmd_status(base_dir: &Path, repository: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-fn cmd_sync(base_dir: &Path, repository: &str, skip_missing: bool) -> Result<()> {
+fn cmd_sync(base_dir: &Path, repository: &str, skip_missing: bool, force: bool) -> Result<()> {
     // Keep sync consistent with `px pull`: reconcile manifests only, then
     // publish any local commits. Representation blobs stay on the server.
     cmd_pull(base_dir, repository, skip_missing).context("failed to sync manifests from remote")?;
     let repo = open_repo(base_dir, repository)?;
-    repo.push(None, None)
+    repo.push(None, None, force)
         .context("failed to push local changes during sync")?;
     emit_action(format!("✓ Synced '{repository}'."));
     Ok(())
@@ -2386,9 +2388,9 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str, skip_missing: bool) -> Result<()
     Ok(())
 }
 
-fn cmd_push(base_dir: &Path, repository: &str, remote: &str, branch: Option<&str>) -> Result<()> {
+fn cmd_push(base_dir: &Path, repository: &str, remote: &str, branch: Option<&str>, force: bool) -> Result<()> {
     let repo = open_repo(base_dir, repository)?;
-    repo.push(Some(remote), branch)
+    repo.push(Some(remote), branch, force)
         .context("failed to push to remote")?;
     match branch {
         Some(b) => emit_action(format!("✓ Pushed '{repository}' ({b}) → {remote}")),
@@ -2684,7 +2686,7 @@ fn cmd_revert(base_dir: &Path, repository: &str, commit: &str, author: &str) -> 
     let new_hash = repo
         .revert_commit(commit, author)
         .context(format!("failed to revert commit '{commit}'"))?;
-    repo.push(None, None)
+    repo.push(None, None, false)
         .context("failed to push revert commit")?;
     let short_old = if commit.len() > 12 {
         &commit[..12]

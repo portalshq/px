@@ -260,6 +260,7 @@ impl VcsBackend for MockBackend {
         _path: &Path,
         _remote: Option<&str>,
         _branch: Option<&str>,
+        _force: bool,
     ) -> Result<(), PxError> {
         Ok(())
     }

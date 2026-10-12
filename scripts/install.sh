@@ -159,7 +159,9 @@ fi
 # Clean existing skills directory to avoid stale/previous skills
 if [[ -d "$SKILLS_DIR" ]]; then
     echo "Cleaning existing skills directory..."
-    rm -rf "$SKILLS_DIR"/*
+    if ! rm -rf "$SKILLS_DIR"/*; then
+        echo "Warning: Failed to clean skills directory. Installation may have stale skills."
+    fi
 fi
 
 # Create skills directory
@@ -199,7 +201,19 @@ else
     echo "Falling back to GitHub raw content..."
 
     # Fallback: download skills directly from GitHub raw content
-    GITHUB_RAW_BASE="https://raw.githubusercontent.com/${REPO}/refs/heads/main/skills"
+    # Use the appropriate git ref: version tag if specified, otherwise main
+    if [[ "$VERSION" == "latest" ]]; then
+        GIT_REF="main"
+    else
+        # Add 'v' prefix if not present for git tags
+        if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            GIT_REF="v${VERSION}"
+        else
+            GIT_REF="$VERSION"
+        fi
+    fi
+
+    GITHUB_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${GIT_REF}/skills"
 
     SKILLS_LIST=(
         "ask-px/SKILL.md"

@@ -123,7 +123,19 @@ try {
         Write-Host "Falling back to GitHub raw content..."
 
         # Fallback: download skills directly from GitHub raw content
-        $GITHUB_RAW_BASE = "https://raw.githubusercontent.com/${REPO}/refs/heads/main/skills"
+        # Use the appropriate git ref: version tag if specified, otherwise main
+        if ($Version -eq "latest") {
+            $GIT_REF = "main"
+        } else {
+            # Add 'v' prefix if not present for git tags
+            if ($Version -match '^\d+\.\d+\.\d+$') {
+                $GIT_REF = "v${Version}"
+            } else {
+                $GIT_REF = $Version
+            }
+        }
+
+        $GITHUB_RAW_BASE = "https://raw.githubusercontent.com/${REPO}/${GIT_REF}/skills"
 
         $SKILLS_LIST = @(
             "ask-px/SKILL.md"

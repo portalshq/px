@@ -1,5 +1,5 @@
 generator: px-docgen
-version: "0.9.3"
+version: "0.9.4"
 commands:
   - name: "add"
     full_path: "add"

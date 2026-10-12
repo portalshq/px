@@ -9,3 +9,6 @@ cargo clippy --workspace --all-targets --exclude narrativeengine-py --exclude px
 # FFI crates are built by their respective language tooling
 cargo build --workspace --exclude narrativeengine-py --exclude px-sdk-py --exclude px-sdk-ts
 cargo test --workspace --exclude narrativeengine-py --exclude px-sdk-py --exclude px-sdk-ts
+
+# Package skills for distribution
+bash scripts/package-skills.sh

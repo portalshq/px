@@ -3,10 +3,10 @@
 ### Installation Script
 
 ```bash
-curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash && npx skills add portalshq/px
+curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash
 ```
 
-The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
 
 <!-- ### CLI & Server (Rust — compile from source)
 

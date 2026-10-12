@@ -111,6 +111,14 @@ jobs:
             "target/${{ matrix.target }}/release/${{ matrix.mcp_bin }}" \
             "artifacts/${MCP_NAME}"
 
+      - name: Package skills (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          bash scripts/package-skills.sh
+          cp target/skills-archive/px-skills.tar.gz artifacts/
+          cp scripts/install.ps1 artifacts/install.ps1
+
       - uses: actions/upload-artifact@v4
         with:
           name: px-${{ matrix.target }}
@@ -126,6 +134,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash -n scripts/install.sh
+      - run: pwsh -NoProfile -Command "Test-Path scripts/install.ps1 | ForEach-Object { if (\$_) { pwsh -NoProfile -File scripts/install.ps1 -WhatIf } }"
       - uses: actions/download-artifact@v4
         with:
           path: artifacts

@@ -9,6 +9,7 @@ set -euo pipefail
 REPO="portalshq/px"
 BINARY_NAME="px"
 MCP_BINARY_NAME="px-mcp-server"
+SKILLS_ARCHIVE="px-skills.tar.gz"
 VERSION="${VERSION:-latest}"
 BASE_URL="${PX_INSTALL_BASE_URL:-}"
 
@@ -138,6 +139,55 @@ chmod +x "$MCP_FILE"
 
 mv -f "$TMP_FILE" "$INSTALL_DIR/$BINARY_NAME"
 mv -f "$MCP_FILE" "$INSTALL_DIR/$MCP_BINARY_NAME"
+
+###############################################################################
+# Install skills
+###############################################################################
+
+echo
+echo "Installing agent skills..."
+
+# Determine skills directory
+if [[ "$OS" == "Darwin" || "$OS" == "Linux" ]]; then
+    SKILLS_DIR="$HOME/.agents/skills"
+else
+    # Windows
+    SKILLS_DIR="$USERPROFILE/.agents/skills"
+fi
+
+# Create skills directory
+mkdir -p "$SKILLS_DIR"
+
+# Download skills archive
+if [[ -n "$BASE_URL" ]]; then
+    SKILLS_URL="${BASE_URL%/}/${SKILLS_ARCHIVE}"
+elif [[ "$VERSION" == "latest" ]]; then
+    SKILLS_URL="https://github.com/${REPO}/releases/latest/download/${SKILLS_ARCHIVE}"
+else
+    SKILLS_URL="https://github.com/${REPO}/releases/download/${VERSION}/${SKILLS_ARCHIVE}"
+fi
+
+SKILLS_TMP="$TMP_DIR/$SKILLS_ARCHIVE"
+
+if curl \
+    --fail \
+    --location \
+    --progress-bar \
+    "$SKILLS_URL" \
+    --output "$SKILLS_TMP"; then
+    # Extract skills to the skills directory
+    if command -v tar >/dev/null 2>&1; then
+        tar -xzf "$SKILLS_TMP" -C "$SKILLS_DIR"
+        echo "Skills installed to $SKILLS_DIR"
+    else
+        echo "Error: tar is required to extract skills"
+        exit 1
+    fi
+else
+    echo "Warning: Failed to download skills archive from $SKILLS_URL"
+    echo "Skills will need to be installed manually."
+    echo "Visit https://github.com/portalshq/px for instructions."
+fi
 
 ###############################################################################
 # PATH hint

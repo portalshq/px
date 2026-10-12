@@ -97,6 +97,13 @@ try {
     Write-Host "Installing agent skills..."
 
     $SKILLS_DIR = Join-Path $env:USERPROFILE ".agents\skills"
+    
+    # Clean existing skills directory to avoid stale/previous skills
+    if (Test-Path $SKILLS_DIR) {
+        Write-Host "Cleaning existing skills directory..."
+        Remove-Item -Path "$SKILLS_DIR\*" -Recurse -Force
+    }
+    
     if (-not (Test-Path $SKILLS_DIR)) {
         New-Item -ItemType Directory -Path $SKILLS_DIR -Force | Out-Null
     }
@@ -113,31 +120,43 @@ try {
         $SKILLS_INSTALLED = $true
     } catch {
         Write-Warning "Failed to download skills archive from $SKILLS_URL"
-        Write-Host "Falling back to GitHub repo..."
+        Write-Host "Falling back to GitHub raw content..."
 
-        # Fallback: download skills directly from GitHub repo
-        $GITHUB_SKILLS_URL = "https://github.com/${REPO}/archive/refs/heads/main.zip"
-        $REPO_TMP = Join-Path $TMP_DIR "repo.zip"
+        # Fallback: download skills directly from GitHub raw content
+        $GITHUB_RAW_BASE = "https://raw.githubusercontent.com/${REPO}/refs/heads/main/skills"
 
-        try {
-            Invoke-WebRequest -Uri $GITHUB_SKILLS_URL -OutFile $REPO_TMP -UseBasicParsing
+        $SKILLS_LIST = @(
+            "ask-px/SKILL.md"
+            "character-reference-sheet/SKILL.md"
+            "px-repo/SKILL.md"
+            "px-resolve/SKILL.md"
+            "px-update/SKILL.md"
+        )
 
-            # Extract repo to temp directory
-            $REPO_EXTRACT_DIR = Join-Path $TMP_DIR "repo"
-            Expand-Archive -Path $REPO_TMP -DestinationPath $REPO_EXTRACT_DIR -Force
+        $ALL_SKILLS_DOWNLOADED = $true
 
-            $REPO_EXTRACTED = Join-Path $REPO_EXTRACT_DIR "px-main"
+        foreach ($skillPath in $SKILLS_LIST) {
+            $skillDir = Join-Path $SKILLS_DIR (Split-Path $skillPath)
+            $skillFile = Join-Path $SKILLS_DIR $skillPath
 
-            if (Test-Path "$REPO_EXTRACTED/skills") {
-                # Copy skills to target directory
-                Copy-Item -Path "$REPO_EXTRACTED/skills/*" -Destination $SKILLS_DIR -Recurse -Force
-                Write-Host "Skills installed from GitHub repo to $SKILLS_DIR"
-                $SKILLS_INSTALLED = $true
-            } else {
-                Write-Error "Error: skills directory not found in downloaded repo"
+            if (-not (Test-Path $skillDir)) {
+                New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
             }
-        } catch {
-            Write-Error "Error: Failed to download skills from GitHub repo"
+
+            try {
+                Invoke-WebRequest -Uri "${GITHUB_RAW_BASE}/${skillPath}" -OutFile $skillFile -UseBasicParsing
+                Write-Host "Downloaded: $skillPath"
+            } catch {
+                Write-Host "Failed to download: $skillPath"
+                $ALL_SKILLS_DOWNLOADED = $false
+            }
+        }
+
+        if ($ALL_SKILLS_DOWNLOADED) {
+            Write-Host "Skills installed from GitHub raw content to $SKILLS_DIR"
+            $SKILLS_INSTALLED = $true
+        } else {
+            Write-Error "Error: Failed to download some skills from GitHub"
         }
     }
 

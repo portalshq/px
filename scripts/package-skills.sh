@@ -9,7 +9,17 @@ SKILLS_DIR="$ROOT_DIR/skills"
 OUTPUT_DIR="$ROOT_DIR/target/skills-archive"
 OUTPUT_FILE="$OUTPUT_DIR/px-skills.zip"
 
-echo "Packaging skills from $SKILLS_DIR"
+# Get current git ref for consistency
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    GIT_REF=$(git rev-parse --abbrev-ref HEAD)
+    if [[ "$GIT_REF" == "HEAD" ]]; then
+        GIT_REF=$(git rev-parse HEAD)
+    fi
+else
+    GIT_REF="main"
+fi
+
+echo "Packaging skills from $SKILLS_DIR (ref: $GIT_REF)"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"

@@ -156,6 +156,12 @@ else
     SKILLS_DIR="$USERPROFILE/.agents/skills"
 fi
 
+# Clean existing skills directory to avoid stale/previous skills
+if [[ -d "$SKILLS_DIR" ]]; then
+    echo "Cleaning existing skills directory..."
+    rm -rf "$SKILLS_DIR"/*
+fi
+
 # Create skills directory
 mkdir -p "$SKILLS_DIR"
 
@@ -190,32 +196,46 @@ if curl \
     fi
 else
     echo "Warning: Failed to download skills archive from $SKILLS_URL"
-    echo "Falling back to GitHub repo..."
-    
-    # Fallback: download skills directly from GitHub repo
-    GITHUB_SKILLS_URL="https://github.com/${REPO}/archive/refs/heads/main.zip"
-    REPO_TMP="$TMP_DIR/repo.zip"
-    
-    if curl \
-        --fail \
-        --location \
-        --progress-bar \
-        "$GITHUB_SKILLS_URL" \
-        --output "$REPO_TMP"; then
-        # Extract just the skills directory from the repo
-        unzip -q "$REPO_TMP" -d "$TMP_DIR"
-        REPO_EXTRACTED="$TMP_DIR/px-main"
-        
-        if [[ -d "$REPO_EXTRACTED/skills" ]]; then
-            # Copy skills to target directory
-            cp -r "$REPO_EXTRACTED/skills/"* "$SKILLS_DIR/"
-            echo "Skills installed from GitHub repo to $SKILLS_DIR"
-            SKILLS_INSTALLED=true
+    echo "Falling back to GitHub raw content..."
+
+    # Fallback: download skills directly from GitHub raw content
+    GITHUB_RAW_BASE="https://raw.githubusercontent.com/${REPO}/refs/heads/main/skills"
+
+    SKILLS_LIST=(
+        "ask-px/SKILL.md"
+        "character-reference-sheet/SKILL.md"
+        "px-repo/SKILL.md"
+        "px-resolve/SKILL.md"
+        "px-update/SKILL.md"
+    )
+
+    ALL_SKILLS_DOWNLOADED=true
+
+    for skill_path in "${SKILLS_LIST[@]}"; do
+        skill_dir="$SKILLS_DIR/$(dirname "$skill_path")"
+        skill_file="$SKILLS_DIR/$skill_path"
+
+        mkdir -p "$skill_dir"
+
+        if curl \
+            --fail \
+            --location \
+            --silent \
+            --show-error \
+            "${GITHUB_RAW_BASE}/${skill_path}" \
+            --output "$skill_file"; then
+            echo "Downloaded: $skill_path"
         else
-            echo "Error: skills directory not found in downloaded repo"
+            echo "Failed to download: $skill_path"
+            ALL_SKILLS_DOWNLOADED=false
         fi
+    done
+
+    if [[ "$ALL_SKILLS_DOWNLOADED" == "true" ]]; then
+        echo "Skills installed from GitHub raw content to $SKILLS_DIR"
+        SKILLS_INSTALLED=true
     else
-        echo "Error: Failed to download skills from GitHub repo"
+        echo "Error: Failed to download some skills from GitHub"
     fi
 fi
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-10-12
+
+### Added
+- **`--skip-missing` flag for `px sync` and `px pull`**: Gracefully skip files with missing content addresses during sync/pull operations. Useful for recovering from historical commits that contain stale system file references (e.g., .DS_Store) committed before filtering was implemented.
+- **`--force` flag for `px push` and `px sync`**: Bypass fast-forward merge check when pushing to remote branches. Allows updating existing branches when fast-forward is not possible, while preserving safety by default.
+
+### Fixed
+- **.DS_Store sync failures**: Enhanced error detection to identify system files (.DS_Store, .git, .px, .lore) in missing content address errors and provide actionable guidance. Users can now use `px sync --skip-missing` to continue working despite stale system file references from historical commits.
+- **Branch push errors**: Added `--force` flag to handle "Branch main already exists, use switch instead" errors. Users can now explicitly force push when needed while fast-forward safety is preserved by default.
+
+### Changed
+- **Repository configuration tests**: Added comprehensive unit tests for .lore config precedence (`.px/config.yaml` > `.lore/config.toml` > global default), .loreignore generation, and system exclusion handling.
+- **Multi-user collaboration tests**: Added integration tests for multi-user clone scenarios, filter consistency across checkouts, and local Lore config persistence.
+
 ## [0.8.24] - 2026-09-18
 
 ### Added

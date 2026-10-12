@@ -25,6 +25,9 @@ Options:
   -v, --verbose
           Enable verbose debug logging
 
+      --force
+          Force push even if branch already exists on remote (bypass fast-forward check)
+
       --remote
           Resolve repository reads through the configured Lore server (the default)
 

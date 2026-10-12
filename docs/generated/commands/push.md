@@ -1,7 +1,7 @@
 ---
 generated: "true"
 generator: px-docgen
-version: 0.9.2
+version: 0.9.3
 source: clap
 ---
 
@@ -35,6 +35,7 @@ px push [OPTIONS] <REPOSITORY>
 
 | Flag | Description |
 |---|---|
+|     --force | Force push even if branch already exists on remote (bypass fast-forward check) |
 | -h, --help | Print help (see more with '--help') |
 
 

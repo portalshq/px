@@ -1,5 +1,5 @@
 generator: px-docgen
-version: "0.9.2"
+version: "0.9.3"
 commands:
   - name: "add"
     full_path: "add"
@@ -536,6 +536,8 @@ commands:
       - name: "branch"
         about: "Branch to push (default: current branch)"
     flags:
+      - name: "force"
+        about: "Force push even if branch already exists on remote (bypass fast-forward check)"
       - name: "help"
         about: "Print help (see more with '--help')"
   - name: "remote"
@@ -732,6 +734,8 @@ commands:
     flags:
       - name: "skip_missing"
         about: "Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)"
+      - name: "force"
+        about: "Force push even if branch already exists on remote (bypass fast-forward check)"
       - name: "help"
         about: "Print help"
   - name: "unset"

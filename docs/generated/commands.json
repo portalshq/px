@@ -1,6 +1,6 @@
 {
   "generator": "px-docgen",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "commands": [
     {
       "name": "add",
@@ -1326,6 +1326,17 @@
       ],
       "flags": [
         {
+          "name": "force",
+          "about": "Force push even if branch already exists on remote (bypass fast-forward check)",
+          "required": false,
+          "default_value": "false",
+          "short": null,
+          "long": "force",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
           "name": "help",
           "about": "Print help (see more with '--help')",
           "required": false,
@@ -1956,6 +1967,17 @@
           "default_value": "false",
           "short": null,
           "long": "skip-missing",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "force",
+          "about": "Force push even if branch already exists on remote (bypass fast-forward check)",
+          "required": false,
+          "default_value": "false",
+          "short": null,
+          "long": "force",
           "takes_value": false,
           "multiple": false,
           "possible_values": []

@@ -1,7 +1,7 @@
 ---
 generated: "true"
 generator: px-docgen
-version: 0.9.2
+version: 0.9.3
 source: clap
 ---
 
@@ -27,6 +27,7 @@ px sync [OPTIONS] <REPOSITORY>
 
 | Flag | Description |
 |---|---|
+|     --force | Force push even if branch already exists on remote (bypass fast-forward check) |
 |     --skip-missing | Skip files with missing content addresses (e.g., stale .DS\_Store from historical commits) |
 | -h, --help | Print help |
 

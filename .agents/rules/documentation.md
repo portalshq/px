@@ -22,3 +22,12 @@ just docs-check
 ```
 
 `just docs-check` reruns doc generation and verifies that generated outputs are current. If it reports stale documentation, inspect the generated diff and commit the intended generated files with the source changes.
+
+## Source code authority
+
+**Source code is always authoritative.** Documentation is best-effort up-to-date.
+
+- Always review the actual source code before making implementation decisions
+- Do not make decisions based on documentation alone
+- Always update applicable documentation after code changes
+- When documentation and code conflict, the code is correct

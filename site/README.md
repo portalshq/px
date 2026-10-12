@@ -1,25 +1,31 @@
 # PX standalone site
 
-This is the zero-build static export of the current PX landing page in the
-portals marketing app. It includes the image-rich Eye Candy sections, the
-Portals footer, and the Saga WebGL canvas. Preview it with `npx serve site`.
+This is the static PX landing page. It includes the image-rich Eye Candy sections,
+the Portals footer, and the Saga WebGL canvas. Preview it with `npx serve site`.
 
-The Pages origin is deployment plumbing only. The public canonical URL is
-always `https://portals.works/px`.
+The public canonical URL is always `https://portals.works/px`.
 
-## Source mapping
+## Deployment architecture
 
-| Target in `site/` | Source in `cloud/frontend/` |
-|---|---|
-| `index.html` | `app/(marketing)/px/page.tsx` metadata/JSON-LD + the current `src/components/px/PxLandingPage.tsx`, flattened to HTML |
-| `styles.css` | Rendered `app/globals.css`/`src/saga.css` rules plus `src/components/px/PxLandingPage.module.css` and the current utility classes |
-| `script.js` | `src/components/px/PxCodeBlock.tsx` clipboard behavior, including the `execCommand` fallback |
-| `saga-webgl.js`, `models/scene.glb` | `public/saga-webgl.js` and `public/models/scene.glb`, with asset paths made relative for Pages |
-| `eye-candy` image URLs | Optimized WebP assets in `cloud/frontend/public/eye-candy/optimized/`, served from `https://portals.works` so the marketing site remains the image origin |
-| `fonts/*.woff2` | `public/fonts/` — six PX font files, renamed for stable relative URLs |
-| `favicon.svg` | Minimal PX mark; the portals product favicon is not reused |
-| OG image (`og:image`, `twitter:image`) | Absolute FQDN asset in `cloud/frontend/public/og-image-px.png`, served from `https://portals.works` |
-| `.nojekyll` | Empty marker required for verbatim Pages serving |
+- **Content source:** This repo's `site/` directory (not cloud/frontend)
+- **Primary origin:** GitHub Pages at `https://portalshq.github.io/px`
+- **Public URL:** `https://portals.works/px` (proxied through cloud/frontend for the canonical domain)
+- **cloud/frontend role:** Reverse proxy only (rewrites `/px/:path*` to GitHub Pages)
+
+## Content source
+
+All PX landing page content is authored directly in this repo's `site/` directory:
+
+- `index.html` - Main landing page HTML (manually edited)
+- `styles.css` - Compiled CSS (see scripts/update-site-content.mjs)
+- `script.js` - Clipboard behavior for code blocks
+- `saga-webgl.js`, `models/scene.glb` - WebGL 3D assets
+- `eye-candy/` - Image references (served from https://portals.works)
+- `fonts/*.woff2` - PX font files
+- `favicon.svg` - PX favicon
+- `.nojekyll` - GitHub Pages marker
+
+**Note:** The cloud/frontend app does NOT contain PX landing page source. It only proxies `/px` to GitHub Pages.
 
 The workflow refreshes the site's technical code blocks at build time on every
 commit to `main`. The install command comes from the `Installation Script`

@@ -4,7 +4,27 @@ trigger: always_on
 
 ## Releases
 
-**Always use `./scripts/publish-all.sh` to publish a new version.** Do not manually bump versions, commit release tags, or push release commits.
+**⚠️ CRITICAL: Always use `./scripts/publish-all.sh` to publish a new version.** 
+
+**NEVER manually:**
+- Bump versions in Cargo.toml, pyproject.toml, or package.json
+- Commit release tags or version changes
+- Push release commits to origin
+- Create git tags manually
+
+**ALWAYS use the script:**
+```bash
+./scripts/publish-all.sh patch   # 0.5.8 → 0.5.9
+./scripts/publish-all.sh minor   # 0.5.8 → 0.6.0
+./scripts/publish-all.sh major   # 0.5.8 → 1.0.0
+./scripts/publish-all.sh 2.3.0   # explicit version
+```
+
+**Why?** The script ensures:
+- Consistent version bumping across all 11 workspace packages
+- Pre-publish validation (version consistency, tag consistency, type freshness)
+- Proper git commit and tag creation
+- Triggering of GitHub Actions publish workflow with OIDC trusted publishing
 
 ### Workflow
 

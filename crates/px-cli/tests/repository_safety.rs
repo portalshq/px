@@ -28,7 +28,7 @@ fn checkout(home: &Path, name: &str, server: &str) {
 
 fn fake_lore(temp: &TempDir, body: &str) -> std::path::PathBuf {
     let file = temp.path().join("lore-fixture");
-    fs::write(&file, format!("#!/bin/sh\nif [ \"$1\" = repository ] && [ \"$2\" = info ]; then\n  printf '%s\\n' '{{\"tagName\":\"repositoryData\",\"data\":{{\"id\":\"00000000000000000000000000000001\",\"remoteUrl\":\"lore://server-a:41337\"}}}}'\n  exit 0\nfi\nif [ \"$1\" = repository ] && [ \"$2\" = metadata ] && [ \"$3\" = get ]; then\n  exit 0\nfi\nif [ \"$1\" = branch ] && [ \"$2\" = current ]; then\n  printf '%s\\n' 'main'\n  exit 0\nfi\n{body}\n")).unwrap();
+    fs::write(&file, format!("#!/bin/sh\nif [ \"$1\" = --version ]; then\n  printf '%s\\n' '0.8.4-portals.9'\n  exit 0\nfi\nif [ \"$1\" = repository ] && [ \"$2\" = info ]; then\n  printf '%s\\n' '{{\"tagName\":\"repositoryData\",\"data\":{{\"id\":\"00000000000000000000000000000001\",\"remoteUrl\":\"lore://server-a:41337\"}}}}'\n  exit 0\nfi\nif [ \"$1\" = repository ] && [ \"$2\" = metadata ] && [ \"$3\" = get ]; then\n  exit 0\nfi\nif [ \"$1\" = branch ] && [ \"$2\" = current ]; then\n  printf '%s\\n' 'main'\n  exit 0\nfi\n{body}\n")).unwrap();
     fs::set_permissions(&file, fs::Permissions::from_mode(0o755)).unwrap();
     file
 }
@@ -89,6 +89,17 @@ fn init_reuses_existing_local_lore_repository_directory() {
         &temp,
         "printf '%s\n' \"$*\" >> \"$PX_TEST_CALLS\"\nif [ \"$1\" = repository ] && [ \"$2\" = create ]; then\n  echo 'unexpected second repository create' >&2\n  exit 42\nfi\nif [ \"$1\" = clone ]; then\n  mkdir -p \"$3/.lore\"\n  exit 0\nfi\nexit 0",
     );
+    // `px init` verifies that Lore is installed before invoking PXLORE_CLI.
+    // Put the versioned fixture on PATH as well so this integration test
+    // never downloads the Lore installer from GitHub.
+    let lore_bin_dir = temp.path().join("bin");
+    fs::create_dir_all(&lore_bin_dir).unwrap();
+    std::os::unix::fs::symlink(&fake, lore_bin_dir.join("lore")).unwrap();
+    let path = format!(
+        "{}:{}",
+        lore_bin_dir.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
     let log = temp.path().join("calls");
 
     Command::cargo_bin("px")
@@ -97,6 +108,7 @@ fn init_reuses_existing_local_lore_repository_directory() {
         .arg("--base-dir")
         .arg(temp.path())
         .env("PXLORE_CLI", fake)
+        .env("PATH", path)
         .env("PX_TEST_CALLS", &log)
         .assert()
         .success();

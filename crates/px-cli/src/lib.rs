@@ -303,6 +303,10 @@ pub enum Commands {
     Sync {
         /// Repository name.
         repository: String,
+
+        /// Skip files with missing content addresses (e.g., stale .DS_Store from historical commits).
+        #[arg(long)]
+        skip_missing: bool,
     },
 
     /// Create a new entity manifest.
@@ -700,6 +704,10 @@ The SDKs return the same fields as the CLI JSON output.
     Pull {
         /// URL (clone) or repository name (pull existing).
         url_or_name: String,
+
+        /// Skip files with missing content addresses (e.g., stale .DS_Store from historical commits).
+        #[arg(long)]
+        skip_missing: bool,
     },
 
     /// Push the current branch to its configured upstream remote.

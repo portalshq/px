@@ -1235,7 +1235,7 @@
       "full_path": "pull",
       "about": "Clone or pull PX manifests from a remote (representation files stay remote)",
       "long_about": "Clone or pull PX manifests from a remote (representation files stay remote).\n\nIf the argument is a URL, the repo is cloned (name is read from the repo's own config). If it's a repository name, the repo must already exist locally and its manifests will be updated without downloading assets.",
-      "usage": "Usage: pull <URL_OR_NAME>",
+      "usage": "Usage: pull [OPTIONS] <URL_OR_NAME>",
       "aliases": [],
       "arguments": [
         {
@@ -1252,6 +1252,17 @@
       ],
       "options": [],
       "flags": [
+        {
+          "name": "skip_missing",
+          "about": "Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)",
+          "required": false,
+          "default_value": "false",
+          "short": null,
+          "long": "skip-missing",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        },
         {
           "name": "help",
           "about": "Print help (see more with '--help')",
@@ -1921,7 +1932,7 @@
       "full_path": "sync",
       "about": "Fetch remote manifests and push local commits",
       "long_about": null,
-      "usage": "Usage: sync <REPOSITORY>",
+      "usage": "Usage: sync [OPTIONS] <REPOSITORY>",
       "aliases": [],
       "arguments": [
         {
@@ -1938,6 +1949,17 @@
       ],
       "options": [],
       "flags": [
+        {
+          "name": "skip_missing",
+          "about": "Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)",
+          "required": false,
+          "default_value": "false",
+          "short": null,
+          "long": "skip-missing",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        },
         {
           "name": "help",
           "about": "Print help",

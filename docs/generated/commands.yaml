@@ -509,13 +509,15 @@ commands:
       Clone or pull PX manifests from a remote (representation files stay remote).
 
       If the argument is a URL, the repo is cloned (name is read from the repo's own config). If it's a repository name, the repo must already exist locally and its manifests will be updated without downloading assets.
-    usage: "Usage: pull <URL_OR_NAME>"
+    usage: "Usage: pull [OPTIONS] <URL_OR_NAME>"
     hidden: false
     arguments:
       - name: "url_or_name"
         about: "URL (clone) or repository name (pull existing)"
         required: true
     flags:
+      - name: "skip_missing"
+        about: "Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)"
       - name: "help"
         about: "Print help (see more with '--help')"
   - name: "push"
@@ -721,13 +723,15 @@ commands:
   - name: "sync"
     full_path: "sync"
     about: "Fetch remote manifests and push local commits"
-    usage: "Usage: sync <REPOSITORY>"
+    usage: "Usage: sync [OPTIONS] <REPOSITORY>"
     hidden: false
     arguments:
       - name: "repository"
         about: "Repository name"
         required: true
     flags:
+      - name: "skip_missing"
+        about: "Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)"
       - name: "help"
         about: "Print help"
   - name: "unset"

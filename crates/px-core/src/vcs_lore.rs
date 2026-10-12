@@ -466,6 +466,39 @@ impl LoreBackend {
         Ok(())
     }
 
+    /// Synchronize selected root files, skipping files with missing content addresses.
+    /// Useful for recovering from historical commits that contain stale system file references.
+    pub fn sync_root_files_with_skip(dest: &Path, root_files: &[String]) -> Result<(), PxError> {
+        let mut args = vec![
+            "revision".to_string(),
+            "sync".to_string(),
+            "--skip-missing".to_string(),
+        ];
+        for root_file in root_files {
+            crate::repo_config::validate_root_file(root_file)?;
+            args.push("--root-file".to_string());
+            args.push(root_file.clone());
+        }
+        match LoreProcessRunner::run(args.iter().map(String::as_str), Some(dest)) {
+            Ok(_) => Ok(()),
+            Err(PxError::VcsError(msg))
+                if msg.contains("unknown argument") || msg.contains("unrecognized flag") =>
+            {
+                // Lore CLI doesn't support --skip-missing, fall back to normal sync
+                // Error will be caught by clean_lore_error which provides helpful guidance
+                let mut fallback_args = vec!["revision".to_string(), "sync".to_string()];
+                for root_file in root_files {
+                    crate::repo_config::validate_root_file(root_file)?;
+                    fallback_args.push("--root-file".to_string());
+                    fallback_args.push(root_file.clone());
+                }
+                LoreProcessRunner::run(fallback_args.iter().map(String::as_str), Some(dest))?;
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     /// Convenience constructor that reads configuration from environment
     /// variables with sensible local-development defaults.
     ///

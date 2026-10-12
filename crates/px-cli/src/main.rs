@@ -209,7 +209,10 @@ fn run_cli() -> Result<()> {
         }
         Commands::Doctor { repair } => cmd_doctor(&base_dir, repair),
         Commands::Status { repository } => cmd_status(&base_dir, repository.as_deref()),
-        Commands::Sync { repository } => cmd_sync(&base_dir, &repository),
+        Commands::Sync {
+            repository,
+            skip_missing,
+        } => cmd_sync(&base_dir, &repository, skip_missing),
         Commands::Create {
             entity_type,
             entity_id,
@@ -318,7 +321,10 @@ fn run_cli() -> Result<()> {
             commit,
             author,
         } => cmd_revert(&base_dir, &repository, &commit, &author),
-        Commands::Pull { url_or_name } => cmd_pull(&base_dir, &url_or_name),
+        Commands::Pull {
+            url_or_name,
+            skip_missing,
+        } => cmd_pull(&base_dir, &url_or_name, skip_missing),
         Commands::Push {
             repository,
             remote,
@@ -1483,10 +1489,10 @@ fn cmd_status(base_dir: &Path, repository: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-fn cmd_sync(base_dir: &Path, repository: &str) -> Result<()> {
+fn cmd_sync(base_dir: &Path, repository: &str, skip_missing: bool) -> Result<()> {
     // Keep sync consistent with `px pull`: reconcile manifests only, then
     // publish any local commits. Representation blobs stay on the server.
-    cmd_pull(base_dir, repository).context("failed to sync manifests from remote")?;
+    cmd_pull(base_dir, repository, skip_missing).context("failed to sync manifests from remote")?;
     let repo = open_repo(base_dir, repository)?;
     repo.push(None, None)
         .context("failed to push local changes during sync")?;
@@ -2220,7 +2226,7 @@ fn repository_manifest_roots(base_dir: &Path, repository: &str) -> Result<Vec<St
     Ok(roots)
 }
 
-fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
+fn cmd_pull(base_dir: &Path, url_or_name: &str, skip_missing: bool) -> Result<()> {
     let entity = pull_entity_uri(url_or_name);
     if let Some(uri) = entity {
         require_backend(base_dir, "clone entity")?;
@@ -2234,8 +2240,13 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
         let target = base_dir.join(&uri.repository);
         if target.exists() {
             validate_pulled_manifests(&target, &uri.repository, &["repository.yaml".into()])?;
-            LoreBackend::sync_root_files(&target, &required)
-                .context("failed to synchronize requested entity manifests")?;
+            if skip_missing {
+                LoreBackend::sync_root_files_with_skip(&target, &required)
+                    .context("failed to synchronize requested entity manifests")?;
+            } else {
+                LoreBackend::sync_root_files(&target, &required)
+                    .context("failed to synchronize requested entity manifests")?;
+            }
             validate_pulled_manifests(&target, &uri.repository, &required)?;
             emit_action(format!(
                 "✓ Pulled '{}' into {}",
@@ -2342,8 +2353,13 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str) -> Result<()> {
         let target_dir = base_dir.join(url_or_name);
         if target_dir.exists() {
             validate_pulled_manifests(&target_dir, url_or_name, &["repository.yaml".into()])?;
-            LoreBackend::sync_root_files(&target_dir, &required)
-                .context("failed to synchronize PX manifests")?;
+            if skip_missing {
+                LoreBackend::sync_root_files_with_skip(&target_dir, &required)
+                    .context("failed to synchronize PX manifests")?;
+            } else {
+                LoreBackend::sync_root_files(&target_dir, &required)
+                    .context("failed to synchronize PX manifests")?;
+            }
             validate_pulled_manifests(&target_dir, url_or_name, &required)?;
             emit_action(format!("✓ Pulled latest changes for '{url_or_name}'"));
         } else {

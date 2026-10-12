@@ -14,5 +14,6 @@ Clone or pull PX manifests from a remote (representation files stay remote)
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
+| skip\_missing | boolean | No | false | Skip files with missing content addresses (e.g., stale .DS\_Store from historical commits) |
 | url\_or\_name | string | Yes |  | URL (clone) or repository name (pull existing) |
 

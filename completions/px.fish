@@ -185,6 +185,7 @@ complete -c px -n "__fish_px_using_subcommand status" -l remote -d 'Resolve repo
 complete -c px -n "__fish_px_using_subcommand status" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
 complete -c px -n "__fish_px_using_subcommand status" -s h -l help -d 'Print help'
 complete -c px -n "__fish_px_using_subcommand sync" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
+complete -c px -n "__fish_px_using_subcommand sync" -l skip-missing -d 'Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)'
 complete -c px -n "__fish_px_using_subcommand sync" -s v -l verbose -d 'Enable verbose debug logging'
 complete -c px -n "__fish_px_using_subcommand sync" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
 complete -c px -n "__fish_px_using_subcommand sync" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
@@ -282,6 +283,7 @@ complete -c px -n "__fish_px_using_subcommand revert" -l remote -d 'Resolve repo
 complete -c px -n "__fish_px_using_subcommand revert" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'
 complete -c px -n "__fish_px_using_subcommand revert" -s h -l help -d 'Print help'
 complete -c px -n "__fish_px_using_subcommand pull" -s d -l base-dir -d 'Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset' -r -F
+complete -c px -n "__fish_px_using_subcommand pull" -l skip-missing -d 'Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)'
 complete -c px -n "__fish_px_using_subcommand pull" -s v -l verbose -d 'Enable verbose debug logging'
 complete -c px -n "__fish_px_using_subcommand pull" -l remote -d 'Resolve repository reads through the configured Lore server (the default)'
 complete -c px -n "__fish_px_using_subcommand pull" -l local -d 'Resolve repository reads from an explicitly checked-out local working tree'

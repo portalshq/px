@@ -7,6 +7,7 @@ Arguments:
 
 Options:
   -d, --base-dir <BASE_DIR>  Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]
+      --skip-missing         Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)
   -v, --verbose              Enable verbose debug logging
       --remote               Resolve repository reads through the configured Lore server (the default)
       --local                Resolve repository reads from an explicitly checked-out local working tree

@@ -12,7 +12,7 @@ Clone or pull PX manifests from a remote (representation files stay remote)
 
 ## Synopsis
 ```bash
-px pull <URL_OR_NAME>
+px pull [OPTIONS] <URL_OR_NAME>
 ```
 
 
@@ -33,6 +33,7 @@ If the argument is a URL, the repo is cloned (name is read from the repo's own c
 
 | Flag | Description |
 |---|---|
+|     --skip-missing | Skip files with missing content addresses (e.g., stale .DS\_Store from historical commits) |
 | -h, --help | Print help (see more with '--help') |
 
 

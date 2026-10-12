@@ -14,6 +14,9 @@ Options:
 
           [env: PX_DIR=]
 
+      --skip-missing
+          Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)
+
   -v, --verbose
           Enable verbose debug logging
 

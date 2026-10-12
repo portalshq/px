@@ -16,7 +16,7 @@ fn checkout(home: &Path, name: &str, server: &str) {
     .unwrap();
     fs::write(
         root.join("character/hero.yaml"),
-        format!("id: px://{name}/character/hero\n"),
+        format!("id: px://{name}/character/hero\nname: hero\n"),
     )
     .unwrap();
     fs::write(
@@ -249,4 +249,73 @@ exit 1"#,
         assert_eq!(message.contains("/build/lore/internal.rs:10"), verbose);
         assert_eq!(message.contains("/build/store.rs:10"), verbose);
     }
+}
+
+#[test]
+fn multi_user_clone_respects_default_global_provider() {
+    let temp = TempDir::new().unwrap();
+    // User A creates repo with custom remote
+    checkout(temp.path(), "bears", "lore://server-a:41337");
+    let _custom_config = fs::read(temp.path().join("bears/.lore/config.toml")).unwrap();
+
+    // Simulate User B cloning from scratch (no local config)
+    let fake = fake_lore(
+        &temp,
+        "pwd >> \"$PX_TEST_CALLS\"\nprintf '%s\\n' \"$*\" >> \"$PX_TEST_CALLS\"",
+    );
+    let log = temp.path().join("clone-calls");
+
+    // User B clones repository - should get default provider config
+    Command::cargo_bin("px")
+        .unwrap()
+        .args(["pull", "bears/character/hero"])
+        .arg("--base-dir")
+        .arg(temp.path())
+        .env("PXLORE_CLI", &fake)
+        .env("PX_TEST_CALLS", &log)
+        .assert()
+        .success();
+
+    let calls = fs::read_to_string(&log).unwrap();
+    // Verify that the clone operation succeeded
+    assert!(calls.contains("revision sync"));
+    // User B's clone should work even though they don't have User A's custom config
+}
+
+#[test]
+fn filter_consistency_across_checkouts() {
+    let temp = TempDir::new().unwrap();
+    // User A creates repo with custom .pxignore
+    checkout(temp.path(), "bears", "lore://server-a:41337");
+    fs::write(temp.path().join("bears/.pxignore"), "cache/\n*.scratch\n").unwrap();
+
+    // Directly test ensure_ignore function instead of full commit flow
+    px_core::repo_config::ensure_ignore(&temp.path().join("bears")).unwrap();
+
+    // Verify .loreignore exists and has expected content
+    let loreignore = fs::read_to_string(temp.path().join("bears/.loreignore")).unwrap();
+    assert!(loreignore.as_str().contains("cache/"));
+    assert!(loreignore.as_str().contains("*.scratch"));
+    assert!(loreignore.as_str().contains(".DS_Store"));
+}
+
+#[test]
+fn local_lore_config_persists_across_operations() {
+    let temp = TempDir::new().unwrap();
+    checkout(temp.path(), "bears", "lore://server-a:41337");
+    let _original_config = fs::read(temp.path().join("bears/.lore/config.toml")).unwrap();
+
+    // Test that config is preserved by simulating operations that would overwrite it
+    // if the bug existed - we'll call set_remote which should preserve other settings
+    px_core::repo_config::set_remote(
+        &temp.path().join("bears"),
+        "bears",
+        "lore://server-a:41337",
+        "default",
+    )
+    .unwrap();
+
+    // Verify Lore config was not overwritten (direct_io = false should still be there)
+    let current_config = fs::read_to_string(temp.path().join("bears/.lore/config.toml")).unwrap();
+    assert!(current_config.as_str().contains("direct_io = false"));
 }

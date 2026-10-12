@@ -12,7 +12,7 @@ Fetch remote manifests and push local commits
 
 ## Synopsis
 ```bash
-px sync <REPOSITORY>
+px sync [OPTIONS] <REPOSITORY>
 ```
 
 
@@ -27,6 +27,7 @@ px sync <REPOSITORY>
 
 | Flag | Description |
 |---|---|
+|     --skip-missing | Skip files with missing content addresses (e.g., stale .DS\_Store from historical commits) |
 | -h, --help | Print help |
 
 

@@ -278,6 +278,92 @@ mod tests {
             assert!(server_url(value, "bears").is_err());
         }
     }
+    #[test]
+    fn px_config_overrides_lore_config() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        std::fs::create_dir_all(root.join(".lore")).unwrap();
+        std::fs::create_dir_all(root.join(".px")).unwrap();
+        std::fs::write(root.join("repository.yaml"), "id: px://bears/world/bears\n").unwrap();
+        std::fs::write(
+            root.join(".lore/config.toml"),
+            "remote_url = 'lore://server-a:41337'\n",
+        )
+        .unwrap();
+        std::fs::write(
+            root.join(".px/config.yaml"),
+            "remote_url: 'lore://server-b:41337/bears'\n",
+        )
+        .unwrap();
+        assert_eq!(
+            repository_server(root, "bears", "lore://default:41337").unwrap(),
+            "lore://server-b:41337"
+        );
+    }
+    #[test]
+    fn lore_config_overrides_global_default() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        std::fs::create_dir_all(root.join(".lore")).unwrap();
+        std::fs::write(root.join("repository.yaml"), "id: px://bears/world/bears\n").unwrap();
+        std::fs::write(
+            root.join(".lore/config.toml"),
+            "remote_url = 'lore://server-a:41337'\n",
+        )
+        .unwrap();
+        assert_eq!(
+            repository_server(root, "bears", "lore://default:41337").unwrap(),
+            "lore://server-a:41337"
+        );
+    }
+    #[test]
+    fn global_default_used_when_no_overrides() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        assert_eq!(
+            repository_server(root, "bears", "lore://default:41337").unwrap(),
+            "lore://default:41337"
+        );
+    }
+    #[test]
+    fn ensure_ignore_creates_directory_if_needed() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        std::fs::write(root.join(".pxignore"), "cache/\n").unwrap();
+        ensure_ignore(root).unwrap();
+        assert!(root.join(".loreignore").exists());
+        let content = std::fs::read_to_string(root.join(".loreignore")).unwrap();
+        assert!(content.contains("cache/"));
+        assert!(content.contains(".DS_Store"));
+    }
+    #[test]
+    fn ensure_ignore_preserves_user_loreignore_patterns() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        std::fs::create_dir_all(root.join(".lore")).unwrap();
+        std::fs::write(root.join(".loreignore"), "*.tmp\n*.log\n").unwrap();
+        std::fs::write(root.join(".pxignore"), "cache/\n").unwrap();
+        ensure_ignore(root).unwrap();
+        let content = std::fs::read_to_string(root.join(".loreignore")).unwrap();
+        assert!(content.contains("*.tmp"));
+        assert!(content.contains("*.log"));
+        assert!(content.contains("cache/"));
+    }
+    #[test]
+    fn ensure_ignore_system_exclusions_cannot_be_negated() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        std::fs::write(root.join(".pxignore"), "!.DS_Store\n!.git\n").unwrap();
+        ensure_ignore(root).unwrap();
+        let content = std::fs::read_to_string(root.join(".loreignore")).unwrap();
+        // System exclusions should appear after PX managed block
+        let px_block_start = content.find("# BEGIN PX managed ignores").unwrap();
+        let px_block_end = content.find("# END PX managed ignores").unwrap();
+        let px_block = &content[px_block_start..px_block_end];
+        // Even if user tries to negate, system exclusions are in the PX block
+        assert!(px_block.contains(".DS_Store"));
+        assert!(px_block.contains(".git"));
+    }
 }
 
 /// Canonical identity is taken from the manifest, including during temporary

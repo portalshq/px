@@ -15,4 +15,5 @@ Fetch remote manifests and push local commits
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
 | repository | string | Yes |  | Repository name |
+| skip\_missing | boolean | No | false | Skip files with missing content addresses (e.g., stale .DS\_Store from historical commits) |
 

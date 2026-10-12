@@ -403,6 +403,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--skip-missing[Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)]' \
 '-v[Enable verbose debug logging]' \
 '--verbose[Enable verbose debug logging]' \
 '(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
@@ -631,6 +632,7 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--skip-missing[Skip files with missing content addresses (e.g., stale .DS_Store from historical commits)]' \
 '-v[Enable verbose debug logging]' \
 '--verbose[Enable verbose debug logging]' \
 '(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \

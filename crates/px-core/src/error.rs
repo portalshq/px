@@ -196,6 +196,14 @@ pub fn clean_lore_error(stderr: &str, exit_code: i32) -> String {
             .iter()
             .any(|s| lower.contains(s))
     {
+        // Check if the missing file is a system file that was committed before filtering
+        if lower.contains(".ds_store")
+            || lower.contains(".git")
+            || lower.contains(".px")
+            || lower.contains(".lore")
+        {
+            return "System file from historical commit (e.g., .DS_Store) has missing content. This occurs when files were committed before filtering was implemented. The file is safely ignored by current .loreignore rules. Use `px sync --skip-missing` to continue, or manually remove the stale reference if needed".into();
+        }
         return "Repository content is unavailable on the server; commit and push the source files, then retry `px pull`. Use `px doctor` if content is still missing".into();
     }
     if lower.contains("not a lore workspace") || lower.contains("not an initialised lore workspace")

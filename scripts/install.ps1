@@ -102,16 +102,49 @@ try {
     }
 
     # Download skills archive
+    $SKILLS_INSTALLED = $false
+
     try {
         Invoke-WebRequest -Uri $SKILLS_URL -OutFile $SKILLS_TMP -UseBasicParsing
 
         # Extract skills using native PowerShell cmdlet
         Expand-Archive -Path $SKILLS_TMP -DestinationPath $SKILLS_DIR -Force
         Write-Host "Skills installed to $SKILLS_DIR"
+        $SKILLS_INSTALLED = $true
     } catch {
-        Write-Warning "Failed to download or extract skills archive from $SKILLS_URL"
-        Write-Warning "Skills will need to be installed manually."
-        Write-Warning "Visit https://github.com/portalshq/px for instructions."
+        Write-Warning "Failed to download skills archive from $SKILLS_URL"
+        Write-Host "Falling back to GitHub repo..."
+
+        # Fallback: download skills directly from GitHub repo
+        $GITHUB_SKILLS_URL = "https://github.com/${REPO}/archive/refs/heads/main.zip"
+        $REPO_TMP = Join-Path $TMP_DIR "repo.zip"
+
+        try {
+            Invoke-WebRequest -Uri $GITHUB_SKILLS_URL -OutFile $REPO_TMP -UseBasicParsing
+
+            # Extract repo to temp directory
+            $REPO_EXTRACT_DIR = Join-Path $TMP_DIR "repo"
+            Expand-Archive -Path $REPO_TMP -DestinationPath $REPO_EXTRACT_DIR -Force
+
+            $REPO_EXTRACTED = Join-Path $REPO_EXTRACT_DIR "px-main"
+
+            if (Test-Path "$REPO_EXTRACTED/skills") {
+                # Copy skills to target directory
+                Copy-Item -Path "$REPO_EXTRACTED/skills/*" -Destination $SKILLS_DIR -Recurse -Force
+                Write-Host "Skills installed from GitHub repo to $SKILLS_DIR"
+                $SKILLS_INSTALLED = $true
+            } else {
+                Write-Error "Error: skills directory not found in downloaded repo"
+            }
+        } catch {
+            Write-Error "Error: Failed to download skills from GitHub repo"
+        }
+    }
+
+    if (-not $SKILLS_INSTALLED) {
+        Write-Error "Error: Failed to install skills. PX will not work correctly for agents."
+        Write-Error "Please report this issue at https://github.com/portalshq/px/issues"
+        exit 1
     }
 
    ###############################################################################

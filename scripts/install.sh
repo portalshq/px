@@ -170,6 +170,9 @@ fi
 
 SKILLS_TMP="$TMP_DIR/$SKILLS_ARCHIVE"
 
+SKILLS_INSTALLED=false
+
+# Try release archive first
 if curl \
     --fail \
     --location \
@@ -180,14 +183,46 @@ if curl \
     if command -v unzip >/dev/null 2>&1; then
         unzip -q "$SKILLS_TMP" -d "$SKILLS_DIR"
         echo "Skills installed to $SKILLS_DIR"
+        SKILLS_INSTALLED=true
     else
         echo "Error: unzip is required to extract skills"
         exit 1
     fi
 else
     echo "Warning: Failed to download skills archive from $SKILLS_URL"
-    echo "Skills will need to be installed manually."
-    echo "Visit https://github.com/portalshq/px for instructions."
+    echo "Falling back to GitHub repo..."
+    
+    # Fallback: download skills directly from GitHub repo
+    GITHUB_SKILLS_URL="https://github.com/${REPO}/archive/refs/heads/main.zip"
+    REPO_TMP="$TMP_DIR/repo.zip"
+    
+    if curl \
+        --fail \
+        --location \
+        --progress-bar \
+        "$GITHUB_SKILLS_URL" \
+        --output "$REPO_TMP"; then
+        # Extract just the skills directory from the repo
+        unzip -q "$REPO_TMP" -d "$TMP_DIR"
+        REPO_EXTRACTED="$TMP_DIR/px-main"
+        
+        if [[ -d "$REPO_EXTRACTED/skills" ]]; then
+            # Copy skills to target directory
+            cp -r "$REPO_EXTRACTED/skills/"* "$SKILLS_DIR/"
+            echo "Skills installed from GitHub repo to $SKILLS_DIR"
+            SKILLS_INSTALLED=true
+        else
+            echo "Error: skills directory not found in downloaded repo"
+        fi
+    else
+        echo "Error: Failed to download skills from GitHub repo"
+    fi
+fi
+
+if [[ "$SKILLS_INSTALLED" == "false" ]]; then
+    echo "Error: Failed to install skills. PX will not work correctly for agents."
+    echo "Please report this issue at https://github.com/portalshq/px/issues"
+    exit 1
 fi
 
 ###############################################################################

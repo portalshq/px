@@ -2004,7 +2004,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__push)
-            opts="-d -v -h --remote-name --branch --base-dir --verbose --remote --local --help"
+            opts="-d -v -h --remote-name --branch --force --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2468,7 +2468,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__sync)
-            opts="-d -v -h --skip-missing --base-dir --verbose --remote --local --help"
+            opts="-d -v -h --skip-missing --force --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

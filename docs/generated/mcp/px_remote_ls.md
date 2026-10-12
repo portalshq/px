@@ -1,7 +1,7 @@
 ---
 generated: "true"
 generator: px-docgen
-version: 0.9.4
+version: 0.9.5
 source: mcp
 ---
 

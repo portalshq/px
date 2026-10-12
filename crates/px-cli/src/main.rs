@@ -2388,7 +2388,13 @@ fn cmd_pull(base_dir: &Path, url_or_name: &str, skip_missing: bool) -> Result<()
     Ok(())
 }
 
-fn cmd_push(base_dir: &Path, repository: &str, remote: &str, branch: Option<&str>, force: bool) -> Result<()> {
+fn cmd_push(
+    base_dir: &Path,
+    repository: &str,
+    remote: &str,
+    branch: Option<&str>,
+    force: bool,
+) -> Result<()> {
     let repo = open_repo(base_dir, repository)?;
     repo.push(Some(remote), branch, force)
         .context("failed to push to remote")?;

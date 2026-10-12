@@ -569,7 +569,7 @@ pub fn repo_push(
     branch: Option<String>,
 ) -> napi::Result<String> {
     let repo = open_repo(&base_path, &repository)?;
-    repo.push(remote.as_deref(), branch.as_deref())
+    repo.push(remote.as_deref(), branch.as_deref(), false)
         .map_err(map_error)?;
     Ok(serde_json::json!({"success": true}).to_string())
 }

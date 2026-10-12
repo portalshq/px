@@ -741,6 +741,27 @@ impl LoreBackend {
     }
 }
 
+/// Whether an existing server-side directory belongs to the local Lore
+/// server and can be reused by `px init`.
+fn should_reuse_local_repository(remote_url: &str, server_path: &Path) -> bool {
+    let Some(authority) = remote_url
+        .strip_prefix("lore://")
+        .and_then(|url| url.split('/').next())
+    else {
+        return false;
+    };
+    let host_port = authority.rsplit('@').next().unwrap_or(authority);
+    let host = if host_port.starts_with('[') {
+        host_port
+            .strip_prefix('[')
+            .and_then(|host| host.split_once(']').map(|(host, _)| host))
+            .unwrap_or("")
+    } else {
+        host_port.split(':').next().unwrap_or("")
+    };
+    matches!(host, "localhost" | "127.0.0.1" | "::1") && server_path.join(".lore").is_dir()
+}
+
 impl VcsBackend for LoreBackend {
     /// Get the remote URL base for constructing repository URLs.
     fn remote_url_base(&self) -> Result<String, PxError> {
@@ -822,22 +843,31 @@ impl VcsBackend for LoreBackend {
         // A workspace identifier is not a repository UUID. Let Lore mint a
         // unique ID; forwarding workspace_id as --id aliases every repository
         // in a workspace when that value happens to be valid hexadecimal.
-        tracing::debug!(workspace_id = %self.workspace_id, "creating repository with a unique Lore ID");
-        // Step 1: Create the remote repository.
-        LoreProcessRunner::run(
-            [
-                "repository",
-                "create",
-                &url,
-                "--repository",
-                server_path.to_str().unwrap_or("."),
-                "--non-interactive",
-            ],
-            None,
-        )
-        .map_err(|e| e.context(format!("failed to create lore repository '{url}'")))?;
+        // Local PX servers keep each repository under the stable
+        // `<px-home>/.lore-server/<repository>` path. If it is already a Lore
+        // repository, reuse it instead of asking Lore to create a second copy
+        // at the same path. Remote providers must still create a remote even if
+        // an unrelated local directory happens to have the same name.
+        let reuse_local_repository = should_reuse_local_repository(&self.remote_url, &server_path);
+        if !reuse_local_repository {
+            tracing::debug!(workspace_id = %self.workspace_id, "creating repository with a unique Lore ID");
+            LoreProcessRunner::run(
+                [
+                    "repository",
+                    "create",
+                    &url,
+                    "--repository",
+                    server_path.to_str().unwrap_or("."),
+                    "--non-interactive",
+                ],
+                None,
+            )
+            .map_err(|e| e.context(format!("failed to create lore repository '{url}'")))?;
+        } else {
+            tracing::info!(path = %server_path.display(), "reusing existing local Lore repository");
+        }
 
-        // Step 2: Clone it locally.
+        // Clone it locally.
         LoreProcessRunner::run(["clone", &url, path_str, "--non-interactive"], None).map_err(
             |e| {
                 e.context(format!(
@@ -1328,12 +1358,7 @@ impl VcsBackend for LoreBackend {
         };
 
         // Push branch via lore CLI (handles blob upload + branch tip advancement internally)
-        let mut args: Vec<&str> = vec![
-            "branch",
-            "push",
-            &branch_name,
-            "--non-interactive",
-        ];
+        let mut args: Vec<&str> = vec!["branch", "push", &branch_name, "--non-interactive"];
         if !force {
             args.push("--fast-forward-merge");
         }
@@ -1460,6 +1485,81 @@ mod structured_output_tests {
                 assert_eq!(backend.workspace_id, "override");
             },
         );
+    }
+
+    #[test]
+    fn existing_local_server_repository_is_reused_but_remote_provider_is_not() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let server_repository = temp.path().join(".lore-server/bears");
+        std::fs::create_dir_all(server_repository.join(".lore")).unwrap();
+
+        assert!(should_reuse_local_repository(
+            "lore://127.0.0.1:41337/bears",
+            &server_repository
+        ));
+        assert!(should_reuse_local_repository(
+            "lore://localhost:41337/bears",
+            &server_repository
+        ));
+        assert!(should_reuse_local_repository(
+            "lore://[::1]:41337/bears",
+            &server_repository
+        ));
+        assert!(!should_reuse_local_repository(
+            "lore://remote.example:41337/bears",
+            &server_repository
+        ));
+        assert!(!should_reuse_local_repository(
+            "lore://127.0.0.1:41337/bears",
+            &temp.path().join("missing")
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn init_reuses_existing_local_repository_directory() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::TempDir::new().unwrap();
+        let home = temp.path().join("px-home");
+        let checkout = home.join("bears-init");
+        let server_repository = home.join(".lore-server/bears");
+        std::fs::create_dir_all(&checkout).unwrap();
+        std::fs::write(
+            checkout.join("repository.yaml"),
+            "id: px://bears/world/bears\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(server_repository.join(".lore")).unwrap();
+
+        let calls = temp.path().join("lore-calls");
+        let fake_lore = temp.path().join("lore");
+        std::fs::write(
+            &fake_lore,
+            "#!/bin/sh\nprintf '%s\n' \"$*\" >> \"$PX_TEST_CALLS\"\nif [ \"$1\" = clone ]; then\n  mkdir -p \"$3/.lore\"\n  exit 0\nfi\nif [ \"$1\" = repository ] && [ \"$2\" = create ]; then\n  echo 'unexpected second repository create' >&2\n  exit 42\nfi\nexit 0\n",
+        )
+        .unwrap();
+        let mut permissions = std::fs::metadata(&fake_lore).unwrap().permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&fake_lore, permissions).unwrap();
+
+        let backend = LoreBackend::new("lore://127.0.0.1:41337", "default");
+        let result = temp_env::with_vars(
+            [
+                ("PXLORE_CLI", Some(fake_lore.to_str().unwrap())),
+                ("PX_TEST_CALLS", Some(calls.to_str().unwrap())),
+            ],
+            || backend.init(&checkout),
+        );
+        result.unwrap();
+
+        let calls = std::fs::read_to_string(calls).unwrap();
+        assert!(!calls.contains("repository create"), "calls: {calls}");
+        assert!(
+            calls.contains("clone lore://127.0.0.1:41337/bears"),
+            "calls: {calls}"
+        );
+        assert!(server_repository.join(".lore").is_dir());
     }
 
     #[test]

@@ -702,8 +702,14 @@ impl Repository {
     }
 
     /// Push the current branch to a remote.
-    pub fn push(&self, remote: Option<&str>, branch: Option<&str>, force: bool) -> Result<(), PxError> {
-        self.require_vcs("push")?.push(&self.root, remote, branch, force)
+    pub fn push(
+        &self,
+        remote: Option<&str>,
+        branch: Option<&str>,
+        force: bool,
+    ) -> Result<(), PxError> {
+        self.require_vcs("push")?
+            .push(&self.root, remote, branch, force)
     }
 
     /// Pull the current branch from a remote.

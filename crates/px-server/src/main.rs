@@ -655,7 +655,7 @@ async fn handle_push(
         )
     })?;
 
-    repo.push(body.remote.as_deref(), body.branch.as_deref())
+    repo.push(body.remote.as_deref(), body.branch.as_deref(), false)
         .map_err(|e| {
             error!(error = %e, "push failed");
             (
@@ -935,16 +935,17 @@ async fn handle_sync(
         .and_then(|vcs| vcs.current_branch(&repo.root).ok());
     let branch_str = branch.as_deref().unwrap_or("main");
 
-    repo.push(Some("origin"), Some(branch_str)).map_err(|e| {
-        error!(error = %e, repository = %repository, "sync (push) failed");
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiError {
-                error: e.to_string(),
-                code: "SYNC_FAILED".to_string(),
-            }),
-        )
-    })?;
+    repo.push(Some("origin"), Some(branch_str), false)
+        .map_err(|e| {
+            error!(error = %e, repository = %repository, "sync (push) failed");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ApiError {
+                    error: e.to_string(),
+                    code: "SYNC_FAILED".to_string(),
+                }),
+            )
+        })?;
 
     Ok(Json(serde_json::json!({
         "success": true,

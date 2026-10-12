@@ -76,6 +76,42 @@ fn entity_pull_and_push_use_checkout_server_and_leave_sibling_unchanged() {
 }
 
 #[test]
+fn init_reuses_existing_local_lore_repository_directory() {
+    let temp = TempDir::new().unwrap();
+    let server_repository = temp.path().join(".lore-server/bears");
+    fs::create_dir_all(server_repository.join(".lore")).unwrap();
+    fs::write(
+        temp.path().join("provider.toml"),
+        "provider_type = 'remote'\nremote_url = 'lore://127.0.0.1:41337'\nworkspace_id = 'default'\n",
+    )
+    .unwrap();
+    let fake = fake_lore(
+        &temp,
+        "printf '%s\n' \"$*\" >> \"$PX_TEST_CALLS\"\nif [ \"$1\" = repository ] && [ \"$2\" = create ]; then\n  echo 'unexpected second repository create' >&2\n  exit 42\nfi\nif [ \"$1\" = clone ]; then\n  mkdir -p \"$3/.lore\"\n  exit 0\nfi\nexit 0",
+    );
+    let log = temp.path().join("calls");
+
+    Command::cargo_bin("px")
+        .unwrap()
+        .args(["init", "bears"])
+        .arg("--base-dir")
+        .arg(temp.path())
+        .env("PXLORE_CLI", fake)
+        .env("PX_TEST_CALLS", &log)
+        .assert()
+        .success();
+
+    let calls = fs::read_to_string(log).unwrap();
+    assert!(!calls.contains("repository create"), "calls: {calls}");
+    assert!(
+        calls.contains("clone lore://127.0.0.1:41337/bears"),
+        "calls: {calls}"
+    );
+    assert!(server_repository.join(".lore").is_dir());
+    assert!(temp.path().join("bears/repository.yaml").is_file());
+}
+
+#[test]
 fn repository_override_reaches_lore_without_losing_settings() {
     let temp = TempDir::new().unwrap();
     checkout(temp.path(), "bears", "lore://server-a:41337");

@@ -256,8 +256,14 @@ impl RepoService {
     }
 
     /// Push to the lore server.
-    pub fn push(&self, remote: Option<&str>, branch: Option<&str>, force: bool) -> Result<(), PxError> {
-        self.backend.push(&self.workspace_root, remote, branch, force)
+    pub fn push(
+        &self,
+        remote: Option<&str>,
+        branch: Option<&str>,
+        force: bool,
+    ) -> Result<(), PxError> {
+        self.backend
+            .push(&self.workspace_root, remote, branch, force)
     }
 
     /// Pull from the lore server.

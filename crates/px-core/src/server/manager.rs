@@ -169,35 +169,33 @@ impl ServerManager {
                 return Ok(());
             }
 
-            // Daemon is not healthy - clean up stale lock and restart
+            // Daemon is not healthy - the lock is stale (process crashed)
+            // ProcessLock::try_acquire() already handles stale lock cleanup
+            // but it returned false because the lock was held. We need to
+            // force it to clean up the stale lock and retry.
             warn!(
                 daemon_pid = %daemon_pid,
                 "Server lock held but daemon health check failed — \
-                 the daemon may have crashed. Cleaning up stale lock and restarting."
+                 the daemon may have crashed. Attempting automatic recovery."
             );
 
-            // Clean up stale lock file
-            let lock_file = self.px_home.join("lore").join("pid");
-            if lock_file.exists() {
-                std::fs::remove_file(&lock_file).with_context(|| {
-                    format!(
-                        "Failed to remove stale lock file at '{}'",
-                        lock_file.display()
-                    )
-                })?;
-                info!("Removed stale lock file");
-            }
-
-            // Try to acquire lock again after cleanup
-            if !lock.try_acquire()? {
+            // Force stale lock cleanup by creating a new lock instance
+            // ProcessLock::try_acquire() will detect the stale PID and clean it up
+            let mut recovery_lock = ProcessLock::new(&self.px_home);
+            if !recovery_lock.try_acquire()? {
                 anyhow::bail!(
-                    "Failed to acquire lock after cleaning up stale lock file. \
-                     Another process may have started the server."
+                    "Failed to acquire lock after daemon crash. \
+                     Another process may have started the server. \
+                     Run 'px doctor' or manually remove '{}' to force restart.",
+                    self.px_home.join("lore").join("pid").display()
                 );
             }
 
-            // Start server with the cleaned lock
-            self.start_internal(&mut lock).await?;
+            // Validate data directories exist before restart
+            self.validate_data_directories()?;
+
+            // Start server with the recovered lock
+            self.start_internal(&mut recovery_lock).await?;
 
             info!("Lore server restarted successfully after crash recovery");
             return Ok(());
@@ -207,6 +205,52 @@ impl ServerManager {
         self.start_internal(&mut lock).await?;
 
         info!("Lore server is running and healthy");
+        Ok(())
+    }
+
+    /// Validate that data directories exist and are accessible
+    fn validate_data_directories(&self) -> Result<()> {
+        let immutable_dir = self.px_home.join("lore").join("store").join("immutable");
+        let mutable_dir = self.px_home.join("lore").join("store").join("mutable");
+
+        if !immutable_dir.exists() {
+            warn!(
+                "Immutable store directory missing at '{}'. Server will initialize with empty store.",
+                immutable_dir.display()
+            );
+        }
+
+        if !mutable_dir.exists() {
+            warn!(
+                "Mutable store directory missing at '{}'. Server will initialize with empty store.",
+                mutable_dir.display()
+            );
+        }
+
+        // Verify config file exists and is readable
+        let config_path = self.px_home.join("lore").join("config").join("local.toml");
+        if !config_path.exists() {
+            anyhow::bail!(
+                "Lore configuration missing at '{}'. Run 'px init' to regenerate.",
+                config_path.display()
+            );
+        }
+
+        // Try to parse config to verify it's not corrupted
+        let config_content = std::fs::read_to_string(&config_path).with_context(|| {
+            format!(
+                "Failed to read Lore configuration at '{}'",
+                config_path.display()
+            )
+        })?;
+
+        if toml::from_str::<toml::Value>(&config_content).is_err() {
+            anyhow::bail!(
+                "Lore configuration at '{}' is corrupted. Run 'px init --reset' to regenerate.",
+                config_path.display()
+            );
+        }
+
         Ok(())
     }
 
@@ -242,6 +286,26 @@ impl ServerManager {
             daemon_pid,
             "Lore daemon spawned in detached mode, waiting for health check"
         );
+
+        // Validate the daemon process is still running after write
+        // If it crashed immediately, we have a stale lock
+        if !LoreProcessManager::is_running(daemon_pid) {
+            tracing::error!(
+                daemon_pid,
+                "Lore daemon crashed immediately after spawn, cleaning up stale lock"
+            );
+            lock.release()?;
+            anyhow::bail!(
+                "Lore server process (PID {}) crashed immediately after startup. \
+                 Check logs at '{}' for errors.",
+                daemon_pid,
+                self.px_home
+                    .join("lore")
+                    .join("logs")
+                    .join("loreserver.log")
+                    .display()
+            );
+        }
 
         // Wait for server to become healthy
         let mut retries = 0;
@@ -414,12 +478,47 @@ impl ServerStatus {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+    use std::sync::Arc;
+    use std::thread;
 
     #[test]
     fn test_server_manager_creation() {
         let temp_dir = TempDir::new().unwrap();
         let manager = ServerManager::new(temp_dir.path());
         assert_eq!(manager.http_port, 41339);
+    }
+
+    #[test]
+    fn test_concurrent_lock_acquisition() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = Arc::new(temp_dir.path().to_path_buf());
+
+        // Create lock directory first
+        std::fs::create_dir_all(px_home.join("lore")).unwrap();
+
+        // First thread acquires lock
+        let px_home_clone1 = Arc::clone(&px_home);
+        let handle1 = thread::spawn(move || {
+            let mut lock = ProcessLock::new(&px_home_clone1);
+            lock.try_acquire().unwrap();
+            // Hold the lock for a moment
+            thread::sleep(std::time::Duration::from_millis(100));
+            true
+        });
+
+        // Second thread tries to acquire while first holds it
+        let px_home_clone2 = Arc::clone(&px_home);
+        let handle2 = thread::spawn(move || {
+            thread::sleep(std::time::Duration::from_millis(10)); // Ensure first thread runs first
+            let mut lock = ProcessLock::new(&px_home_clone2);
+            lock.try_acquire().unwrap_or(false)
+        });
+
+        handle1.join().unwrap();
+        let acquired = handle2.join().unwrap();
+
+        // Second thread should not acquire the lock (first still holds it)
+        assert!(!acquired, "Second thread should not acquire lock while first holds it");
     }
 
     #[test]
@@ -661,5 +760,39 @@ mod tests {
                     .replace('\\', "\\\\")
             )
         );
+    }
+
+    #[test]
+    fn test_validate_data_directories() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = temp_dir.path();
+
+        let manager = ServerManager::new(px_home);
+
+        // Ensure configuration is generated
+        manager.ensure_configured().unwrap();
+
+        // Validation should succeed with config present
+        assert!(manager.validate_data_directories().is_ok());
+
+        // Corrupt the config file
+        let config_path = px_home.join("lore").join("config").join("local.toml");
+        std::fs::write(&config_path, "corrupted [[[ invalid").unwrap();
+
+        // Validation should fail with corrupted config
+        assert!(manager.validate_data_directories().is_err());
+
+        // Remove corrupted config and regenerate
+        std::fs::remove_file(&config_path).unwrap();
+        manager.ensure_configured().unwrap();
+
+        // Validation should succeed again
+        assert!(manager.validate_data_directories().is_ok());
+
+        // Remove config file
+        std::fs::remove_file(&config_path).unwrap();
+
+        // Validation should fail with missing config
+        assert!(manager.validate_data_directories().is_err());
     }
 }

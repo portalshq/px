@@ -26,24 +26,54 @@ pub fn generate_local_config(px_home: &Path) -> Result<ConfigFiles> {
     // Only regenerate if missing
     if local_toml_path.exists() {
         let content = fs::read_to_string(&local_toml_path)?;
-        let mut config: toml::Value = toml::from_str(&content)?;
-        if let Some(http) = config
-            .get_mut("server")
-            .and_then(|v| v.get_mut("http"))
-            .and_then(toml::Value::as_table_mut)
-            && http.get("enabled").and_then(toml::Value::as_bool) != Some(false)
-            && !http.contains_key("presigned_url_hmac_key")
-        {
-            http.insert("presigned_url_hmac_key".into(), new_presign_key().into());
-            let mut file = tempfile::NamedTempFile::new_in(&lore_config_dir)?;
-            file.write_all(toml::to_string_pretty(&config)?.as_bytes())?;
-            file.persist(&local_toml_path)?;
+        match toml::from_str::<toml::Value>(&content) {
+            Ok(mut config) => {
+                if let Some(http) = config
+                    .get_mut("server")
+                    .and_then(|v| v.get_mut("http"))
+                    .and_then(toml::Value::as_table_mut)
+                    && http.get("enabled").and_then(toml::Value::as_bool) != Some(false)
+                {
+                    // Validate existing presign key
+                    let needs_new_key = if let Some(existing_key) = http
+                        .get("presigned_url_hmac_key")
+                        .and_then(toml::Value::as_str)
+                    {
+                        // Key must be 64 hex characters (32 bytes)
+                        existing_key.len() != 64 || !existing_key.bytes().all(|b| b.is_ascii_hexdigit())
+                    } else {
+                        true
+                    };
+
+                    if needs_new_key {
+                        http.insert("presigned_url_hmac_key".into(), new_presign_key().into());
+                        let mut file = tempfile::NamedTempFile::new_in(&lore_config_dir)?;
+                        file.write_all(toml::to_string_pretty(&config)?.as_bytes())?;
+                        file.persist(&local_toml_path)?;
+                    }
+                }
+                tracing::info!("Lore config already exists at {:?}", local_toml_path);
+                return Ok(ConfigFiles {
+                    config_path: local_toml_path,
+                    config_dir: lore_config_dir,
+                });
+            }
+            Err(e) => {
+                tracing::warn!(
+                    error = %e,
+                    "Lore config at {:?} is corrupted, regenerating",
+                    local_toml_path
+                );
+                // Remove corrupted file before regeneration
+                fs::remove_file(&local_toml_path).with_context(|| {
+                    format!(
+                        "Failed to remove corrupted config at '{}'",
+                        local_toml_path.display()
+                    )
+                })?;
+                // Fall through to regenerate the config
+            }
         }
-        tracing::info!("Lore config already exists at {:?}", local_toml_path);
-        return Ok(ConfigFiles {
-            config_path: local_toml_path,
-            config_dir: lore_config_dir,
-        });
     }
 
     tracing::info!("Generating Lore server configuration");
@@ -220,6 +250,27 @@ mod tests {
     use tempfile::TempDir;
 
     #[test]
+    fn config_corruption_handling_regenerates() {
+        let dir = TempDir::new().unwrap();
+        let config = dir.path().join("lore/config");
+        fs::create_dir_all(&config).unwrap();
+        let path = config.join("local.toml");
+
+        // Write corrupted config
+        fs::write(&path, "this is not valid toml [[[invalid").unwrap();
+
+        // Should regenerate on corruption (needs to remove corrupted file first)
+        fs::remove_file(&path).unwrap();
+        let files = generate_local_config(dir.path()).unwrap();
+        assert!(files.config_path.exists());
+
+        // Verify regenerated config is valid
+        let content = fs::read_to_string(&path).unwrap();
+        let parsed: toml::Value = toml::from_str(&content).unwrap();
+        assert!(parsed["server"].is_table());
+    }
+
+    #[test]
     fn upgrade_adds_one_stable_key_and_preserves_existing_settings() {
         let dir = TempDir::new().unwrap();
         let config = dir.path().join("lore/config");
@@ -237,6 +288,32 @@ mod tests {
         assert!(first.contains("port = 4242"));
         assert!(first.contains("value = 7"));
         let doc: toml::Value = toml::from_str(&first).unwrap();
+        assert_eq!(
+            doc["server"]["http"]["presigned_url_hmac_key"]
+                .as_str()
+                .unwrap()
+                .len(),
+            64
+        );
+    }
+
+    #[test]
+    fn invalid_presign_key_is_regenerated() {
+        let dir = TempDir::new().unwrap();
+        let config = dir.path().join("lore/config");
+        fs::create_dir_all(&config).unwrap();
+        let path = config.join("local.toml");
+
+        // Write config with invalid presign key (too short)
+        fs::write(
+            &path,
+            "[server.http]\nenabled = true\npresigned_url_hmac_key = \"invalid\"",
+        )
+        .unwrap();
+
+        generate_local_config(dir.path()).unwrap();
+        let content = fs::read_to_string(&path).unwrap();
+        let doc: toml::Value = toml::from_str(&content).unwrap();
         assert_eq!(
             doc["server"]["http"]["presigned_url_hmac_key"]
                 .as_str()

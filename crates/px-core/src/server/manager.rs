@@ -169,18 +169,38 @@ impl ServerManager {
                 return Ok(());
             }
 
+            // Daemon is not healthy - clean up stale lock and restart
             warn!(
                 daemon_pid = %daemon_pid,
                 "Server lock held but daemon health check failed — \
-                 the daemon may have crashed. Remove the lock file at '{}' and retry.",
-                self.px_home.join("lore").join("pid").display()
+                 the daemon may have crashed. Cleaning up stale lock and restarting."
             );
-            anyhow::bail!(
-                "Lore server (PID {}) is not responding. \
-                 It may have crashed. Try: px doctor, or manually remove '{}'.",
-                daemon_pid,
-                self.px_home.join("lore").join("pid").display()
-            );
+
+            // Clean up stale lock file
+            let lock_file = self.px_home.join("lore").join("pid");
+            if lock_file.exists() {
+                std::fs::remove_file(&lock_file).with_context(|| {
+                    format!(
+                        "Failed to remove stale lock file at '{}'",
+                        lock_file.display()
+                    )
+                })?;
+                info!("Removed stale lock file");
+            }
+
+            // Try to acquire lock again after cleanup
+            if !lock.try_acquire()? {
+                anyhow::bail!(
+                    "Failed to acquire lock after cleaning up stale lock file. \
+                     Another process may have started the server."
+                );
+            }
+
+            // Start server with the cleaned lock
+            self.start_internal(&mut lock).await?;
+
+            info!("Lore server restarted successfully after crash recovery");
+            return Ok(());
         }
 
         // Start server
@@ -426,5 +446,220 @@ mod tests {
             http_port: 41339,
         };
         assert_eq!(status.status_message(), "Server is not configured");
+    }
+
+    #[test]
+    fn test_data_directory_consistency() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = temp_dir.path();
+
+        // Create server manager
+        let manager = ServerManager::new(px_home);
+
+        // Ensure configuration is generated
+        manager.ensure_configured().unwrap();
+
+        // Verify data directory paths are derived from px_home
+        let expected_config_dir = px_home.join("lore").join("config");
+        let _expected_immutable_dir = px_home.join("lore").join("store").join("immutable");
+        let _expected_mutable_dir = px_home.join("lore").join("store").join("mutable");
+
+        assert!(
+            expected_config_dir.exists(),
+            "Config directory should exist"
+        );
+        assert!(
+            expected_config_dir.join("local.toml").exists(),
+            "local.toml should exist"
+        );
+
+        // Read the config to verify store paths
+        let config_content =
+            std::fs::read_to_string(expected_config_dir.join("local.toml")).unwrap();
+        assert!(
+            config_content.contains(
+                &px_home
+                    .join("lore")
+                    .join("store")
+                    .join("immutable")
+                    .to_string_lossy()
+                    .replace('\\', "\\\\")
+            )
+        );
+        assert!(
+            config_content.contains(
+                &px_home
+                    .join("lore")
+                    .join("store")
+                    .join("mutable")
+                    .to_string_lossy()
+                    .replace('\\', "\\\\")
+            )
+        );
+
+        // Create another manager with the same px_home
+        let _manager2 = ServerManager::new(px_home);
+        _manager2.ensure_configured().unwrap();
+
+        // Verify it uses the same config (not regenerated)
+        let config_content2 =
+            std::fs::read_to_string(expected_config_dir.join("local.toml")).unwrap();
+        assert_eq!(
+            config_content, config_content2,
+            "Config should not be regenerated on second call"
+        );
+    }
+
+    #[test]
+    fn test_process_manager_uses_same_config_path() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = temp_dir.path();
+
+        // Create process manager
+        let process_manager = LoreProcessManager::new(px_home);
+
+        // Verify config path is derived from px_home
+        let expected_config_path = px_home.join("lore").join("config").join("local.toml");
+        assert_eq!(process_manager.config_path(), &expected_config_path);
+
+        // Verify log path is derived from px_home
+        let expected_log_path = px_home.join("lore").join("logs").join("loreserver.log");
+        assert_eq!(process_manager.log_path(), &expected_log_path);
+
+        // Create another process manager with the same px_home
+        let process_manager2 = LoreProcessManager::new(px_home);
+        assert_eq!(process_manager2.config_path(), &expected_config_path);
+        assert_eq!(process_manager2.log_path(), &expected_log_path);
+    }
+
+    #[test]
+    fn test_lock_file_uses_px_home() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = temp_dir.path();
+
+        // Create lock
+        let mut lock = ProcessLock::new(px_home);
+
+        // Verify lock file path is derived from px_home by checking if it can be acquired
+        let acquired = lock.try_acquire().unwrap();
+        assert!(acquired, "Lock should be acquirable");
+
+        // Verify lock file exists at expected location
+        let expected_lock_path = px_home.join("lore").join("pid");
+        assert!(
+            expected_lock_path.exists(),
+            "Lock file should exist at expected path"
+        );
+
+        // Create another lock with the same px_home
+        let mut lock2 = ProcessLock::new(px_home);
+        let acquired2 = lock2.try_acquire().unwrap();
+        assert!(
+            !acquired2,
+            "Second lock should not be acquirable (already held)"
+        );
+    }
+
+    #[test]
+    fn test_server_manager_preserves_px_home() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = temp_dir.path();
+
+        let manager = ServerManager::new(px_home);
+        assert_eq!(manager.px_home, px_home);
+
+        // Verify all operations use the same px_home
+        let mut lock = ProcessLock::new(&manager.px_home);
+        let expected_lock_path = px_home.join("lore").join("pid");
+        let acquired = lock.try_acquire().unwrap();
+        assert!(acquired, "Lock should be acquirable");
+        assert!(
+            expected_lock_path.exists(),
+            "Lock file should exist at expected path"
+        );
+
+        let process_manager = LoreProcessManager::new(&manager.px_home);
+        assert_eq!(
+            process_manager.config_path(),
+            px_home.join("lore").join("config").join("local.toml")
+        );
+    }
+
+    #[test]
+    fn test_stale_lock_cleanup_preserves_data_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let px_home = temp_dir.path();
+
+        let manager = ServerManager::new(px_home);
+
+        // Ensure configuration is generated
+        manager.ensure_configured().unwrap();
+
+        // Create data directories to simulate existing data
+        let immutable_dir = px_home.join("lore").join("store").join("immutable");
+        let mutable_dir = px_home.join("lore").join("store").join("mutable");
+        std::fs::create_dir_all(&immutable_dir).unwrap();
+        std::fs::create_dir_all(&mutable_dir).unwrap();
+
+        // Create some test data
+        std::fs::write(immutable_dir.join("test.dat"), "test data").unwrap();
+        std::fs::write(mutable_dir.join("test2.dat"), "test data 2").unwrap();
+
+        // Create a stale lock file with a non-existent PID
+        let lock_file = px_home.join("lore").join("pid");
+        std::fs::create_dir_all(lock_file.parent().unwrap()).unwrap();
+        std::fs::write(&lock_file, "9999999").unwrap();
+
+        // Create a new manager - it should clean up the stale lock
+        let _manager2 = ServerManager::new(px_home);
+        let mut lock = ProcessLock::new(px_home);
+        // The stale lock should be cleaned up during try_acquire
+        let acquired = lock.try_acquire().unwrap();
+        assert!(acquired, "Should acquire lock after stale lock cleanup");
+
+        // Verify data directories still exist and contain data
+        assert!(
+            immutable_dir.exists(),
+            "Immutable store directory should persist"
+        );
+        assert!(
+            mutable_dir.exists(),
+            "Mutable store directory should persist"
+        );
+        assert_eq!(
+            std::fs::read_to_string(immutable_dir.join("test.dat")).unwrap(),
+            "test data",
+            "Immutable store data should persist"
+        );
+        assert_eq!(
+            std::fs::read_to_string(mutable_dir.join("test2.dat")).unwrap(),
+            "test data 2",
+            "Mutable store data should persist"
+        );
+
+        // Verify config is still using the same data directories
+        let config_content =
+            std::fs::read_to_string(px_home.join("lore").join("config").join("local.toml"))
+                .unwrap();
+        assert!(
+            config_content.contains(
+                &px_home
+                    .join("lore")
+                    .join("store")
+                    .join("immutable")
+                    .to_string_lossy()
+                    .replace('\\', "\\\\")
+            )
+        );
+        assert!(
+            config_content.contains(
+                &px_home
+                    .join("lore")
+                    .join("store")
+                    .join("mutable")
+                    .to_string_lossy()
+                    .replace('\\', "\\\\")
+            )
+        );
     }
 }

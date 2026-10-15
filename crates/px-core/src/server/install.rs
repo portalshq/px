@@ -211,7 +211,7 @@ impl LoreInstaller {
                     .context("Lore installation directory is not valid UTF-8")?,
             );
         }
-        // NOTE: --repo is intentionally not passed. The pinned v0.8.4-portals.9
+        // NOTE: --repo is intentionally not passed. The pinned v0.8.4-portals.11
         // installer rejects unknown arguments; its default REPO=portalshq/lore
         // already matches PINNED_LORE_REPOSITORY. Custom with_repo() installs
         // are deferred until Lore ships --repo support (follow-up .6).
@@ -645,7 +645,7 @@ mod tests {
     fn test_tag_version_prefix() {
         let temp_dir = TempDir::new().unwrap();
         let installer = LoreInstaller::new(Some(temp_dir.path().to_path_buf()));
-        assert_eq!(installer.tag_version(), "v0.8.4-portals.9");
+        assert_eq!(installer.tag_version(), "v0.8.4-portals.11");
 
         // Already prefixed — should not double-prefix
         let installer2 =

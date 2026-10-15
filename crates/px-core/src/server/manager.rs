@@ -477,9 +477,9 @@ impl ServerStatus {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
     use std::sync::Arc;
     use std::thread;
+    use tempfile::TempDir;
 
     #[test]
     fn test_server_manager_creation() {
@@ -518,7 +518,10 @@ mod tests {
         let acquired = handle2.join().unwrap();
 
         // Second thread should not acquire the lock (first still holds it)
-        assert!(!acquired, "Second thread should not acquire lock while first holds it");
+        assert!(
+            !acquired,
+            "Second thread should not acquire lock while first holds it"
+        );
     }
 
     #[test]

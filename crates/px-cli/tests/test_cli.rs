@@ -3,7 +3,34 @@ use clap::CommandFactory;
 use predicates::prelude::*;
 use px_cli::Cli;
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+#[cfg(unix)]
+use std::path::Path;
 use tempfile::TempDir;
+
+#[cfg(unix)]
+fn add_lore_version_stubs(cmd: &mut Command, dir: &Path) {
+    let bin_dir = dir.join("bin");
+    fs::create_dir_all(&bin_dir).unwrap();
+    for (name, version) in [
+        ("lore", "lore 0.8.4-portals.11+v0.8.4-portals.11"),
+        (
+            "loreserver",
+            "loreserver 0.8.4-portals.11+v0.8.4-portals.11",
+        ),
+    ] {
+        let binary = bin_dir.join(name);
+        fs::write(&binary, format!("#!/bin/sh\nprintf '%s\\n' '{version}'\n")).unwrap();
+        fs::set_permissions(&binary, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    let mut search_paths = vec![bin_dir];
+    search_paths.extend(std::env::split_paths(
+        &std::env::var_os("PATH").unwrap_or_default(),
+    ));
+    cmd.env("PATH", std::env::join_paths(search_paths).unwrap());
+}
 
 /// Every public command and subcommand must remain invocable through the
 /// compiled binary. Functional Lore-backed coverage lives in
@@ -279,10 +306,12 @@ fn test_configure_unified_command() {
 }
 
 #[test]
+#[cfg(unix)]
 fn test_configure_sets_provider_local_and_remote() {
     // `px configure local` should create a provider.toml with local type.
     let tmp = TempDir::new().unwrap();
     let mut cfg = Command::cargo_bin("px").expect("Failed to find px binary");
+    add_lore_version_stubs(&mut cfg, tmp.path());
     cfg.args([
         "configure",
         "local",

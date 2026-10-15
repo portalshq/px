@@ -40,7 +40,8 @@ pub fn generate_local_config(px_home: &Path) -> Result<ConfigFiles> {
                         .and_then(toml::Value::as_str)
                     {
                         // Key must be 64 hex characters (32 bytes)
-                        existing_key.len() != 64 || !existing_key.bytes().all(|b| b.is_ascii_hexdigit())
+                        existing_key.len() != 64
+                            || !existing_key.bytes().all(|b| b.is_ascii_hexdigit())
                     } else {
                         true
                     };

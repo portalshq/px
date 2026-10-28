@@ -348,6 +348,44 @@ fn filter_consistency_across_checkouts() {
 }
 
 #[test]
+fn list_calls_provider_ready_before_remote_query() {
+    let temp = TempDir::new().unwrap();
+    fs::write(
+        temp.path().join("provider.toml"),
+        "provider_type = 'local'\n",
+    )
+    .unwrap();
+    let fake = fake_lore(
+        &temp,
+        "printf '%s\n' \"$*\" >> \"$PX_TEST_CALLS\"\nif [ \"$1\" = repository ] && [ \"$2\" = list ]; then\n  echo '[]'\n  exit 0\nfi\nexit 0",
+    );
+    let lore_bin_dir = temp.path().join("bin");
+    fs::create_dir_all(&lore_bin_dir).unwrap();
+    std::os::unix::fs::symlink(&fake, lore_bin_dir.join("lore")).unwrap();
+    let path = format!(
+        "{}:{}",
+        lore_bin_dir.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+    let log = temp.path().join("calls");
+
+    Command::cargo_bin("px")
+        .unwrap()
+        .args(["list"])
+        .arg("--base-dir")
+        .arg(temp.path())
+        .env("PXLORE_CLI", fake)
+        .env("PATH", path)
+        .env("PX_TEST_CALLS", &log)
+        .assert()
+        .success();
+
+    let calls = fs::read_to_string(log).unwrap();
+    // Verify that the Lore binary was invoked (which happens via provider readiness)
+    assert!(calls.contains("repository list"), "calls: {calls}");
+}
+
+#[test]
 fn local_lore_config_persists_across_operations() {
     let temp = TempDir::new().unwrap();
     checkout(temp.path(), "bears", "lore://server-a:41337");

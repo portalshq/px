@@ -1508,6 +1508,27 @@ fn get_tokio_runtime() -> &'static tokio::runtime::Runtime {
     RT.get_or_init(|| tokio::runtime::Runtime::new().expect("failed to create tokio runtime"))
 }
 
+/// Ensure the provider is ready for remote operations.
+///
+/// This function loads the configured provider and calls ensure_ready() on it.
+/// For the local provider, this ensures the Lore server is running (including
+/// crash recovery from stale locks). For remote/cloud providers, this performs
+/// any necessary initialization.
+///
+/// This should be called before any operation that may make gRPC calls to the
+/// Lore server, such as listing repositories, resolving URIs, or listing entities.
+fn ensure_provider_ready_for_remote_ops(base_dir: &Path) -> Result<()> {
+    use px_core::provider::ProviderManager;
+
+    let mut provider_manager = ProviderManager::new(base_dir);
+    if let Some(provider) = provider_manager.load_configured_provider()? {
+        let rt = get_tokio_runtime();
+        rt.block_on(provider.ensure_ready())
+            .context("failed to ensure provider is ready")?;
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn cmd_create(
     base_dir: &Path,
@@ -1553,6 +1574,10 @@ fn cmd_resolve(
     provenance: bool,
     include_blobs: bool,
 ) -> Result<()> {
+    // Ensure provider is ready for remote operations (unless explicitly local)
+    if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() != Some("local") {
+        ensure_provider_ready_for_remote_ops(base_dir)?;
+    }
     let resolver = Resolver::new(base_dir);
     let wants_provenance = provenance || include_blobs;
     let options = ResolveOptions {
@@ -1603,6 +1628,10 @@ fn cmd_presign(
     download: Option<PathBuf>,
     output: Option<PathBuf>,
 ) -> Result<()> {
+    // Ensure provider is ready for remote operations (unless explicitly local)
+    if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() != Some("local") {
+        ensure_provider_ready_for_remote_ops(base_dir)?;
+    }
     let bearer_token = token_env
         .as_deref()
         .map(|name| {
@@ -1734,6 +1763,10 @@ mod presign_expiry_tests {
 
 fn cmd_query(base_dir: &Path, uri_str: &str, path: &str, format: &str) -> Result<()> {
     eprintln!("px query is deprecated; use px resolve <uri>#<path> or px resolve <uri> <path>");
+    // Ensure provider is ready for remote operations (unless explicitly local)
+    if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() != Some("local") {
+        ensure_provider_ready_for_remote_ops(base_dir)?;
+    }
     let resolver = Resolver::new(base_dir);
     let result = resolver
         .query(uri_str, path)
@@ -1891,6 +1924,8 @@ fn cmd_history(base_dir: &Path, uri_str: &str, limit: usize) -> Result<()> {
     let mut history = if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() == Some("local") {
         open_repo(base_dir, &uri.repository)?.history_path(&target.path, limit)
     } else {
+        // Ensure provider is ready for remote operations
+        ensure_provider_ready_for_remote_ops(base_dir)?;
         Resolver::new(base_dir).remote_history_path(&uri, &target.path, limit)
     }
     .context("failed to get history")?;
@@ -1960,6 +1995,8 @@ fn cmd_list(base_dir: &Path, repository: Option<&str>, entity_type: Option<&str>
 
     match repository {
         None => {
+            // Ensure local provider is ready before listing repositories remotely
+            ensure_provider_ready_for_remote_ops(base_dir)?;
             let resolver = Resolver::new(base_dir);
             let repositories = resolver
                 .list_repositories()
@@ -1977,6 +2014,8 @@ fn cmd_list(base_dir: &Path, repository: Option<&str>, entity_type: Option<&str>
         }
         Some(repository) => {
             if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() != Some("local") {
+                // Ensure local provider is ready before listing remote entities
+                ensure_provider_ready_for_remote_ops(base_dir)?;
                 let resolver = Resolver::new(base_dir);
                 let entities: Vec<(String, String)> = match entity_type {
                     Some(et) => resolver
@@ -2100,6 +2139,8 @@ mod history_target_tests {
 
 fn cmd_branch(base_dir: &Path, repository: &str, name: Option<&str>) -> Result<()> {
     if name.is_none() && std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() == Some("remote") {
+        // Ensure provider is ready for remote operations
+        ensure_provider_ready_for_remote_ops(base_dir)?;
         let branches = Resolver::new(base_dir).list_remote_branches(repository)?;
         if !std::io::stdout().is_terminal() {
             println!("{}", serde_json::to_string_pretty(&branches)?);
@@ -2220,6 +2261,10 @@ fn clone_px_pull(remote_url: &str, target: &Path, required: Vec<String>) -> Resu
 
 fn repository_manifest_roots(base_dir: &Path, repository: &str) -> Result<Vec<String>> {
     let mut roots = vec!["repository.yaml".to_string()];
+    // Ensure provider is ready for remote operations (unless explicitly local)
+    if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() != Some("local") {
+        ensure_provider_ready_for_remote_ops(base_dir)?;
+    }
     roots.extend(
         Resolver::new(base_dir)
             .list_remote_manifest_paths(repository)
@@ -2722,6 +2767,8 @@ fn cmd_head_hash(base_dir: &Path, repository: &str, branch: Option<&str>) -> Res
             None => repo.head_hash(),
         }
     } else {
+        // Ensure provider is ready for remote operations
+        ensure_provider_ready_for_remote_ops(base_dir)?;
         Resolver::new(base_dir).remote_branch_head_hash(repository, branch)
     }
     .context("failed to get HEAD hash")?;
@@ -2854,6 +2901,10 @@ fn cmd_diff(
     candidate_commit: Option<String>,
     format: &str,
 ) -> Result<()> {
+    // Ensure provider is ready for remote operations (unless explicitly local)
+    if std::env::var("PX_RESOLVE_SOURCE").ok().as_deref() != Some("local") {
+        ensure_provider_ready_for_remote_ops(base_dir)?;
+    }
     let resolver = Resolver::new(base_dir);
     let manifest_value = |result: ResolveResult| -> Result<serde_json::Value> {
         match result {

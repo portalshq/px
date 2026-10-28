@@ -472,7 +472,7 @@ Inside sandboxes, use the MCP tools for all PX operations. Direct `px` CLI comma
 
 
 # PX CLI Reference
-The `px` command-line interface (v0.9.10) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
+The `px` command-line interface (v0.9.11) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
 
 
 ## Command Overview

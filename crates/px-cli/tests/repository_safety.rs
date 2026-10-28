@@ -359,6 +359,7 @@ fn list_calls_provider_ready_before_remote_query() {
         &temp,
         "printf '%s\n' \"$*\" >> \"$PX_TEST_CALLS\"\nif [ \"$1\" = repository ] && [ \"$2\" = list ]; then\n  echo '[]'\n  exit 0\nfi\nexit 0",
     );
+    // Put the versioned fixture on PATH so provider readiness checks pass
     let lore_bin_dir = temp.path().join("bin");
     fs::create_dir_all(&lore_bin_dir).unwrap();
     std::os::unix::fs::symlink(&fake, lore_bin_dir.join("lore")).unwrap();

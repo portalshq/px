@@ -350,23 +350,15 @@ fn filter_consistency_across_checkouts() {
 #[test]
 fn list_calls_provider_ready_before_remote_query() {
     let temp = TempDir::new().unwrap();
+    // Use remote provider to avoid Lore installation check in CI
     fs::write(
         temp.path().join("provider.toml"),
-        "provider_type = 'local'\n",
+        "provider_type = 'remote'\nremote_url = 'lore://127.0.0.1:41337'\nworkspace_id = 'default'\n",
     )
     .unwrap();
     let fake = fake_lore(
         &temp,
         "printf '%s\n' \"$*\" >> \"$PX_TEST_CALLS\"\nif [ \"$1\" = repository ] && [ \"$2\" = list ]; then\n  echo '[]'\n  exit 0\nfi\nexit 0",
-    );
-    // Put the versioned fixture on PATH so provider readiness checks pass
-    let lore_bin_dir = temp.path().join("bin");
-    fs::create_dir_all(&lore_bin_dir).unwrap();
-    std::os::unix::fs::symlink(&fake, lore_bin_dir.join("lore")).unwrap();
-    let path = format!(
-        "{}:{}",
-        lore_bin_dir.display(),
-        std::env::var("PATH").unwrap_or_default()
     );
     let log = temp.path().join("calls");
 
@@ -376,7 +368,6 @@ fn list_calls_provider_ready_before_remote_query() {
         .arg("--base-dir")
         .arg(temp.path())
         .env("PXLORE_CLI", fake)
-        .env("PATH", path)
         .env("PX_TEST_CALLS", &log)
         .assert()
         .success();

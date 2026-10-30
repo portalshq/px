@@ -3,10 +3,18 @@
 ### Installation Script
 
 ```bash
-curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash
+curl -fsSL https://portals.works/api/px/download | bash
 ```
 
-The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The website command records one download per browser profile with a random ID. After a successful install, the installer sends a separate anonymous install count. Run `export PX_TELEMETRY=0` before installation to opt out of install counting. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+
+**Windows PowerShell**
+
+```powershell
+iex (irm 'https://portals.works/api/px/download?platform=windows')
+```
+
+To opt out of successful-install counting in PowerShell, run `$env:PX_TELEMETRY='0'` before the command. The PX website provides a command with a persistent anonymous browser ID and campaign attribution.
 
 <!-- ### CLI & Server (Rust — compile from source)
 
@@ -94,6 +102,33 @@ verifies its pinned SHA-256 before execution, and explicitly selects the
 Portals fork. It never executes the mutable `main` installer or silently falls
 back to an upstream Lore binary. Production release metadata binds this Lore
 client version to Px's signed checksum manifest.
+
+### Local Lore server lifecycle
+
+With the `local` provider, PX manages a machine-local `loreserver` for you:
+
+- **Automatic startup**: `px init` and every remote-backed command (`list`,
+  `resolve`, `pull`, `push`, `history`, `presign`, `query`, branch ops) runs a
+  provider-readiness check that starts the server when it isn't running —
+  including after reboots, crashes, and stale PID locks.
+- **Fixed data directory**: the server always launches as
+  `loreserver --config <px_home>/lore/config`, where `<px_home>` resolves as
+  `--base-dir`, then `$PX_DIR`, then `~/.px`. Persistent state lives in
+  `<px_home>/lore/store/` (immutable + mutable stores), logs in
+  `<px_home>/lore/logs/loreserver.log`, and the PID lock in
+  `<px_home>/lore/pid`.
+- **Listener identity**: ports 41337 (gRPC/QUIC) and 41339 (HTTP health) are
+  per-machine singletons. Before adopting an already-listening server, PX
+  verifies the owning process was spawned with this PX home's `--config`
+  directory (paths are canonicalized). A `loreserver` bound to a *different*
+  config dir is terminated so the correct one can start; a non-Lore process
+  is never killed and produces an actionable error instead.
+- **Version parity**: the readiness check re-verifies the installed Lore
+  version against the release pin before starting or reusing a server.
+- **Store ownership caveat**: PX guarantees the *server* uses the right
+  config/store; integrity of the store's contents is Lore's own domain —
+  `px doctor` and `lore repository verify` are the tools for diagnosing
+  repository-level issues.
 
 CI reads the API key from its secret store and passes it to Lore over stdin,
 so the secret is absent from process arguments and command logs:

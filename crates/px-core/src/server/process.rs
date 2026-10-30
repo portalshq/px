@@ -411,9 +411,42 @@ fn normalize_dir(path: &Path) -> String {
         .into_owned()
 }
 
+/// Split a command line into tokens honoring single/double quotes and
+/// backslash escapes, so `--config "/dir with spaces"` parses correctly.
+fn tokenize_cmdline(cmdline: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    let mut quote: Option<char> = None;
+    let mut chars = cmdline.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match (quote, ch) {
+            (Some(q), c) if c == q => quote = None,
+            (Some('\''), c) => current.push(c),
+            (_, '\\') => {
+                if let Some(&next) = chars.peek() {
+                    current.push(next);
+                    chars.next();
+                }
+            }
+            (None, '"' | '\'') => quote = Some(ch),
+            (None, c) if c.is_whitespace() => {
+                if !current.is_empty() {
+                    tokens.push(std::mem::take(&mut current));
+                }
+            }
+            (_, c) => current.push(c),
+        }
+    }
+    if !current.is_empty() {
+        tokens.push(current);
+    }
+    tokens
+}
+
 /// Extract the `--config <dir>` value from a command line.
 fn extract_config_dir(cmdline: &str) -> Option<String> {
-    let mut parts = cmdline.split_whitespace();
+    let mut parts = tokenize_cmdline(cmdline).into_iter();
     while let Some(part) = parts.next() {
         if part == "--config" {
             return parts.next().map(|s| s.trim_end_matches('/').to_string());
@@ -503,6 +536,28 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_config_dir_quoted_space_paths() {
+        // A PX home containing spaces must not misparse — a truncated path
+        // would falsely classify our own server as foreign and get it killed.
+        let spaced = "/Users/John Doe/.px/lore/config";
+        for cmdline in [
+            format!("loreserver --config \"{spaced}\""),
+            format!("loreserver --config '{spaced}'"),
+            format!("loreserver --config=\"{spaced}\" --verbose"),
+        ] {
+            assert_eq!(
+                extract_config_dir(&cmdline),
+                Some(spaced.to_string()),
+                "failed to parse: {cmdline}"
+            );
+        }
+        assert_eq!(
+            extract_config_dir("loreserver --config /a/b\\ c/lore/config"),
+            Some("/a/b c/lore/config".to_string())
+        );
+    }
+
+    #[test]
     fn test_cmdline_has_config_dir() {
         let temp_dir = TempDir::new().unwrap();
         let config_dir = temp_dir.path().join("lore").join("config");
@@ -511,7 +566,10 @@ mod tests {
         let cmdline = format!("loreserver --config {}", config_dir.display());
         assert!(cmdline_has_config_dir(&cmdline, &config_dir));
 
-        let foreign = format!("loreserver --config {}", temp_dir.path().join("other").display());
+        let foreign = format!(
+            "loreserver --config {}",
+            temp_dir.path().join("other").display()
+        );
         assert!(!cmdline_has_config_dir(&foreign, &config_dir));
 
         assert!(!cmdline_has_config_dir("loreserver", &config_dir));

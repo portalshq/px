@@ -35,10 +35,18 @@ px://toystory/prop/andy-hat
 ### Installation Script
 
 ```bash
-curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash
+curl -fsSL https://portals.works/api/px/download | bash
 ```
 
-The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The website command records one download per browser profile with a random ID. After a successful install, the installer sends a separate anonymous install count. Run `export PX_TELEMETRY=0` before installation to opt out of install counting. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+
+**Windows PowerShell**
+
+```powershell
+iex (irm 'https://portals.works/api/px/download?platform=windows')
+```
+
+To opt out of successful-install counting in PowerShell, run `$env:PX_TELEMETRY='0'` before the command. The PX website provides a command with a persistent anonymous browser ID and campaign attribution.
 
 <!-- ### CLI & Server (Rust — compile from source)
 

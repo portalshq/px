@@ -787,9 +787,7 @@ fn cmd_install(_base_dir: &Path, target: &str) -> Result<()> {
         "mcp" => {
             emit("px-mcp-server is bundled with the standard PX installer.");
             emit("To repair a missing MCP server, rerun:");
-            emit(
-                "  curl -fsSL https://github.com/portalshq/px/releases/latest/download/install.sh | bash",
-            );
+            emit("  curl -fsSL https://portals.works/api/px/download | bash");
             emit("");
             emit("To use with Codex, add to your config:");
             emit(r#"  "mcpServers": { "px": { "command": "px-mcp-server" } }"#);

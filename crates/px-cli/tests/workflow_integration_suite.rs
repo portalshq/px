@@ -39,6 +39,7 @@ fn px_cmd(px_home: &Path) -> Command {
     // Use gRPC transport for tests — QUIC (lore://) may not work in all
     // environments (e.g. macOS sandbox).  gRPC on TCP 41337 is reliable.
     cmd.env("PX_LORE_URL_BASE", "grpc://127.0.0.1:41337");
+    cmd.env("PX_TEST_ALLOW_FOREIGN_LORE", "1");
     cmd.env("PX_WORKSPACE_ID", "default");
 
     cmd

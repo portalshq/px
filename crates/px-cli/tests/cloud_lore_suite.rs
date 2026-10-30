@@ -37,6 +37,7 @@ fn px_cmd() -> Command {
     let workspace_id = std::env::var("PX_WORKSPACE_ID").unwrap_or_else(|_| "default".to_string());
 
     cmd.env("PX_LORE_URL_BASE", cloud_url);
+    cmd.env("PX_TEST_ALLOW_FOREIGN_LORE", "1");
     cmd.env("PX_WORKSPACE_ID", workspace_id);
 
     cmd

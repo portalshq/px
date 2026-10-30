@@ -16,6 +16,7 @@ mod e2e {
     fn px_cmd() -> Command {
         let mut cmd = Command::cargo_bin("px").expect("Failed to find px binary");
         cmd.timeout(std::time::Duration::from_secs(30));
+        cmd.env("PX_TEST_ALLOW_FOREIGN_LORE", "1");
         cmd
     }
 

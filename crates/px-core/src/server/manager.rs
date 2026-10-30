@@ -251,6 +251,18 @@ impl ServerManager {
                 cmdline,
                 config_dir,
             } => {
+                // Test escape hatch: integration suites share one fixture
+                // server across multiple temp PX homes, which this check
+                // would otherwise evict.
+                if std::env::var_os("PX_TEST_ALLOW_FOREIGN_LORE").is_some() {
+                    warn!(
+                        pid,
+                        config_dir = %config_dir,
+                        "PX_TEST_ALLOW_FOREIGN_LORE set — adopting foreign \
+                         loreserver without verifying its data directory"
+                    );
+                    return Ok(ListenerCheck::Ours);
+                }
                 warn!(
                     pid,
                     config_dir = %config_dir,

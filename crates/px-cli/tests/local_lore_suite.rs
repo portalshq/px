@@ -26,6 +26,7 @@ fn px_cmd() -> Command {
     let mut cmd = Command::cargo_bin("px").expect("Failed to find px binary");
     cmd.timeout(std::time::Duration::from_secs(300));
     cmd.env("PX_LORE_URL_BASE", "lore://127.0.0.1:41337");
+    cmd.env("PX_TEST_ALLOW_FOREIGN_LORE", "1");
     cmd.env("PX_WORKSPACE_ID", "default");
     cmd
 }

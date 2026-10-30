@@ -183,9 +183,7 @@ impl ServerManager {
                         return Ok(());
                     }
                     ListenerCheck::ReplacedForeignLore => {
-                        info!(
-                            "Foreign loreserver removed; starting this PX home's server"
-                        );
+                        info!("Foreign loreserver removed; starting this PX home's server");
                     }
                 }
             }

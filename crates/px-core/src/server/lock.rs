@@ -59,7 +59,10 @@ impl ProcessLock {
 
             // Check if process is still running
             if self.is_process_running(existing_pid) {
-                tracing::warn!(
+                // Expected steady-state: the server is already up. Debug-level
+                // only — this fires on every provider-ready check, so WARN
+                // would spam normal output.
+                tracing::debug!(
                     pid = existing_pid,
                     lock_file = %self.lock_file.display(),
                     "Lore server is already running (lock held by PID {})",

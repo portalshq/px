@@ -9,9 +9,29 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
+/// Which process owns the TCP listener PX expects its Lore server to own.
+#[derive(Debug)]
+pub enum ListenerIdentity {
+    /// Nothing is listening on the port.
+    NoListener,
+    /// The listener's command line contains `--config <expected config dir>`
+    /// — it is the Lore server for this PX home.
+    Ours(u32),
+    /// A foreign `loreserver` is bound to the port with a different config
+    /// directory (e.g. a stale test instance or another PX home).
+    ForeignLore {
+        pid: u32,
+        cmdline: String,
+        config_dir: String,
+    },
+    /// A non-loreserver process owns the port — never killed automatically.
+    ForeignProcess { pid: u32, cmdline: String },
+    /// The listener could not be inspected (missing tools or permissions).
+    Unknown,
+}
+
 /// Lore server process manager
 pub struct LoreProcessManager {
-    #[allow(dead_code)]
     px_home: std::path::PathBuf,
     log_path: std::path::PathBuf,
     config_path: std::path::PathBuf,
@@ -27,6 +47,59 @@ impl LoreProcessManager {
             px_home: px_home.to_path_buf(),
             config_path,
             log_path,
+        }
+    }
+
+    /// Expected `--config` directory passed to `loreserver` at spawn
+    /// (`<px_home>/lore/config`, the parent of `local.toml`).
+    pub fn expected_config_dir(&self) -> std::path::PathBuf {
+        self.px_home.join("lore").join("config")
+    }
+
+    /// Resolve who owns the TCP listener on `port`.
+    ///
+    /// Reads the listener PID via `lsof`, then inspects the process command
+    /// line for `--config <expected_config_dir>`. Path comparison canonicalizes
+    /// both sides so `/var` vs `/private/var` (macOS) and symlinked temp dirs
+    /// resolve to the same location.
+    #[cfg(unix)]
+    pub fn listener_identity(&self, port: u16) -> ListenerIdentity {
+        let Some(pid) = listener_pid(port) else {
+            return ListenerIdentity::NoListener;
+        };
+        let Some(cmdline) = process_cmdline(pid) else {
+            tracing::warn!(pid, port, "could not read command line of port listener");
+            return ListenerIdentity::Unknown;
+        };
+        if !cmdline.contains("loreserver") {
+            return ListenerIdentity::ForeignProcess { pid, cmdline };
+        }
+        let expected_dir = self.expected_config_dir();
+        if cmdline_has_config_dir(&cmdline, &expected_dir) {
+            ListenerIdentity::Ours(pid)
+        } else {
+            ListenerIdentity::ForeignLore {
+                pid,
+                cmdline: cmdline.clone(),
+                config_dir: extract_config_dir(&cmdline).unwrap_or_else(|| "<none>".into()),
+            }
+        }
+    }
+
+    #[cfg(not(unix))]
+    pub fn listener_identity(&self, _port: u16) -> ListenerIdentity {
+        ListenerIdentity::Unknown
+    }
+
+    /// Returns the PID of the loreserver listening on `port` when it belongs
+    /// to this PX home, `None` when the port is held by a foreign server or
+    /// nothing is listening. Convenience wrapper for callers that only need
+    /// the "is it ours" answer.
+    #[allow(dead_code)]
+    pub fn our_listener_pid(&self, port: u16) -> Option<u32> {
+        match self.listener_identity(port) {
+            ListenerIdentity::Ours(pid) => Some(pid),
+            _ => None,
         }
     }
 
@@ -289,6 +362,80 @@ impl LoreProcessManager {
     }
 }
 
+/// PID of the process listening on a TCP port, via `lsof`.
+#[cfg(unix)]
+fn listener_pid(port: u16) -> Option<u32> {
+    let output = Command::new("lsof")
+        .args(["-nP", &format!("-iTCP:{port}"), "-sTCP:LISTEN", "-t"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .next()?
+        .trim()
+        .parse()
+        .ok()
+}
+
+/// Command line of a process — `/proc` on Linux, `ps` elsewhere.
+#[cfg(unix)]
+fn process_cmdline(pid: u32) -> Option<String> {
+    #[cfg(target_os = "linux")]
+    if let Ok(bytes) = std::fs::read(format!("/proc/{pid}/cmdline")) {
+        return Some(
+            bytes
+                .iter()
+                .map(|b| if *b == 0 { ' ' } else { *b as char })
+                .collect(),
+        );
+    }
+    let output = Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "command="])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+/// Canonicalize a path for comparison; falls back to the raw path when the
+/// target does not exist on disk.
+fn normalize_dir(path: &Path) -> String {
+    path.canonicalize()
+        .unwrap_or_else(|_| path.to_path_buf())
+        .to_string_lossy()
+        .into_owned()
+}
+
+/// Extract the `--config <dir>` value from a command line.
+fn extract_config_dir(cmdline: &str) -> Option<String> {
+    let mut parts = cmdline.split_whitespace();
+    while let Some(part) = parts.next() {
+        if part == "--config" {
+            return parts.next().map(|s| s.trim_end_matches('/').to_string());
+        }
+        if let Some(dir) = part.strip_prefix("--config=") {
+            return Some(dir.trim_end_matches('/').to_string());
+        }
+    }
+    None
+}
+
+/// Whether a process command line was started with `--config <expected_dir>`.
+/// Compares canonicalized paths so `/var` vs `/private/var` and symlinked
+/// temp dirs match correctly.
+fn cmdline_has_config_dir(cmdline: &str, expected_dir: &Path) -> bool {
+    let expected = normalize_dir(expected_dir);
+    match extract_config_dir(cmdline) {
+        Some(actual) => normalize_dir(Path::new(&actual)) == expected,
+        None => false,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -325,5 +472,68 @@ mod tests {
 
         // Test with invalid PID
         assert!(!LoreProcessManager::is_running(999999));
+    }
+
+    #[test]
+    fn test_expected_config_dir() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = LoreProcessManager::new(temp_dir.path());
+        assert_eq!(
+            manager.expected_config_dir(),
+            temp_dir.path().join("lore").join("config")
+        );
+    }
+
+    #[test]
+    fn test_extract_config_dir() {
+        assert_eq!(
+            extract_config_dir("loreserver --config /home/u/.px/lore/config"),
+            Some("/home/u/.px/lore/config".to_string())
+        );
+        assert_eq!(
+            extract_config_dir("loreserver --config=/tmp/t/lore/config --verbose"),
+            Some("/tmp/t/lore/config".to_string())
+        );
+        assert_eq!(
+            extract_config_dir("loreserver --config /x/lore/config/"),
+            Some("/x/lore/config".to_string())
+        );
+        assert_eq!(extract_config_dir("loreserver --verbose"), None);
+        assert_eq!(extract_config_dir("other --config"), None);
+    }
+
+    #[test]
+    fn test_cmdline_has_config_dir() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = temp_dir.path().join("lore").join("config");
+        std::fs::create_dir_all(&config_dir).unwrap();
+
+        let cmdline = format!("loreserver --config {}", config_dir.display());
+        assert!(cmdline_has_config_dir(&cmdline, &config_dir));
+
+        let foreign = format!("loreserver --config {}", temp_dir.path().join("other").display());
+        assert!(!cmdline_has_config_dir(&foreign, &config_dir));
+
+        assert!(!cmdline_has_config_dir("loreserver", &config_dir));
+    }
+
+    #[test]
+    fn test_cmdline_has_config_dir_matches_equivalent_paths() {
+        // Canonicalization must unify symlinked spellings of the same dir.
+        let temp_dir = TempDir::new().unwrap();
+        let real_dir = temp_dir.path().join("realcfg");
+        std::fs::create_dir_all(&real_dir).unwrap();
+        let link_dir = temp_dir.path().join("linkcfg");
+        std::os::unix::fs::symlink(&real_dir, &link_dir).unwrap();
+
+        let cmdline = format!("loreserver --config {}", link_dir.display());
+        assert!(cmdline_has_config_dir(&cmdline, &real_dir));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_process_cmdline_reads_self() {
+        let cmdline = process_cmdline(std::process::id()).expect("readable self cmdline");
+        assert!(!cmdline.is_empty());
     }
 }

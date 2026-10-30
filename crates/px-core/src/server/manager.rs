@@ -36,6 +36,14 @@ pub struct ServerManager {
     max_retries: usize,
 }
 
+/// Outcome of verifying which process owns the Lore health-port listener.
+enum ListenerCheck {
+    /// The listener is this PX home's loreserver — safe to adopt.
+    Ours,
+    /// A foreign loreserver was stopped so ours can start.
+    ReplacedForeignLore,
+}
+
 impl ServerManager {
     /// Create a new server manager
     pub fn new(px_home: &Path) -> Self {
@@ -165,8 +173,21 @@ impl ServerManager {
             );
 
             if LoreProcessManager::health_check(self.http_port, self.health_check_timeout).await? {
-                info!(daemon_pid = %daemon_pid, "Existing daemon is healthy and running");
-                return Ok(());
+                // Health is port-based — a foreign loreserver (stale test
+                // instance, different PX home) can satisfy it while serving a
+                // different data directory. Verify the listener was started
+                // with this PX home's --config before adopting it.
+                match self.verify_listener_identity().await? {
+                    ListenerCheck::Ours => {
+                        info!(daemon_pid = %daemon_pid, "Existing daemon is healthy and running");
+                        return Ok(());
+                    }
+                    ListenerCheck::ReplacedForeignLore => {
+                        info!(
+                            "Foreign loreserver removed; starting this PX home's server"
+                        );
+                    }
+                }
             }
 
             // Daemon is not healthy - the lock is stale (process crashed)
@@ -206,6 +227,78 @@ impl ServerManager {
 
         info!("Lore server is running and healthy");
         Ok(())
+    }
+
+    /// Verify the loreserver listening on the health port belongs to this
+    /// PX home (`--config <px_home>/lore/config`).
+    ///
+    /// - Ours → return.
+    /// - Foreign loreserver (stale test instance or another PX home) →
+    ///   SIGTERM it so this PX home's server can bind the port. Lore ports are
+    ///   a per-machine singleton; a foreign loreserver there is definitionally
+    ///   squatting. Only `loreserver` processes are killed — never unknown
+    ///   processes.
+    /// - Non-lore process or unreadable cmdline → bail with actionable error.
+    async fn verify_listener_identity(&self) -> Result<ListenerCheck> {
+        use crate::server::process::ListenerIdentity;
+
+        let process_manager = LoreProcessManager::new(&self.px_home);
+        match process_manager.listener_identity(self.http_port) {
+            ListenerIdentity::Ours(pid) => {
+                tracing::debug!(pid, "Port listener verified as this PX home's loreserver");
+                Ok(ListenerCheck::Ours)
+            }
+            ListenerIdentity::ForeignLore {
+                pid,
+                cmdline,
+                config_dir,
+            } => {
+                warn!(
+                    pid,
+                    config_dir = %config_dir,
+                    expected_dir = %process_manager.expected_config_dir().display(),
+                    cmdline = %cmdline,
+                    "Foreign loreserver occupies the port — stopping it so this \
+                     PX home's server can start with the correct data directory"
+                );
+                LoreProcessManager::stop(pid).with_context(|| {
+                    format!(
+                        "Foreign Lore server (PID {pid}) is running with config '{config_dir}' \
+                         on port {}, but this PX home requires '{}'. Could not stop it \
+                         automatically — run `kill {pid}` and retry.",
+                        self.http_port,
+                        process_manager.expected_config_dir().display()
+                    )
+                })?;
+                Ok(ListenerCheck::ReplacedForeignLore)
+            }
+            ListenerIdentity::ForeignProcess { pid, cmdline } => {
+                anyhow::bail!(
+                    "Another process (PID {pid}) is listening on Lore health port {} \
+                     and is not a loreserver: {cmdline}. Stop it or change the port \
+                     before PX can start the Lore server.",
+                    self.http_port
+                )
+            }
+            ListenerIdentity::Unknown => {
+                // Cannot verify — log loudly but do not block. The PID file
+                // still tracks our daemon; unverifiable is not proof foreign.
+                warn!(
+                    port = self.http_port,
+                    "Could not verify the identity of the Lore server on the port; \
+                     proceeding but the server may belong to another data directory"
+                );
+                Ok(ListenerCheck::Ours)
+            }
+            ListenerIdentity::NoListener => {
+                // Health answered but lsof shows nothing — inconsistent view.
+                warn!(
+                    port = self.http_port,
+                    "Health check passed but no TCP listener found; restarting server"
+                );
+                Ok(ListenerCheck::ReplacedForeignLore)
+            }
+        }
     }
 
     /// Validate that data directories exist and are accessible
@@ -317,7 +410,27 @@ impl ServerManager {
             )
             .await
             {
-                Ok(_) => return Ok(()),
+                Ok(_) => {
+                    // The health check is port-based — verify the responder is
+                    // actually OUR daemon (a foreign loreserver can answer while
+                    // our daemon failed to bind the port).
+                    match self.verify_listener_identity().await {
+                        Ok(ListenerCheck::Ours) => return Ok(()),
+                        Ok(ListenerCheck::ReplacedForeignLore) => {
+                            // Foreign server was evicted; ours may need another
+                            // retry cycle to bind and become healthy.
+                            retries += 1;
+                            if retries < self.max_retries {
+                                tokio::time::sleep(self.retry_interval).await;
+                            }
+                            continue;
+                        }
+                        Err(e) => {
+                            let _ = lock.release();
+                            return Err(e);
+                        }
+                    }
+                }
                 Err(e) => {
                     retries += 1;
                     warn!(

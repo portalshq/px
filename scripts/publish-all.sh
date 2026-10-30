@@ -163,6 +163,19 @@ for path, patterns in replacements.items():
         text = text[:match.start(1)] + new + text[match.end(1):]
     path.write_text(text)
 
+# Inter-crate requirements use major.minor ranges (e.g. `version = "0.9"`) and
+# must move with minor/major bumps or dependency resolution breaks.
+new_mm = ".".join(new.split(".")[:2])
+for path in [root / "Cargo.toml", *root.glob("crates/*/Cargo.toml")]:
+    text = path.read_text()
+    updated = re.sub(
+        r'((?:portalshq-px|px-[a-z-]+)", version = ")\d+\.\d+(")',
+        rf'\g<1>{new_mm}\g<2>',
+        text,
+    )
+    if updated != text:
+        path.write_text(updated)
+
 for path in [
     root / "typescript/narrativeengine/package-lock.json",
     root / "typescript/px-sdk/package-lock.json",

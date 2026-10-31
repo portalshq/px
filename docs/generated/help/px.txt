@@ -3,6 +3,8 @@ CLI for the PX protocol
 Usage: px [OPTIONS] <COMMAND>
 
 Commands:
+  plugin        Manage PX plugins
+  license       Manage offline plugin entitlement tokens
   auth          Manage secure authentication for the configured Lore provider
   install       Install required dependencies
   init          Initialize a repository repository and/or configure the backend provider
@@ -14,6 +16,7 @@ Commands:
   resolve       Resolve a PX URI to its manifest or a subtree
   presign       Create a time-limited public URL for a committed representation
   commit        Commit all repository changes, or only one entity when given its URI
+  record        Record generated outputs, their exact prompt, and provenance together
   history       View commit history for an entity or repository file
   list          List repositories or entities within a repository
   branch        Create or list branches
@@ -27,7 +30,7 @@ Commands:
   switch        Switch to a branch
   head          Show the current HEAD commit hash
   validate      Validate a manifest against the PX schema
-  schema        Print a JSON Schema for manifest or commit types
+  schema        Print a JSON Schema for manifest, commit, or plugin types
   diff          Show a manifest diff for an entity URI
   merge         Three-way merge of JSON/YAML values
   content-hash  Compute the BLAKE3 content hash of a file

@@ -1,9 +1,9 @@
-Print a JSON Schema for manifest or commit types
+Print a JSON Schema for manifest, commit, or plugin types
 
 Usage: px schema [OPTIONS] <NAME>
 
 Arguments:
-  <NAME>  Schema name: 'manifest' or 'commit'
+  <NAME>  Schema name: 'manifest', 'commit', or 'plugin'
 
 Options:
   -d, --base-dir <BASE_DIR>  Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]

@@ -3,7 +3,7 @@ Install required dependencies
 Usage: px install [OPTIONS] <TARGET>
 
 Arguments:
-  <TARGET>  Target to install (e.g., "lore" or "mcp")
+  <TARGET>  Target to install: "lore", "mcp", or "uv"
 
 Options:
   -d, --base-dir <BASE_DIR>  Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]

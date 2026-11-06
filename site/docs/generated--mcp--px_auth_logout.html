@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>PX Documentation</title>
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./docs.css">
+  <script src="./content.js" defer></script>
+  <script src="./docs.js?v=2" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="../" aria-label="PX home"><img src="./px.png" alt=""></a>
+    <span class="top-divider"></span><a class="top-title" href="./">Documentation</a>
+    <div class="top-actions"><button class="search-trigger" type="button" aria-label="Search documentation"><span>⌕</span> <span class="search-label">Search documentation</span> <kbd>⌘ K</kbd></button><a class="github" href="https://github.com/portalshq/px">GitHub <span>↗</span></a><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="sidebar">Menu <span>☰</span></button></div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="Documentation navigation"><div class="sidebar-inner"><nav id="nav"></nav><a class="sidebar-bottom" href="../"><span>←</span> Back to px</a></div></aside>
+    <main id="main"><div class="content-grid"><article class="article" id="article"></article><aside class="toc" aria-label="On this page"><div class="toc-label">ON THIS PAGE <span>↘</span></div><nav id="toc"></nav></aside></div></main>
+  </div>
+  <dialog id="search-dialog"><div class="search-head"><span>⌕</span><input id="search-input" type="search" placeholder="Search the docs..." autocomplete="off" aria-label="Search documentation"><button id="search-close" aria-label="Close search">esc</button></div><div id="search-results"></div><div class="search-foot">SEARCH DOCUMENTATION <span>↵ TO OPEN</span></div></dialog>
+</body>
+</html>

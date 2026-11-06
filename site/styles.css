@@ -11139,3 +11139,21 @@ main[id] {
   }
 
 }
+
+.px-os-option {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #bbb;
+  margin-bottom: 10px;
+}
+
+.px-os-option[aria-pressed="true"] {
+  color: #111;
+  background: #dffc72;
+  border-color: #111;
+}
+
+/* Platform selector */
+.px-os-option,.px-os-option[aria-pressed="true"],.px-os-option:hover,.px-os-option[aria-pressed="true"]:hover{color:#000;background:transparent;border:0}
+.px-os-option[aria-pressed="true"]{text-decoration:underline;text-underline-offset:4px}

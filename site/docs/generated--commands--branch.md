@@ -1,0 +1,36 @@
+---
+generated: "true"
+generator: px-docgen
+version: 0.10.0
+source: clap
+---
+
+
+# px branch
+Create or list branches
+
+
+## Synopsis
+```bash
+px branch <REPOSITORY> [NAME]
+```
+
+
+## Arguments
+
+| Name | Description | Required |
+|---|---|---|
+| name | Branch name to create. Omit to list local branches | No |
+| repository | Repository name | Yes |
+
+
+## Flags
+
+| Flag | Description |
+|---|---|
+| -h, --help | Print help |
+
+
+## Source
+`crates/px-cli/src/main.rs` — `branch` command
+

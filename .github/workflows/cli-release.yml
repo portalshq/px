@@ -7,6 +7,36 @@ on:
 permissions:
   contents: read
 jobs:
+  optimizer-release-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Require reviewed optimizer release pin
+        run: |
+          test -s optimizer-release.json || { echo 'A reviewed signed optimizer release pin is required before releasing PX.' >&2; exit 1; }
+      - name: Download exact private optimizer release
+        env:
+          GH_TOKEN: ${{ secrets.PX_OPTIMIZER_RELEASE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo 'Missing private release read credential.' >&2; exit 1; }
+          tag="$(python3 -c 'import json; print(json.load(open("optimizer-release.json"))["release_id"])')"
+          [[ "$tag" =~ ^optimizer-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid optimizer release tag.' >&2; exit 1; }
+          mkdir -p optimizer-release
+          gh release download "$tag" --repo portalshq/px-plugins --dir optimizer-release --pattern 'manifest.json' --pattern 'manifest.sig' --pattern 'px-optimizer-*.tar.gz'
+      - name: Verify every signed optimizer archive
+        run: |
+          set -euo pipefail
+          cargo build --locked -p px-plugin --bin px-verify-optimizer-release
+          for target in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc; do
+            target/debug/px-verify-optimizer-release optimizer-release.json optimizer-release/manifest.json optimizer-release/manifest.sig "$target" "optimizer-release/px-optimizer-$target.tar.gz"
+          done
+      - name: Guard incomplete release integration
+        run: |
+          echo 'Verified optimizer bundle assembly and installer upgrades are not yet integrated; refusing to release PX.' >&2
+          exit 1
+
   lint:
     runs-on: ubuntu-latest
 
@@ -52,7 +82,7 @@ jobs:
           --exclude px-sdk-ts
 
   build:
-    needs: test
+    needs: [test, optimizer-release-readiness]
     strategy:
       fail-fast: false
       matrix:

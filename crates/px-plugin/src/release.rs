@@ -63,6 +63,8 @@ pub fn verify_manifest(
     if bytes.len() > 1024 * 1024
         || !digest_valid(&pin.manifest_blake3)
         || format!("blake3:{}", blake3::hash(bytes).to_hex()) != pin.manifest_blake3
+        || pin.public_key.len() != 64
+        || signature_hex.trim().len() != 128
     {
         return Err("release manifest does not match its pin".into());
     }
@@ -186,5 +188,24 @@ mod tests {
         let mut tampered = bytes.clone();
         tampered.push(b' ');
         assert!(verify_manifest(&tampered, &signature, &pin, "0.10.0").is_err());
+        let mut incomplete: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        incomplete["targets"]
+            .as_object_mut()
+            .unwrap()
+            .remove(TARGETS[0]);
+        let incomplete = serde_json::to_vec(&incomplete).unwrap();
+        let incomplete_pin = ReleasePin {
+            manifest_blake3: format!("blake3:{}", blake3::hash(&incomplete).to_hex()),
+            ..pin
+        };
+        assert!(
+            verify_manifest(
+                &incomplete,
+                &hex::encode(key.sign(&incomplete).to_bytes()),
+                &incomplete_pin,
+                "0.10.0"
+            )
+            .is_err()
+        );
     }
 }

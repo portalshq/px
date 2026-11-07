@@ -34,7 +34,301 @@ _px_generated() {
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:px-command-$line[1]:"
         case $line[1] in
-            (auth)
+            (plugin)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_px__subcmd__plugin_commands" \
+"*::: :->plugin" \
+&& ret=0
+
+    case $state in
+    (plugin)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:px-plugin-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(info)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':id:_default' \
+&& ret=0
+;;
+(install)
+_arguments "${_arguments_options[@]}" : \
+'--blake3=[]:BLAKE3:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':path:_default' \
+&& ret=0
+;;
+(uninstall)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':id:_default' \
+&& ret=0
+;;
+(enable)
+_arguments "${_arguments_options[@]}" : \
+'--repo=[]:REPO:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':id:_default' \
+&& ret=0
+;;
+(disable)
+_arguments "${_arguments_options[@]}" : \
+'--repo=[]:REPO:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':id:_default' \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(tools)
+_arguments "${_arguments_options[@]}" : \
+'--format=[]:FORMAT:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(call)
+_arguments "${_arguments_options[@]}" : \
+'--input=[]:INPUT:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':id:_default' \
+':tool:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_px__subcmd__plugin__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:px-plugin-help-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(info)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(install)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(uninstall)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(enable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(disable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(tools)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(call)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(license)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+":: :_px__subcmd__license_commands" \
+"*::: :->license" \
+&& ret=0
+
+    case $state in
+    (license)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:px-license-command-$line[1]:"
+        case $line[1] in
+            (status)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':token_file:_files' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':id:_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_px__subcmd__license__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:px-license-help-command-$line[1]:"
+        case $line[1] in
+            (status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(auth)
 _arguments "${_arguments_options[@]}" : \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
 '--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
@@ -139,7 +433,7 @@ _arguments "${_arguments_options[@]}" : \
 '(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
 '-h[Print help]' \
 '--help[Print help]' \
-':target -- Target to install (e.g., "lore" or "mcp"):_default' \
+':target -- Target to install\: "lore", "mcp", or "uv":_default' \
 && ret=0
 ;;
 (init)
@@ -511,6 +805,48 @@ _arguments "${_arguments_options[@]}" : \
 ':target -- Repository name or PX entity URI:_default' \
 && ret=0
 ;;
+(record)
+_arguments "${_arguments_options[@]}" : \
+'--branch=[Branch currently checked out in the repository]:BRANCH:_default' \
+'*--output=[Output in KEY=PATH form. Repeat for multiple outputs]:OUTPUT:_default' \
+'--prompt=[Exact prompt text sent to the generation model]:PROMPT:_default' \
+'--negative-prompt=[Negative prompt, if used]:NEGATIVE_PROMPT:_default' \
+'--provider=[Provider reported by the generation tool]:PROVIDER:_default' \
+'--model=[Model identifier reported by the generation tool]:MODEL:_default' \
+'--parameters=[JSON object of generation parameters actually used]:PARAMETERS:_default' \
+'--model-parameters=[JSON object of non-default model parameters]:MODEL_PARAMETERS:_default' \
+'--input-refs=[JSON array of input references with URI, key, hash, and commit]:INPUT_REFS:_default' \
+'--job-id=[Generation job identifier, if returned by the provider]:JOB_ID:_default' \
+'--provenance-json=[JSON optimizer or workflow provenance fragment]:PROVENANCE_JSON:_default' \
+'-m+[Commit message]:MESSAGE:_default' \
+'--message=[Commit message]:MESSAGE:_default' \
+'-a+[Author identifier]:AUTHOR:_default' \
+'--author=[Author identifier]:AUTHOR:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--replace[Replace existing output representations]' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':uri -- PX entity URI:_default' \
+&& ret=0
+;;
+(record-feedback)
+_arguments "${_arguments_options[@]}" : \
+'--input=[]:INPUT:_default' \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+&& ret=0
+;;
 (history)
 _arguments "${_arguments_options[@]}" : \
 '-n+[Maximum number of commits to show]:LIMIT:_default' \
@@ -855,7 +1191,7 @@ _arguments "${_arguments_options[@]}" : \
 '(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
 '-h[Print help]' \
 '--help[Print help]' \
-':name -- Schema name\: '\''manifest'\'' or '\''commit'\'':_default' \
+':name -- Schema name\: '\''manifest'\'', '\''commit'\'', or '\''plugin'\'':_default' \
 && ret=0
 ;;
 (diff)
@@ -919,7 +1255,87 @@ _arguments "${_arguments_options[@]}" : \
         (( CURRENT += 1 ))
         curcontext="${curcontext%:*:*}:px-help-command-$line[1]:"
         case $line[1] in
-            (auth)
+            (plugin)
+_arguments "${_arguments_options[@]}" : \
+":: :_px__subcmd__help__subcmd__plugin_commands" \
+"*::: :->plugin" \
+&& ret=0
+
+    case $state in
+    (plugin)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:px-help-plugin-command-$line[1]:"
+        case $line[1] in
+            (list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(info)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(install)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(uninstall)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(enable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(disable)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(doctor)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(tools)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(call)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(license)
+_arguments "${_arguments_options[@]}" : \
+":: :_px__subcmd__help__subcmd__license_commands" \
+"*::: :->license" \
+&& ret=0
+
+    case $state in
+    (license)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:px-help-license-command-$line[1]:"
+        case $line[1] in
+            (status)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(auth)
 _arguments "${_arguments_options[@]}" : \
 ":: :_px__subcmd__help__subcmd__auth_commands" \
 "*::: :->auth" \
@@ -1051,6 +1467,14 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(record)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(record-feedback)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (history)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -1171,6 +1595,8 @@ esac
 (( $+functions[_px_commands] )) ||
 _px_commands() {
     local commands; commands=(
+'plugin:Manage PX plugins' \
+'license:Manage offline plugin entitlement tokens' \
 'auth:Manage secure authentication for the configured Lore provider' \
 'install:Install required dependencies' \
 'init:Initialize a repository repository and/or configure the backend provider' \
@@ -1185,6 +1611,8 @@ _px_commands() {
 'presign:Create a time-limited public URL for a committed representation' \
 'query:Deprecated\: use \`px resolve <uri>#<path>\` or \`px resolve <uri> <path>\`' \
 'commit:Commit all repository changes, or only one entity when given its URI' \
+'record:Record generated outputs, their exact prompt, and provenance together' \
+'record-feedback:Internal core mutation used by the optimizer feedback tool' \
 'history:View commit history for an entity or repository file' \
 'list:List repositories or entities within a repository' \
 'branch:Create or list branches' \
@@ -1200,7 +1628,7 @@ _px_commands() {
 'switch:Switch to a branch' \
 'head:Show the current HEAD commit hash' \
 'validate:Validate a manifest against the PX schema' \
-'schema:Print a JSON Schema for manifest or commit types' \
+'schema:Print a JSON Schema for manifest, commit, or plugin types' \
 'diff:Show a manifest diff for an entity URI' \
 'merge:Three-way merge of JSON/YAML values' \
 'content-hash:Compute the BLAKE3 content hash of a file' \
@@ -1411,6 +1839,8 @@ _px__subcmd__head_commands() {
 (( $+functions[_px__subcmd__help_commands] )) ||
 _px__subcmd__help_commands() {
     local commands; commands=(
+'plugin:Manage PX plugins' \
+'license:Manage offline plugin entitlement tokens' \
 'auth:Manage secure authentication for the configured Lore provider' \
 'install:Install required dependencies' \
 'init:Initialize a repository repository and/or configure the backend provider' \
@@ -1425,6 +1855,8 @@ _px__subcmd__help_commands() {
 'presign:Create a time-limited public URL for a committed representation' \
 'query:Deprecated\: use \`px resolve <uri>#<path>\` or \`px resolve <uri> <path>\`' \
 'commit:Commit all repository changes, or only one entity when given its URI' \
+'record:Record generated outputs, their exact prompt, and provenance together' \
+'record-feedback:Internal core mutation used by the optimizer feedback tool' \
 'history:View commit history for an entity or repository file' \
 'list:List repositories or entities within a repository' \
 'branch:Create or list branches' \
@@ -1440,7 +1872,7 @@ _px__subcmd__help_commands() {
 'switch:Switch to a branch' \
 'head:Show the current HEAD commit hash' \
 'validate:Validate a manifest against the PX schema' \
-'schema:Print a JSON Schema for manifest or commit types' \
+'schema:Print a JSON Schema for manifest, commit, or plugin types' \
 'diff:Show a manifest diff for an entity URI' \
 'merge:Three-way merge of JSON/YAML values' \
 'content-hash:Compute the BLAKE3 content hash of a file' \
@@ -1574,6 +2006,30 @@ _px__subcmd__help__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'px help install commands' commands "$@"
 }
+(( $+functions[_px__subcmd__help__subcmd__license_commands] )) ||
+_px__subcmd__help__subcmd__license_commands() {
+    local commands; commands=(
+'status:Show locally stored entitlement status' \
+'add:Verify and add a token file using a pinned issuer key' \
+'remove:Remove a locally stored entitlement' \
+    )
+    _describe -t commands 'px help license commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__license__subcmd__add_commands] )) ||
+_px__subcmd__help__subcmd__license__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help license add commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__license__subcmd__remove_commands] )) ||
+_px__subcmd__help__subcmd__license__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help license remove commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__license__subcmd__status_commands] )) ||
+_px__subcmd__help__subcmd__license__subcmd__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help license status commands' commands "$@"
+}
 (( $+functions[_px__subcmd__help__subcmd__list_commands] )) ||
 _px__subcmd__help__subcmd__list_commands() {
     local commands; commands=()
@@ -1583,6 +2039,66 @@ _px__subcmd__help__subcmd__list_commands() {
 _px__subcmd__help__subcmd__merge_commands() {
     local commands; commands=()
     _describe -t commands 'px help merge commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin_commands] )) ||
+_px__subcmd__help__subcmd__plugin_commands() {
+    local commands; commands=(
+'list:List installed plugins' \
+'info:Show an installed plugin manifest' \
+'install:Install a plugin from a local directory or a URL with a BLAKE3 checksum' \
+'uninstall:Uninstall a plugin' \
+'enable:Enable an installed plugin' \
+'disable:Disable an installed plugin' \
+'doctor:Show plugin eligibility and exclusions' \
+'tools:Return the runtime tool catalog for the MCP gateway' \
+'call:Execute one plugin tool through protocol v1' \
+    )
+    _describe -t commands 'px help plugin commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__call_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__call_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin call commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__disable_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__disable_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin disable commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__doctor_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin doctor commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__enable_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__enable_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin enable commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__info_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__info_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin info commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__install_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__install_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin install commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__list_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin list commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__tools_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__tools_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin tools commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__uninstall_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__uninstall_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin uninstall commands' commands "$@"
 }
 (( $+functions[_px__subcmd__help__subcmd__presign_commands] )) ||
 _px__subcmd__help__subcmd__presign_commands() {
@@ -1603,6 +2119,16 @@ _px__subcmd__help__subcmd__push_commands() {
 _px__subcmd__help__subcmd__query_commands() {
     local commands; commands=()
     _describe -t commands 'px help query commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__record_commands] )) ||
+_px__subcmd__help__subcmd__record_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help record commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__record-feedback_commands] )) ||
+_px__subcmd__help__subcmd__record-feedback_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help record-feedback commands' commands "$@"
 }
 (( $+functions[_px__subcmd__help__subcmd__remote_commands] )) ||
 _px__subcmd__help__subcmd__remote_commands() {
@@ -1704,6 +2230,61 @@ _px__subcmd__install_commands() {
     local commands; commands=()
     _describe -t commands 'px install commands' commands "$@"
 }
+(( $+functions[_px__subcmd__license_commands] )) ||
+_px__subcmd__license_commands() {
+    local commands; commands=(
+'status:Show locally stored entitlement status' \
+'add:Verify and add a token file using a pinned issuer key' \
+'remove:Remove a locally stored entitlement' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'px license commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__add_commands] )) ||
+_px__subcmd__license__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license add commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__help_commands] )) ||
+_px__subcmd__license__subcmd__help_commands() {
+    local commands; commands=(
+'status:Show locally stored entitlement status' \
+'add:Verify and add a token file using a pinned issuer key' \
+'remove:Remove a locally stored entitlement' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'px license help commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__help__subcmd__add_commands] )) ||
+_px__subcmd__license__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license help add commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__help__subcmd__help_commands] )) ||
+_px__subcmd__license__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license help help commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__help__subcmd__remove_commands] )) ||
+_px__subcmd__license__subcmd__help__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license help remove commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__help__subcmd__status_commands] )) ||
+_px__subcmd__license__subcmd__help__subcmd__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license help status commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__remove_commands] )) ||
+_px__subcmd__license__subcmd__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license remove commands' commands "$@"
+}
+(( $+functions[_px__subcmd__license__subcmd__status_commands] )) ||
+_px__subcmd__license__subcmd__status_commands() {
+    local commands; commands=()
+    _describe -t commands 'px license status commands' commands "$@"
+}
 (( $+functions[_px__subcmd__list_commands] )) ||
 _px__subcmd__list_commands() {
     local commands; commands=()
@@ -1713,6 +2294,133 @@ _px__subcmd__list_commands() {
 _px__subcmd__merge_commands() {
     local commands; commands=()
     _describe -t commands 'px merge commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin_commands] )) ||
+_px__subcmd__plugin_commands() {
+    local commands; commands=(
+'list:List installed plugins' \
+'info:Show an installed plugin manifest' \
+'install:Install a plugin from a local directory or a URL with a BLAKE3 checksum' \
+'uninstall:Uninstall a plugin' \
+'enable:Enable an installed plugin' \
+'disable:Disable an installed plugin' \
+'doctor:Show plugin eligibility and exclusions' \
+'tools:Return the runtime tool catalog for the MCP gateway' \
+'call:Execute one plugin tool through protocol v1' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'px plugin commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__call_commands] )) ||
+_px__subcmd__plugin__subcmd__call_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin call commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__disable_commands] )) ||
+_px__subcmd__plugin__subcmd__disable_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin disable commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__doctor_commands] )) ||
+_px__subcmd__plugin__subcmd__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin doctor commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__enable_commands] )) ||
+_px__subcmd__plugin__subcmd__enable_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin enable commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help_commands] )) ||
+_px__subcmd__plugin__subcmd__help_commands() {
+    local commands; commands=(
+'list:List installed plugins' \
+'info:Show an installed plugin manifest' \
+'install:Install a plugin from a local directory or a URL with a BLAKE3 checksum' \
+'uninstall:Uninstall a plugin' \
+'enable:Enable an installed plugin' \
+'disable:Disable an installed plugin' \
+'doctor:Show plugin eligibility and exclusions' \
+'tools:Return the runtime tool catalog for the MCP gateway' \
+'call:Execute one plugin tool through protocol v1' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'px plugin help commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__call_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__call_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help call commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__disable_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__disable_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help disable commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__doctor_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__doctor_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help doctor commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__enable_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__enable_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help enable commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__help_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help help commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__info_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__info_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help info commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__install_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__install_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help install commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__list_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help list commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__tools_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__tools_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help tools commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__uninstall_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__uninstall_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help uninstall commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__info_commands] )) ||
+_px__subcmd__plugin__subcmd__info_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin info commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__install_commands] )) ||
+_px__subcmd__plugin__subcmd__install_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin install commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__list_commands] )) ||
+_px__subcmd__plugin__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin list commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__tools_commands] )) ||
+_px__subcmd__plugin__subcmd__tools_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin tools commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__uninstall_commands] )) ||
+_px__subcmd__plugin__subcmd__uninstall_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin uninstall commands' commands "$@"
 }
 (( $+functions[_px__subcmd__presign_commands] )) ||
 _px__subcmd__presign_commands() {
@@ -1733,6 +2441,16 @@ _px__subcmd__push_commands() {
 _px__subcmd__query_commands() {
     local commands; commands=()
     _describe -t commands 'px query commands' commands "$@"
+}
+(( $+functions[_px__subcmd__record_commands] )) ||
+_px__subcmd__record_commands() {
+    local commands; commands=()
+    _describe -t commands 'px record commands' commands "$@"
+}
+(( $+functions[_px__subcmd__record-feedback_commands] )) ||
+_px__subcmd__record-feedback_commands() {
+    local commands; commands=()
+    _describe -t commands 'px record-feedback commands' commands "$@"
 }
 (( $+functions[_px__subcmd__remote_commands] )) ||
 _px__subcmd__remote_commands() {

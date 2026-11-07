@@ -6,6 +6,7 @@ pub mod manifest;
 pub mod metering;
 pub mod protocol;
 pub mod registry;
+pub mod release;
 pub mod resolve;
 
 pub mod uv;

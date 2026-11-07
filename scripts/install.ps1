@@ -54,9 +54,9 @@ if ([string]::IsNullOrEmpty($BaseUrl)) {
         $MCP_URL = "https://github.com/${REPO}/releases/latest/download/${MCP_ASSET}"
         $SKILLS_URL = "https://github.com/${REPO}/releases/latest/download/${SKILLS_ARCHIVE}"
     } else {
-        $URL = "https://github.com/${REPO}/releases/download/${VERSION}/${ASSET}"
-        $MCP_URL = "https://github.com/${REPO}/releases/download/${VERSION}/${MCP_ASSET}"
-        $SKILLS_URL = "https://github.com/${REPO}/releases/download/${VERSION}/${SKILLS_ARCHIVE}"
+        $URL = "https://github.com/${REPO}/releases/download/${Version}/${ASSET}"
+        $MCP_URL = "https://github.com/${REPO}/releases/download/${Version}/${MCP_ASSET}"
+        $SKILLS_URL = "https://github.com/${REPO}/releases/download/${Version}/${SKILLS_ARCHIVE}"
     }
 } else {
     $BaseUrl = $BaseUrl.TrimEnd('/')
@@ -67,7 +67,10 @@ if ([string]::IsNullOrEmpty($BaseUrl)) {
 
 Write-Host "Installing ${BINARY_NAME}..."
 Write-Host "Platform : ${TARGET}"
-Write-Host "Version  : ${VERSION}"
+Write-Host "Version  : ${Version}"
+if ($env:PX_TELEMETRY -ne "0") {
+    Write-Host "Anonymous install counting is enabled. Set PX_TELEMETRY=0 to disable it."
+}
 
 $TMP_DIR = Join-Path $env:TEMP "px-install-$([Guid]::NewGuid())"
 New-Item -ItemType Directory -Path $TMP_DIR -Force | Out-Null
@@ -239,7 +242,35 @@ try {
     Write-Host "Installed successfully."
 
     & (Join-Path $InstallDir $BINARY_NAME) --version
+    if ($LASTEXITCODE -ne 0) { throw "PX version check failed with exit code $LASTEXITCODE" }
     & (Join-Path $InstallDir $MCP_BINARY_NAME) --version
+    if ($LASTEXITCODE -ne 0) { throw "PX MCP server version check failed with exit code $LASTEXITCODE" }
+
+    if ($env:PX_TELEMETRY -ne "0") {
+        try {
+            $TelemetryDir = Join-Path $env:LOCALAPPDATA "px"
+            $InstallIdPath = Join-Path $TelemetryDir "install-id"
+            if (-not (Test-Path $TelemetryDir)) {
+                New-Item -ItemType Directory -Path $TelemetryDir -Force | Out-Null
+            }
+            $InstallId = if (Test-Path $InstallIdPath) { (Get-Content -Path $InstallIdPath -Raw).Trim() } else { "" }
+            if ($InstallId -notmatch '^[0-9a-fA-F]{32}$') {
+                [Guid]::NewGuid().ToString("N") | Set-Content -Path $InstallIdPath -NoNewline
+            }
+            $InstallId = (Get-Content -Path $InstallIdPath -Raw).Trim()
+            if ($InstallId -match '^[0-9a-fA-F]{32}$') {
+                $Telemetry = @{
+                    install_id = $InstallId.ToLowerInvariant()
+                    download_id = $env:PX_DOWNLOAD_ID
+                    version = $Version
+                    platform = $TARGET
+                } | ConvertTo-Json -Compress
+                Invoke-RestMethod -Uri "https://portals.works/api/px/install" -Method Post -ContentType "application/json" -Body $Telemetry -TimeoutSec 5 | Out-Null
+            }
+        } catch {
+            # Telemetry must never make a successful install fail.
+        }
+    }
 } finally {
     # Cleanup
     Remove-Item -Path $TMP_DIR -Recurse -Force -ErrorAction SilentlyContinue

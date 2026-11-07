@@ -106,6 +106,9 @@ fi
 echo "Installing ${BINARY_NAME}..."
 echo "Platform : ${TARGET}"
 echo "Version  : ${VERSION}"
+if [[ "${PX_TELEMETRY:-1}" != "0" ]]; then
+    echo "Anonymous install counting is enabled. Set PX_TELEMETRY=0 to disable it."
+fi
 
 TMP_DIR="$(mktemp -d)"
 TMP_FILE="$TMP_DIR/$ASSET"
@@ -319,3 +322,32 @@ echo "Installed successfully."
 
 "$INSTALL_DIR/$BINARY_NAME" --version
 "$INSTALL_DIR/$MCP_BINARY_NAME" --version
+
+###############################################################################
+# Anonymous successful-install count
+###############################################################################
+
+if [[ "${PX_TELEMETRY:-1}" != "0" ]]; then
+    CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/px"
+    INSTALL_ID_FILE="$CONFIG_DIR/install-id"
+    if mkdir -p "$CONFIG_DIR" 2>/dev/null; then
+        chmod 700 "$CONFIG_DIR" 2>/dev/null || true
+        INSTALL_ID="$(cat "$INSTALL_ID_FILE" 2>/dev/null || true)"
+        if [[ ! "$INSTALL_ID" =~ ^[0-9a-f]{32}$ ]]; then
+            INSTALL_ID="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+            if [[ "$INSTALL_ID" =~ ^[0-9a-f]{32}$ ]]; then
+                (umask 077; printf '%s' "$INSTALL_ID" > "$INSTALL_ID_FILE") 2>/dev/null || true
+            fi
+        fi
+        if [[ "$INSTALL_ID" =~ ^[0-9a-f]{32}$ ]]; then
+            INSTALL_VERSION="$("$INSTALL_DIR/$BINARY_NAME" --version 2>/dev/null | head -n 1 | tr -cd '[:alnum:].+-' | cut -c1-80)"
+            DOWNLOAD_ID="${PX_DOWNLOAD_ID:-}"
+            [[ "$DOWNLOAD_ID" =~ ^[0-9a-f]{32}$ ]] || DOWNLOAD_ID=""
+            curl --silent --show-error --fail --max-time 5 \
+                --request POST \
+                --header 'Content-Type: application/json' \
+                --data "{\"install_id\":\"$INSTALL_ID\",\"download_id\":\"$DOWNLOAD_ID\",\"version\":\"$INSTALL_VERSION\",\"platform\":\"$TARGET\"}" \
+                https://portals.works/api/px/install >/dev/null 2>&1 || true
+        fi
+    fi
+fi

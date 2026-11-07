@@ -16,6 +16,13 @@ Use this skill whenever existing PX entity content changes, especially during it
 5. Pin the saved revision with `px_head(repository, branch)` and resolve using that returned `commit` alone. Mutation summaries may show PX metadata IDs; do not treat those as Lore commit selectors. Verify representations, prompt text, metadata, and hashes. A push failure means the revision is local only: report the recovery command and retry only when the underlying issue is resolved.
 6. Promote the verified revision only after explicit user acceptance, to the resolved target branch. Verify the target's hashes match the accepted revision. Otherwise keep iterating on the revision branch.
 
+For generated outputs, use `px_record` with the explicit revision branch, each
+output as `KEY=PATH`, the exact prompt, the parameters actually used, and a
+JSON array of input references containing `uri`, `key`, `hash`, and `commit`.
+The command resolves each input at its pinned commit and verifies its hash.
+After recording, pin the revision with `px_head` and verify the committed
+metadata and representations as described above.
+
 ## Provenance Checklist
 
 Before any generation:
@@ -245,6 +252,33 @@ Add a file representation to an entity manifest
 | message | string | No |  | Commit message |
 | replace | boolean | No | false | Replace an existing representation only when its content differs |
 | uri | string | Yes |  | PX URI |
+
+
+
+
+# px_record
+Record generated outputs, their exact prompt, and provenance together
+
+
+## Parameters
+
+| Name | Type | Required | Default | Description |
+|---|---|---|---|---|
+| author | string | No | px | Author identifier |
+| branch | string | Yes |  | Branch currently checked out in the repository |
+| input\_refs | string | No | [] | JSON array of input references with URI, key, hash, and commit |
+| job\_id | string | No |  | Generation job identifier, if returned by the provider |
+| message | string | No |  | Commit message |
+| model | string | No |  | Model identifier reported by the generation tool |
+| model\_parameters | string | No | {} | JSON object of non-default model parameters |
+| negative\_prompt | string | No |  | Negative prompt, if used |
+| output | string or string[] | Yes |  | Output in KEY=PATH form. Repeat for multiple outputs |
+| parameters | string | No | {} | JSON object of generation parameters actually used |
+| prompt | string | Yes |  | Exact prompt text sent to the generation model |
+| provenance\_json | string | No |  | JSON optimizer or workflow provenance fragment |
+| provider | string | No |  | Provider reported by the generation tool |
+| replace | boolean | No | false | Replace existing output representations |
+| uri | string | Yes |  | PX entity URI |
 
 
 

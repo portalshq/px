@@ -13,6 +13,7 @@ pub mod error;
 pub mod grpc_client;
 pub mod manifest;
 pub mod merge;
+pub mod mutation;
 pub mod permission_gate;
 pub mod provider;
 pub mod query;

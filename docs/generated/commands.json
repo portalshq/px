@@ -957,7 +957,7 @@
       "arguments": [
         {
           "name": "target",
-          "about": "Target to install (e.g., \"lore\" or \"mcp\")",
+          "about": "Target to install: \"lore\", \"mcp\", or \"uv\"",
           "required": true,
           "default_value": null,
           "short": null,
@@ -982,6 +982,131 @@
         }
       ],
       "subcommands": [],
+      "hidden": false
+    },
+    {
+      "name": "license",
+      "full_path": "license",
+      "about": "Manage offline plugin entitlement tokens",
+      "long_about": null,
+      "usage": "Usage: license <COMMAND>",
+      "aliases": [],
+      "arguments": [],
+      "options": [],
+      "flags": [
+        {
+          "name": "help",
+          "about": "Print help",
+          "required": false,
+          "default_value": null,
+          "short": "h",
+          "long": "help",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        }
+      ],
+      "subcommands": [
+        {
+          "name": "add",
+          "full_path": "license add",
+          "about": "Verify and add a token file using a pinned issuer key",
+          "long_about": null,
+          "usage": "Usage: add <TOKEN_FILE>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "token_file",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "remove",
+          "full_path": "license remove",
+          "about": "Remove a locally stored entitlement",
+          "long_about": null,
+          "usage": "Usage: remove <ID>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "id",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "status",
+          "full_path": "license status",
+          "about": "Show locally stored entitlement status",
+          "long_about": null,
+          "usage": "Usage: status",
+          "aliases": [],
+          "arguments": [],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        }
+      ],
       "hidden": false
     },
     {
@@ -1102,6 +1227,303 @@
         }
       ],
       "subcommands": [],
+      "hidden": false
+    },
+    {
+      "name": "plugin",
+      "full_path": "plugin",
+      "about": "Manage PX plugins",
+      "long_about": null,
+      "usage": "Usage: plugin <COMMAND>",
+      "aliases": [],
+      "arguments": [],
+      "options": [],
+      "flags": [
+        {
+          "name": "help",
+          "about": "Print help",
+          "required": false,
+          "default_value": null,
+          "short": "h",
+          "long": "help",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        }
+      ],
+      "subcommands": [
+        {
+          "name": "disable",
+          "full_path": "plugin disable",
+          "about": "Disable an installed plugin",
+          "long_about": null,
+          "usage": "Usage: disable [OPTIONS] <ID>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "id",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [
+            {
+              "name": "repo",
+              "about": "",
+              "required": false,
+              "default_value": null,
+              "short": null,
+              "long": "repo",
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "doctor",
+          "full_path": "plugin doctor",
+          "about": "Show plugin eligibility and exclusions",
+          "long_about": null,
+          "usage": "Usage: doctor",
+          "aliases": [],
+          "arguments": [],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "enable",
+          "full_path": "plugin enable",
+          "about": "Enable an installed plugin",
+          "long_about": null,
+          "usage": "Usage: enable [OPTIONS] <ID>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "id",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [
+            {
+              "name": "repo",
+              "about": "",
+              "required": false,
+              "default_value": null,
+              "short": null,
+              "long": "repo",
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "info",
+          "full_path": "plugin info",
+          "about": "Show an installed plugin manifest",
+          "long_about": null,
+          "usage": "Usage: info <ID>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "id",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "install",
+          "full_path": "plugin install",
+          "about": "Install a plugin from a local directory or a URL with a BLAKE3 checksum",
+          "long_about": null,
+          "usage": "Usage: install [OPTIONS] <PATH>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "path",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [
+            {
+              "name": "blake3",
+              "about": "",
+              "required": false,
+              "default_value": null,
+              "short": null,
+              "long": "blake3",
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "list",
+          "full_path": "plugin list",
+          "about": "List installed plugins",
+          "long_about": null,
+          "usage": "Usage: list",
+          "aliases": [],
+          "arguments": [],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        },
+        {
+          "name": "uninstall",
+          "full_path": "plugin uninstall",
+          "about": "Uninstall a plugin",
+          "long_about": null,
+          "usage": "Usage: uninstall <ID>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "id",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
+        }
+      ],
       "hidden": false
     },
     {
@@ -1339,6 +1761,198 @@
         {
           "name": "help",
           "about": "Print help (see more with '--help')",
+          "required": false,
+          "default_value": null,
+          "short": "h",
+          "long": "help",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        }
+      ],
+      "subcommands": [],
+      "hidden": false
+    },
+    {
+      "name": "record",
+      "full_path": "record",
+      "about": "Record generated outputs, their exact prompt, and provenance together",
+      "long_about": null,
+      "usage": "Usage: record [OPTIONS] --branch <BRANCH> --output <OUTPUT> --prompt <PROMPT> <URI>",
+      "aliases": [],
+      "arguments": [
+        {
+          "name": "uri",
+          "about": "PX entity URI",
+          "required": true,
+          "default_value": null,
+          "short": null,
+          "long": null,
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        }
+      ],
+      "options": [
+        {
+          "name": "branch",
+          "about": "Branch currently checked out in the repository",
+          "required": true,
+          "default_value": null,
+          "short": null,
+          "long": "branch",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "output",
+          "about": "Output in KEY=PATH form. Repeat for multiple outputs",
+          "required": true,
+          "default_value": null,
+          "short": null,
+          "long": "output",
+          "takes_value": true,
+          "multiple": true,
+          "possible_values": []
+        },
+        {
+          "name": "prompt",
+          "about": "Exact prompt text sent to the generation model",
+          "required": true,
+          "default_value": null,
+          "short": null,
+          "long": "prompt",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "negative_prompt",
+          "about": "Negative prompt, if used",
+          "required": false,
+          "default_value": null,
+          "short": null,
+          "long": "negative-prompt",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "provider",
+          "about": "Provider reported by the generation tool",
+          "required": false,
+          "default_value": null,
+          "short": null,
+          "long": "provider",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "model",
+          "about": "Model identifier reported by the generation tool",
+          "required": false,
+          "default_value": null,
+          "short": null,
+          "long": "model",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "parameters",
+          "about": "JSON object of generation parameters actually used",
+          "required": false,
+          "default_value": "{}",
+          "short": null,
+          "long": "parameters",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "model_parameters",
+          "about": "JSON object of non-default model parameters",
+          "required": false,
+          "default_value": "{}",
+          "short": null,
+          "long": "model-parameters",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "input_refs",
+          "about": "JSON array of input references with URI, key, hash, and commit",
+          "required": false,
+          "default_value": "[]",
+          "short": null,
+          "long": "input-refs",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "job_id",
+          "about": "Generation job identifier, if returned by the provider",
+          "required": false,
+          "default_value": null,
+          "short": null,
+          "long": "job-id",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "provenance_json",
+          "about": "JSON optimizer or workflow provenance fragment",
+          "required": false,
+          "default_value": null,
+          "short": null,
+          "long": "provenance-json",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "message",
+          "about": "Commit message",
+          "required": false,
+          "default_value": null,
+          "short": "m",
+          "long": "message",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "author",
+          "about": "Author identifier",
+          "required": false,
+          "default_value": "px",
+          "short": "a",
+          "long": "author",
+          "takes_value": true,
+          "multiple": false,
+          "possible_values": []
+        }
+      ],
+      "flags": [
+        {
+          "name": "replace",
+          "about": "Replace existing output representations",
+          "required": false,
+          "default_value": "false",
+          "short": null,
+          "long": "replace",
+          "takes_value": false,
+          "multiple": false,
+          "possible_values": []
+        },
+        {
+          "name": "help",
+          "about": "Print help",
           "required": false,
           "default_value": null,
           "short": "h",
@@ -1736,14 +2350,14 @@
     {
       "name": "schema",
       "full_path": "schema",
-      "about": "Print a JSON Schema for manifest or commit types",
+      "about": "Print a JSON Schema for manifest, commit, or plugin types",
       "long_about": null,
       "usage": "Usage: schema [OPTIONS] <NAME>",
       "aliases": [],
       "arguments": [
         {
           "name": "name",
-          "about": "Schema name: 'manifest' or 'commit'",
+          "about": "Schema name: 'manifest', 'commit', or 'plugin'",
           "required": true,
           "default_value": null,
           "short": null,

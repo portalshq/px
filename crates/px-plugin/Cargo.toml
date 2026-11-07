@@ -1,0 +1,22 @@
+[package]
+name = "px-plugin"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+schemars = { workspace = true }
+thiserror = { workspace = true }
+semver = "1"
+tempfile = { workspace = true }
+tokio = { workspace = true }
+ed25519-dalek = { workspace = true }
+hex = { workspace = true }
+reqwest = { version = "0.12", features = ["json"] }
+sha2 = "0.10"
+blake3 = { workspace = true }
+tar = "0.4"
+flate2 = "1"

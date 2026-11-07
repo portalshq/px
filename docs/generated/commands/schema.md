@@ -7,7 +7,7 @@ source: clap
 
 
 # px schema
-Print a JSON Schema for manifest or commit types
+Print a JSON Schema for manifest, commit, or plugin types
 
 
 ## Synopsis
@@ -20,7 +20,7 @@ px schema [OPTIONS] <NAME>
 
 | Name | Description | Required |
 |---|---|---|
-| name | Schema name: 'manifest' or 'commit' | Yes |
+| name | Schema name: 'manifest', 'commit', or 'plugin' | Yes |
 
 
 ## Options

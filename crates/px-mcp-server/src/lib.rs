@@ -23,6 +23,8 @@ pub struct GeneratedTool {
     pub command: Vec<String>,
     pub params: Vec<ParamSpec>,
     pub timeout_ms: u64,
+    #[serde(default)]
+    pub plugin: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -56,6 +58,15 @@ pub fn generated_tools() -> Vec<GeneratedTool> {
 }
 
 pub fn build_cli_args(tool: &GeneratedTool, arguments: &Value) -> Result<Vec<String>> {
+    if tool.plugin {
+        if !arguments.is_object() {
+            return Err(anyhow!("tool arguments must be a JSON object"));
+        }
+        let mut args = tool.command.clone();
+        args.push("--input".into());
+        args.push(serde_json::to_string(arguments)?);
+        return Ok(args);
+    }
     let args_object = arguments
         .as_object()
         .ok_or_else(|| anyhow!("tool arguments must be a JSON object"))?;
@@ -486,7 +497,11 @@ fn error_response(id: Value, code: i64, message: &str) -> Value {
 }
 
 pub async fn run_stdio() -> Result<()> {
-    let tools = generated_tools();
+    let mut tools = generated_tools();
+    let binary = resolve_px_binary().await;
+    if let Err(error) = discover_plugin_tools(&mut tools, &binary).await {
+        eprintln!("plugin discovery failed: {error}");
+    }
     let stdin = tokio::io::stdin();
     let mut stdout = tokio::io::stdout();
     let mut lines = BufReader::new(stdin).lines();
@@ -513,10 +528,167 @@ pub async fn run_stdio() -> Result<()> {
     Ok(())
 }
 
+#[derive(Deserialize)]
+struct PluginCatalogEntry {
+    name: String,
+    id: String,
+    tool: String,
+    description: String,
+    input_schema: Value,
+    annotations: Value,
+    timeout_ms: u64,
+}
+
+fn merge_plugin_catalog(tools: &mut Vec<GeneratedTool>, catalog: &[u8]) -> Result<()> {
+    let entries: Vec<PluginCatalogEntry> = serde_json::from_slice(catalog)?;
+    let mut names: BTreeSet<_> = tools.iter().map(|tool| tool.name.clone()).collect();
+    let mut additions = Vec::new();
+    for entry in entries {
+        if !entry.name.starts_with("px_")
+            || entry.name.len() > 64
+            || !entry
+                .name
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+            || !names.insert(entry.name.clone())
+        {
+            return Err(anyhow!("invalid or colliding plugin tool name"));
+        }
+        if entry.id.is_empty()
+            || entry.tool.is_empty()
+            || !entry.input_schema.is_object()
+            || entry.timeout_ms == 0
+        {
+            return Err(anyhow!("invalid plugin catalog entry"));
+        }
+        additions.push(GeneratedTool {
+            title: entry.name.clone(),
+            name: entry.name,
+            description: entry.description,
+            input_schema: entry.input_schema,
+            annotations: entry.annotations,
+            command: vec!["plugin".into(), "call".into(), entry.id, entry.tool],
+            params: vec![],
+            timeout_ms: entry.timeout_ms.saturating_add(5_000).min(605_000),
+            plugin: true,
+        });
+    }
+    tools.extend(additions);
+    Ok(())
+}
+
+async fn discover_plugin_tools(tools: &mut Vec<GeneratedTool>, binary: &str) -> Result<()> {
+    let mut child = Command::new(binary)
+        .args(["plugin", "tools", "--format", "json"])
+        .kill_on_drop(true)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| anyhow!("missing catalog output"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| anyhow!("missing catalog error stream"))?;
+    let out = tokio::spawn(read_limited(stdout, MAX_OUTPUT_BYTES));
+    let err = tokio::spawn(read_limited(stderr, MAX_OUTPUT_BYTES));
+    let status = time::timeout(Duration::from_secs(10), child.wait()).await??;
+    let stdout = out.await??;
+    let stderr = err.await??;
+    if !status.success() {
+        return Err(anyhow!("catalog command failed: {stderr}"));
+    }
+    merge_plugin_catalog(tools, stdout.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
+
+    #[tokio::test]
+    async fn plugin_catalog_merges_and_routes_arguments() {
+        let mut tools = generated_tools();
+        let catalog = json!([{"name":"px_optimize_context", "id":"px.optimizer", "tool":"context", "description":"Greet", "input_schema":{"type":"object"}, "annotations":{"readOnlyHint":true}, "timeout_ms":5000}]);
+        merge_plugin_catalog(&mut tools, &serde_json::to_vec(&catalog).unwrap()).unwrap();
+        let response = handle_message(
+            json!({"jsonrpc":"2.0","id":1,"method":"tools/list"}),
+            &tools,
+        )
+        .await
+        .unwrap();
+        assert!(
+            response["result"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|tool| tool["name"] == "px_optimize_context")
+        );
+        let plugin = tools
+            .iter()
+            .find(|tool| tool.name == "px_optimize_context")
+            .unwrap();
+        assert_eq!(
+            build_cli_args(plugin, &json!({"name":"PX"})).unwrap(),
+            vec![
+                "plugin",
+                "call",
+                "px.optimizer",
+                "context",
+                "--input",
+                "{\"name\":\"PX\"}"
+            ]
+        );
+        let previous = tools.len();
+        assert!(merge_plugin_catalog(&mut tools, &serde_json::to_vec(&catalog).unwrap()).is_err());
+        assert_eq!(tools.len(), previous);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn plugin_discovery_failure_preserves_core_tools() {
+        use std::os::unix::fs::PermissionsExt;
+        let temp = tempfile::tempdir().unwrap();
+        let fake = temp.path().join("px");
+        fs::write(&fake, "#!/bin/sh\necho 'unavailable' >&2\nexit 1\n").unwrap();
+        fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+        let mut tools = generated_tools();
+        let count = tools.len();
+        assert!(
+            discover_plugin_tools(&mut tools, fake.to_str().unwrap())
+                .await
+                .is_err()
+        );
+        assert_eq!(tools.len(), count);
+        assert!(tools.iter().any(|tool| tool.name == "px_resolve"));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn plugin_call_routes_to_cli_with_complete_input() {
+        use std::os::unix::fs::PermissionsExt;
+        let temp = tempfile::tempdir().unwrap();
+        let fake = temp.path().join("px");
+        fs::write(&fake, "#!/bin/sh\nprintf '%s\\n' \"$@\"\n").unwrap();
+        fs::set_permissions(&fake, fs::Permissions::from_mode(0o755)).unwrap();
+        let mut tools = generated_tools();
+        let catalog = json!([{"name":"px_hello_greet","id":"example.hello","tool":"greet","description":"Greet","input_schema":{"type":"object"},"annotations":{},"timeout_ms":5000}]);
+        merge_plugin_catalog(&mut tools, &serde_json::to_vec(&catalog).unwrap()).unwrap();
+        let tool = tools
+            .iter()
+            .find(|tool| tool.name == "px_hello_greet")
+            .unwrap();
+        let result = execute_tool_with_binary(tool, &json!({"name":"PX"}), fake.to_str().unwrap())
+            .await
+            .unwrap();
+        assert!(result.success);
+        assert_eq!(
+            result.stdout,
+            "plugin\ncall\nexample.hello\ngreet\n--input\n{\"name\":\"PX\"}\n"
+        );
+    }
 
     #[tokio::test]
     async fn initialize_response_shape() {
@@ -558,6 +730,7 @@ mod tests {
         assert!(tools.iter().any(|tool| tool["name"] == "px_remote_add"));
         assert!(tools.iter().any(|tool| tool["name"] == "px_configure"));
         assert!(tools.iter().any(|tool| tool["name"] == "px_head"));
+        assert!(tools.iter().any(|tool| tool["name"] == "px_record"));
 
         let generated = generated_tools();
         let configure = generated
@@ -572,6 +745,73 @@ mod tests {
             .find(|tool| tool.name == "px_configure_status")
             .unwrap();
         assert_eq!(configure_status.annotations["readOnlyHint"], true);
+    }
+
+    #[test]
+    fn new_core_mcp_tools_map_to_valid_cli_commands_and_hide_internal_helpers() {
+        use clap::Parser;
+        let tools = generated_tools();
+        let cases = [
+            ("px_plugin_list", json!({})),
+            ("px_plugin_info", json!({"id":"example.hello"})),
+            ("px_plugin_install", json!({"path":"/tmp/plugin"})),
+            (
+                "px_plugin_enable",
+                json!({"id":"example.hello","repo":"demo"}),
+            ),
+            (
+                "px_plugin_disable",
+                json!({"id":"example.hello","repo":"demo"}),
+            ),
+            ("px_plugin_uninstall", json!({"id":"example.hello"})),
+            ("px_plugin_doctor", json!({})),
+            ("px_license_status", json!({})),
+            ("px_license_add", json!({"token_file":"/tmp/token.json"})),
+            ("px_license_remove", json!({"id":"example.hello"})),
+            ("px_install", json!({"target":"uv"})),
+            (
+                "px_record",
+                json!({"uri":"px://demo/character/a","branch":"story","output":["portrait=/tmp/result.png"],"prompt":"Exact prompt","parameters":"{\"seed\":4}"}),
+            ),
+        ];
+        for (name, input) in cases {
+            let tool = tools
+                .iter()
+                .find(|tool| tool.name == name)
+                .unwrap_or_else(|| panic!("missing {name}"));
+            let args = build_cli_args(tool, &input).unwrap();
+            let command = std::iter::once("px".to_string())
+                .chain(args)
+                .collect::<Vec<_>>();
+            px_cli::Cli::try_parse_from(command)
+                .unwrap_or_else(|error| panic!("invalid generated arguments for {name}: {error}"));
+        }
+        for name in ["px_plugin_tools", "px_plugin_call", "px_record_feedback"] {
+            assert!(!tools.iter().any(|tool| tool.name == name));
+        }
+        for name in [
+            "px_plugin_list",
+            "px_plugin_info",
+            "px_plugin_doctor",
+            "px_license_status",
+        ] {
+            assert_eq!(
+                tools
+                    .iter()
+                    .find(|tool| tool.name == name)
+                    .unwrap()
+                    .annotations["readOnlyHint"],
+                true
+            );
+        }
+        assert_eq!(
+            tools
+                .iter()
+                .find(|tool| tool.name == "px_record")
+                .unwrap()
+                .annotations["readOnlyHint"],
+            false
+        );
     }
 
     #[test]

@@ -20,7 +20,7 @@ px install <TARGET>
 
 | Name | Description | Required |
 |---|---|---|
-| target | Target to install (e.g., "lore" or "mcp") | Yes |
+| target | Target to install: "lore", "mcp", or "uv" | Yes |
 
 
 ## Flags

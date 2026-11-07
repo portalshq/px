@@ -334,6 +334,42 @@ impl Repository {
         Manifest::from_yaml(&content)
     }
 
+    /// Read and verify a representation's bytes at an immutable revision.
+    pub fn verify_representation_at_ref(
+        &self,
+        uri: &PxUri,
+        key: &str,
+        revision: &str,
+        expected_hash: &str,
+    ) -> Result<(), PxError> {
+        if uri.repository != self.repository || uri.fragment.is_some() {
+            return Err(PxError::Other(
+                "input URI must identify an entity in this repository".into(),
+            ));
+        }
+        let expected = crate::content::ContentHash::parse(expected_hash)?;
+        let manifest = self.read_manifest_at_ref(&uri.entity_type, &uri.entity_id, revision)?;
+        let representation = manifest.representations.get(key).ok_or_else(|| {
+            PxError::Other(format!(
+                "input representation '{key}' is missing at {revision}"
+            ))
+        })?;
+        if representation.hash != expected_hash {
+            return Err(PxError::Other(format!(
+                "input representation '{key}' has a different hash at {revision}"
+            )));
+        }
+        let name = representation.uri.as_deref().ok_or_else(|| {
+            PxError::Other(format!("input representation '{key}' has no stored file"))
+        })?;
+        let path = format!("{}/{}/{}", uri.entity_type, uri.entity_id, name);
+        crate::repo_config::validate_root_file(&path)?;
+        let bytes = self
+            .require_vcs("verify representation at ref")?
+            .read_file_bytes_at_ref(&self.root, &path, Some(revision))?;
+        expected.verify(&bytes)
+    }
+
     /// Write a manifest to the repository (does NOT commit).
     pub fn write_manifest(&self, manifest: &Manifest) -> Result<PathBuf, PxError> {
         let uri: PxUri = manifest.id.parse()?;

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Hosted Lore provider. Repository authentication belongs to Lore's shared login.
 use super::{Provider, ProviderStatus, ProviderType};
 use anyhow::Result;

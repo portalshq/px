@@ -25,15 +25,18 @@ Complete reference for all `px` CLI commands.
 | [\`px history\`](docs/generated/commands/history.md) | View commit history for an entity or repository file |
 | [\`px init\`](docs/generated/commands/init.md) | Initialize a repository repository and/or configure the backend provider |
 | [\`px install\`](docs/generated/commands/install.md) | Install required dependencies |
+| [\`px license\`](docs/generated/commands/license.md) | Manage offline plugin entitlement tokens |
 | [\`px list\`](docs/generated/commands/list.md) | List repositories or entities within a repository |
 | [\`px merge\`](docs/generated/commands/merge.md) | Three-way merge of JSON/YAML values |
+| [\`px plugin\`](docs/generated/commands/plugin.md) | Manage PX plugins |
 | [\`px presign\`](docs/generated/commands/presign.md) | Create a time-limited public URL for a committed representation |
 | [\`px pull\`](docs/generated/commands/pull.md) | Clone or pull PX manifests from a remote (representation files stay remote) |
 | [\`px push\`](docs/generated/commands/push.md) | Push the current branch to its configured upstream remote |
+| [\`px record\`](docs/generated/commands/record.md) | Record generated outputs, their exact prompt, and provenance together |
 | [\`px remote\`](docs/generated/commands/remote.md) | Manage remotes on a repository |
 | [\`px resolve\`](docs/generated/commands/resolve.md) | Resolve a PX URI to its manifest or a subtree |
 | [\`px revert\`](docs/generated/commands/revert.md) | Revert a commit by hash (undoes all changes in that commit) |
-| [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest or commit types |
+| [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest, commit, or plugin types |
 | [\`px set\`](docs/generated/commands/set.md) | Set one or more properties on an entity manifest |
 | [\`px status\`](docs/generated/commands/status.md) | Show system status, or working-tree status for one repository |
 | [\`px switch\`](docs/generated/commands/switch.md) | Switch to a branch |

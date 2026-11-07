@@ -32,6 +32,62 @@ pub struct Cli {
     pub command: Commands,
 }
 
+/// Manage plugins installed in the PX home directory.
+#[derive(Subcommand, Debug)]
+pub enum PluginCmd {
+    /// List installed plugins.
+    List,
+    /// Show an installed plugin manifest.
+    Info { id: String },
+    /// Install a plugin from a local directory or a URL with a BLAKE3 checksum.
+    Install {
+        path: String,
+        #[arg(long)]
+        blake3: Option<String>,
+    },
+    /// Uninstall a plugin.
+    Uninstall { id: String },
+    /// Enable an installed plugin.
+    Enable {
+        id: String,
+        #[arg(long)]
+        repo: Option<String>,
+    },
+    /// Disable an installed plugin.
+    Disable {
+        id: String,
+        #[arg(long)]
+        repo: Option<String>,
+    },
+    /// Show plugin eligibility and exclusions.
+    Doctor,
+    /// Return the runtime tool catalog for the MCP gateway.
+    #[command(hide = true)]
+    Tools {
+        #[arg(long, default_value = "json")]
+        format: String,
+    },
+    /// Execute one plugin tool through protocol v1.
+    #[command(hide = true)]
+    Call {
+        id: String,
+        tool: String,
+        #[arg(long)]
+        input: String,
+    },
+}
+
+/// Offline entitlement token management.
+#[derive(Subcommand, Debug)]
+pub enum LicenseCmd {
+    /// Show locally stored entitlement status.
+    Status,
+    /// Verify and add a token file using a pinned issuer key.
+    Add { token_file: PathBuf },
+    /// Remove a locally stored entitlement.
+    Remove { id: String },
+}
+
 /// Subcommands for `px remote`.
 #[derive(Subcommand, Debug)]
 pub enum RemoteCmd {
@@ -204,6 +260,16 @@ pub enum AuthCmd {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Manage PX plugins.
+    Plugin {
+        #[command(subcommand)]
+        cmd: PluginCmd,
+    },
+    /// Manage offline plugin entitlement tokens.
+    License {
+        #[command(subcommand)]
+        cmd: LicenseCmd,
+    },
     /// Manage secure authentication for the configured Lore provider.
     Auth {
         /// Authentication operation.
@@ -213,7 +279,7 @@ pub enum Commands {
 
     /// Install required dependencies.
     Install {
-        /// Target to install (e.g., "lore" or "mcp").
+        /// Target to install: "lore", "mcp", or "uv".
         target: String,
     },
 
@@ -587,6 +653,61 @@ The SDKs return the same fields as the CLI JSON output.
         author: String,
     },
 
+    /// Record generated outputs, their exact prompt, and provenance together.
+    Record {
+        /// PX entity URI.
+        uri: String,
+        /// Branch currently checked out in the repository.
+        #[arg(long)]
+        branch: String,
+        /// Output in KEY=PATH form. Repeat for multiple outputs.
+        #[arg(long, required = true)]
+        output: Vec<String>,
+        /// Exact prompt text sent to the generation model.
+        #[arg(long)]
+        prompt: String,
+        /// Negative prompt, if used.
+        #[arg(long)]
+        negative_prompt: Option<String>,
+        /// Provider reported by the generation tool.
+        #[arg(long)]
+        provider: Option<String>,
+        /// Model identifier reported by the generation tool.
+        #[arg(long)]
+        model: Option<String>,
+        /// JSON object of generation parameters actually used.
+        #[arg(long, default_value = "{}")]
+        parameters: String,
+        /// JSON object of non-default model parameters.
+        #[arg(long, default_value = "{}")]
+        model_parameters: String,
+        /// JSON array of input references with URI, key, hash, and commit.
+        #[arg(long, default_value = "[]")]
+        input_refs: String,
+        /// Generation job identifier, if returned by the provider.
+        #[arg(long)]
+        job_id: Option<String>,
+        /// JSON optimizer or workflow provenance fragment.
+        #[arg(long)]
+        provenance_json: Option<String>,
+        /// Replace existing output representations.
+        #[arg(long)]
+        replace: bool,
+        /// Commit message.
+        #[arg(long, short = 'm')]
+        message: Option<String>,
+        /// Author identifier.
+        #[arg(long, short = 'a', default_value = "px")]
+        author: String,
+    },
+
+    /// Internal core mutation used by the optimizer feedback tool.
+    #[command(hide = true)]
+    RecordFeedback {
+        #[arg(long)]
+        input: String,
+    },
+
     /// View commit history for an entity or repository file.
     ///
     /// The target follows the normal repository/entity convention:
@@ -782,9 +903,9 @@ The SDKs return the same fields as the CLI JSON output.
         file: Option<PathBuf>,
     },
 
-    /// Print a JSON Schema for manifest or commit types.
+    /// Print a JSON Schema for manifest, commit, or plugin types.
     Schema {
-        /// Schema name: 'manifest' or 'commit'.
+        /// Schema name: 'manifest', 'commit', or 'plugin'.
         name: String,
         /// Output format: json, yaml.
         #[arg(long, short = 'f', default_value = "json")]

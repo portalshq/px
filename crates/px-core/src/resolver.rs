@@ -1596,6 +1596,41 @@ impl Resolver {
         })
     }
 
+    /// List entity manifests from one immutable commit rather than a moving head.
+    pub fn list_remote_manifest_paths_at_commit(
+        &self,
+        repository: &str,
+        commit: &str,
+    ) -> Result<Vec<String>, PxError> {
+        crate::repo_config::validate_repository_name(repository)?;
+        let signature = hex::decode(commit.trim_start_matches("blake3:"))
+            .map_err(|e| PxError::Other(format!("invalid revision signature: {e}")))?;
+        let client = self.remote_client(Some(repository))?;
+        let repository = repository.to_string();
+        block_on_grpc(async move {
+            let repo = client.get_repository_by_name(&repository).await?;
+            let scoped = client.for_repository_id(repo.id);
+            let revision = scoped
+                .revision_info_at_signature(signature)
+                .await?
+                .identifier
+                .ok_or_else(|| PxError::GrpcError("RevisionInfo returned no identifier".into()))?;
+            let mut paths = scoped
+                .list_paths_at_revision(revision, String::new())
+                .await?;
+            paths.retain(|path| {
+                path != "repository.yaml"
+                    && path.ends_with(".yaml")
+                    && path.matches('/').count() == 1
+            });
+            for path in &paths {
+                crate::repo_config::validate_root_file(path)?;
+            }
+            paths.sort();
+            Ok(paths)
+        })
+    }
+
     pub fn list_remote_branches(&self, repository: &str) -> Result<Vec<String>, PxError> {
         let client = self.remote_client(Some(repository))?;
         let repository_name = repository.to_string();

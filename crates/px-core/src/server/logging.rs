@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Persistent logging for PX SDK and Lore server
 //!
 //! Provides structured logging to persistent files for diagnostics and support.

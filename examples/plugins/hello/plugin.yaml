@@ -1,0 +1,26 @@
+id: example.hello
+namespace: hello
+version: 0.1.0
+px: ">=0.9, <0.11"
+license: PolyForm-Shield-1.0.0
+kind: executable
+entrypoint:
+  aarch64-apple-darwin: bin/hello
+  x86_64-unknown-linux-gnu: bin/hello
+capabilities: []
+tools:
+  - name: greet
+    description: Return a greeting.
+    input_schema:
+      type: object
+      properties:
+        name: {type: string}
+        repository: {type: string}
+        branch: {type: string}
+      required: [name]
+      additionalProperties: false
+    annotations: {readOnlyHint: true}
+    timeout_ms: 5000
+skills: []
+hooks: []
+commerce: {model: free}

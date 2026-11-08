@@ -13,6 +13,20 @@ fn offline_license_commands_verify_status_add_remove_and_gate_paid_tools() {
     let mut manifest: px_plugin::manifest::PluginManifest =
         serde_yaml::from_str(&std::fs::read_to_string(example.join("plugin.yaml")).unwrap())
             .unwrap();
+    // The fixture is a shell script; on Windows this test exercises catalog
+    // entitlement only, because Windows cannot execute that script directly.
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    manifest
+        .entrypoint
+        .insert("aarch64-unknown-linux-gnu".into(), "bin/hello".into());
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    manifest
+        .entrypoint
+        .insert("x86_64-pc-windows-msvc".into(), "bin/hello".into());
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    manifest
+        .entrypoint
+        .insert("x86_64-apple-darwin".into(), "bin/hello".into());
     manifest.commerce = px_plugin::manifest::Commerce::OneTime {
         product: "hello".into(),
         major: 1,
@@ -79,6 +93,7 @@ fn offline_license_commands_verify_status_add_remove_and_gate_paid_tools() {
         .assert()
         .success()
         .stdout(predicate::str::contains("px_hello_greet"));
+    #[cfg(not(target_os = "windows"))]
     run(&[
         "plugin",
         "call",

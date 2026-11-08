@@ -178,6 +178,7 @@ mod tests {
         assert!(args.lines().any(|arg| arg == "--project"));
         assert!(args.lines().any(|arg| arg == "--px-plugin-protocol"));
     }
+    #[cfg(unix)]
     #[tokio::test]
     async fn calls_example_using_protocol_v1() {
         let executable = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

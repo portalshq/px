@@ -48,7 +48,7 @@ jobs:
           if-no-files-found: error
       - name: Guard incomplete release integration
         run: |
-          echo 'Verified optimizer bundle assembly and installer upgrades are not yet integrated; refusing to release PX.' >&2
+          echo 'Real signed installer and interruption-recovery verification is not yet complete; refusing to release PX.' >&2
           exit 1
 
   lint:

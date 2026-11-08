@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {os: macos-15, target: x86_64-apple-darwin}
+          - {os: macos-15-intel, target: x86_64-apple-darwin}
           - {os: macos-latest, target: aarch64-apple-darwin}
           - {os: ubuntu-latest, target: x86_64-unknown-linux-gnu}
           - {os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu}
@@ -32,6 +32,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - name: Install target
+        run: rustup target add ${{ matrix.target }}
       - name: Download pinned private release
         shell: bash
         env:

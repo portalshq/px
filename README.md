@@ -519,7 +519,7 @@ The development-side training plugin is maintained separately from PX. Training 
 
 
 # PX CLI Reference
-The `px` command-line interface (v0.10.0) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
+The `px` command-line interface (v0.10.1) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
 
 
 ## Command Overview

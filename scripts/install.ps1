@@ -155,6 +155,8 @@ function Resume-InstallTransaction {
 
 # Finish a force-killed update from its durable signed payload before applying a new one.
 Resume-InstallTransaction
+Get-ChildItem -LiteralPath $PX_HOME -Directory -Filter ".installer-staging-*" -ErrorAction SilentlyContinue |
+    Remove-Item -Recurse -Force
 
 $stage = Join-Path $PX_HOME (".installer-staging-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $stage | Out-Null

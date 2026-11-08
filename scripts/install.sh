@@ -130,8 +130,10 @@ acquire_installer_lock() {
         command_line="$(ps -p "$owner" -o command= 2>/dev/null || true)"
         if [[ "$command_line" == *"scripts/install.sh"* ]]; then
             echo 'Another PX installation is already running.' >&2
-            return 1
+        else
+            echo "PX installer lock is held by active process $owner; refusing to start a concurrent install." >&2
         fi
+        return 1
     fi
     rm -rf "$LOCK_DIR"
     mkdir "$LOCK_DIR" || { echo 'Could not acquire the PX installer lock.' >&2; return 1; }
@@ -240,6 +242,9 @@ resume_transaction() {
 }
 
 resume_transaction
+for stale_stage in "$PX_HOME"/.installer-staging.*; do
+    [[ ! -d "$stale_stage" ]] || rm -rf "$stale_stage"
+done
 TMP_DIR="$(mktemp -d "$PX_HOME/.installer-staging.XXXXXX")"
 cleanup() {
     if [[ -n "$TMP_DIR" && -d "$TMP_DIR" && "$TMP_DIR" != "$TXN_DIR" ]]; then rm -rf "$TMP_DIR"; fi

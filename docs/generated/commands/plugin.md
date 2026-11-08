@@ -34,6 +34,7 @@ px plugin <COMMAND>
 | install | Install a plugin from a local directory or a URL with a BLAKE3 checksum |
 | list | List installed plugins |
 | uninstall | Uninstall a plugin |
+| upgrade | Upgrade an installed plugin from a local package directory |
 
 
 ## Source

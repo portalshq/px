@@ -42,6 +42,7 @@ MCP tools exposed by `px-mcp-server`. Agents MUST use these tools; the `px` CLI 
 | [\`px\_plugin\_install\`](docs/generated/mcp/px\_plugin\_install.md) | Install a plugin from a local directory or a URL with a BLAKE3 checksum |
 | [\`px\_plugin\_list\`](docs/generated/mcp/px\_plugin\_list.md) | List installed plugins |
 | [\`px\_plugin\_uninstall\`](docs/generated/mcp/px\_plugin\_uninstall.md) | Uninstall a plugin |
+| [\`px\_plugin\_upgrade\`](docs/generated/mcp/px\_plugin\_upgrade.md) | Upgrade an installed plugin from a local package directory |
 | [\`px\_plugin\`](docs/generated/mcp/px\_plugin.md) | Manage PX plugins |
 | [\`px\_presign\`](docs/generated/mcp/px\_presign.md) | Create a time-limited public URL for a committed representation |
 | [\`px\_pull\`](docs/generated/mcp/px\_pull.md) | Clone or pull PX manifests from a remote (representation files stay remote) |

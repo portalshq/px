@@ -462,6 +462,18 @@ commands:
         flags:
           - name: "help"
             about: "Print help"
+      - name: "upgrade"
+        full_path: "plugin upgrade"
+        about: "Upgrade an installed plugin from a local package directory"
+        usage: "Usage: upgrade <PATH>"
+        hidden: false
+        arguments:
+          - name: "path"
+            about: ""
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
   - name: "presign"
     full_path: "presign"
     about: "Create a time-limited public URL for a committed representation"

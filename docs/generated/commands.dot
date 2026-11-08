@@ -64,6 +64,8 @@ digraph px_commands {
     "plugin" -> "plugin_list";
     "plugin_uninstall" [label="px plugin uninstall"];
     "plugin" -> "plugin_uninstall";
+    "plugin_upgrade" [label="px plugin upgrade"];
+    "plugin" -> "plugin_upgrade";
     "presign" [label="px presign"];
     "px" -> "presign";
     "pull" [label="px pull"];

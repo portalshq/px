@@ -6,6 +6,7 @@ Commands:
   list       List installed plugins
   info       Show an installed plugin manifest
   install    Install a plugin from a local directory or a URL with a BLAKE3 checksum
+  upgrade    Upgrade an installed plugin from a local package directory
   uninstall  Uninstall a plugin
   enable     Enable an installed plugin
   disable    Disable an installed plugin

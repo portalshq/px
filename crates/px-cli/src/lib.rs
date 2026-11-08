@@ -45,6 +45,8 @@ pub enum PluginCmd {
         #[arg(long)]
         blake3: Option<String>,
     },
+    /// Upgrade an installed plugin from a local package directory.
+    Upgrade { path: String },
     /// Uninstall a plugin.
     Uninstall { id: String },
     /// Enable an installed plugin.

@@ -63,6 +63,61 @@ fn uninstall_skills(store: &Store, id: &str) -> Result<()> {
     Ok(())
 }
 
+fn recover_upgrade(store: &Store) -> Result<()> {
+    let Some(pending) = store.pending_upgrade()? else {
+        return Ok(());
+    };
+    let candidate_root = store.plugin_dir(&pending.id, &pending.target_version)?;
+    if !candidate_root.exists() {
+        store.rollback_pending_upgrade(&pending)?;
+        store.clear_upgrade_journal()?;
+        return Ok(());
+    }
+    let candidate: px_plugin::manifest::PluginManifest =
+        serde_yaml::from_slice(&std::fs::read(candidate_root.join("plugin.yaml"))?)?;
+    candidate.validate(&Default::default())?;
+    if candidate.id != pending.id || candidate.version != pending.target_version {
+        bail!("upgrade recovery manifest does not match the journal");
+    }
+    store.rollback_pending_upgrade(&pending)?;
+    if pending.previous.enabled {
+        let previous = store.manifest(&pending.id)?;
+        let previous_names: std::collections::BTreeSet<_> = previous
+            .skills
+            .iter()
+            .filter_map(|s| Path::new(s).file_name().and_then(|n| n.to_str()))
+            .collect();
+        let new_only: Vec<String> = candidate
+            .skills
+            .iter()
+            .filter_map(|s| Path::new(s).file_name().and_then(|n| n.to_str()))
+            .filter(|n| !previous_names.contains(n))
+            .map(str::to_owned)
+            .collect();
+        for adapter in skill_adapters()? {
+            let owned: Vec<_> = new_only
+                .iter()
+                .filter(|name| {
+                    std::fs::read_to_string(adapter.skills_dir.join(name).join(".px-owner"))
+                        .is_ok_and(|owner| owner == pending.id)
+                })
+                .cloned()
+                .collect();
+            adapter.uninstall_skills(&pending.id, &owned)?;
+        }
+        install_skills(store, &pending.id)?;
+    }
+    if !std::fs::symlink_metadata(&candidate_root)?
+        .file_type()
+        .is_dir()
+    {
+        bail!("upgrade recovery package is not a directory");
+    }
+    std::fs::remove_dir_all(&candidate_root)?;
+    store.clear_upgrade_journal()?;
+    Ok(())
+}
+
 fn repository_pins(
     base_dir: &Path,
     input: &serde_json::Value,
@@ -106,6 +161,8 @@ fn platform() -> Option<&'static str> {
 }
 pub fn run(base_dir: &Path, cmd: PluginCmd) -> Result<()> {
     let store = Store::new(base_dir);
+    let _lock = store.acquire_lock()?;
+    recover_upgrade(&store)?;
     match cmd {
         PluginCmd::List => println!("{}", serde_json::to_string_pretty(&store.load()?)?),
         PluginCmd::Info { id } => {
@@ -129,6 +186,46 @@ pub fn run(base_dir: &Path, cmd: PluginCmd) -> Result<()> {
                 store.install_directory(Path::new(&path))?
             };
             println!("{}", serde_json::to_string_pretty(&manifest)?);
+        }
+        PluginCmd::Upgrade { path } => {
+            let platform = platform().ok_or_else(|| anyhow::anyhow!("unsupported platform"))?;
+            let (manifest, previous) =
+                store.upgrade_directory(Path::new(&path), env!("CARGO_PKG_VERSION"), platform)?;
+            if previous.enabled {
+                let update = || -> Result<()> {
+                    let old_root = store.plugin_dir(&manifest.id, &previous.version)?;
+                    let old: px_plugin::manifest::PluginManifest =
+                        serde_yaml::from_slice(&std::fs::read(old_root.join("plugin.yaml"))?)?;
+                    let new_names: std::collections::BTreeSet<_> = manifest
+                        .skills
+                        .iter()
+                        .filter_map(|s| Path::new(s).file_name().and_then(|n| n.to_str()))
+                        .collect();
+                    let old_only: Vec<String> = old
+                        .skills
+                        .iter()
+                        .filter_map(|s| Path::new(s).file_name().and_then(|n| n.to_str()))
+                        .filter(|n| !new_names.contains(n))
+                        .map(str::to_owned)
+                        .collect();
+                    install_skills(&store, &manifest.id)?;
+                    for adapter in skill_adapters()? {
+                        adapter.uninstall_skills(&manifest.id, &old_only)?;
+                    }
+                    Ok(())
+                };
+                if let Err(error) = update() {
+                    recover_upgrade(&store).map_err(|recovery| {
+                        anyhow::anyhow!("upgrade failed: {error}; recovery failed: {recovery}")
+                    })?;
+                    return Err(error);
+                }
+            }
+            store.clear_upgrade_journal()?;
+            println!(
+                "{}",
+                serde_json::json!({"upgraded":manifest.id,"version":manifest.version,"enabled":previous.enabled})
+            );
         }
         PluginCmd::Uninstall { id } => {
             uninstall_skills(&store, &id)?;
@@ -233,6 +330,9 @@ pub fn run(base_dir: &Path, cmd: PluginCmd) -> Result<()> {
                 .enable_all()
                 .build()?;
             let timeout = std::time::Duration::from_millis(spec.timeout_ms);
+            // Plugin processes may invoke PX recursively; never hold the
+            // registry lock while running a child process.
+            drop(_lock);
             let result = match plugin.manifest.kind {
                 px_plugin::manifest::PluginKind::Executable => runtime.block_on(
                     px_plugin::protocol::call(&plugin.entrypoint, &tool, &request, timeout),

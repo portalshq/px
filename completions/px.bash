@@ -367,6 +367,9 @@ _px_generated() {
             px__subcmd__help__subcmd__plugin,uninstall)
                 cmd="px__subcmd__help__subcmd__plugin__subcmd__uninstall"
                 ;;
+            px__subcmd__help__subcmd__plugin,upgrade)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__upgrade"
+                ;;
             px__subcmd__help__subcmd__remote,add)
                 cmd="px__subcmd__help__subcmd__remote__subcmd__add"
                 ;;
@@ -433,6 +436,9 @@ _px_generated() {
             px__subcmd__plugin,uninstall)
                 cmd="px__subcmd__plugin__subcmd__uninstall"
                 ;;
+            px__subcmd__plugin,upgrade)
+                cmd="px__subcmd__plugin__subcmd__upgrade"
+                ;;
             px__subcmd__plugin__subcmd__help,call)
                 cmd="px__subcmd__plugin__subcmd__help__subcmd__call"
                 ;;
@@ -462,6 +468,9 @@ _px_generated() {
                 ;;
             px__subcmd__plugin__subcmd__help,uninstall)
                 cmd="px__subcmd__plugin__subcmd__help__subcmd__uninstall"
+                ;;
+            px__subcmd__plugin__subcmd__help,upgrade)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__upgrade"
                 ;;
             px__subcmd__remote,add)
                 cmd="px__subcmd__remote__subcmd__add"
@@ -1702,7 +1711,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__help__subcmd__plugin)
-            opts="list info install uninstall enable disable doctor tools call"
+            opts="list info install upgrade uninstall enable disable doctor tools call"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1828,6 +1837,20 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__help__subcmd__plugin__subcmd__uninstall)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__upgrade)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -2458,7 +2481,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__plugin)
-            opts="-d -v -h --base-dir --verbose --remote --local --help list info install uninstall enable disable doctor tools call help"
+            opts="-d -v -h --base-dir --verbose --remote --local --help list info install upgrade uninstall enable disable doctor tools call help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2580,7 +2603,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__plugin__subcmd__help)
-            opts="list info install uninstall enable disable doctor tools call help"
+            opts="list info install upgrade uninstall enable disable doctor tools call help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -2733,6 +2756,20 @@ _px_generated() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        px__subcmd__plugin__subcmd__help__subcmd__upgrade)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         px__subcmd__plugin__subcmd__info)
             opts="-d -v -h --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -2830,6 +2867,28 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__plugin__subcmd__uninstall)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__upgrade)
             opts="-d -v -h --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )

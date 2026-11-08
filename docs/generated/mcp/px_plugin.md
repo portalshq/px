@@ -9,7 +9,7 @@ source: mcp
 # px_plugin
 Manage PX plugins
 
-Subcommands: disable, doctor, enable, info, install, list, uninstall
+Subcommands: disable, doctor, enable, info, install, list, uninstall, upgrade
 
 Parameters: none.
 

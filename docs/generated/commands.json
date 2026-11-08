@@ -1522,6 +1522,43 @@
           ],
           "subcommands": [],
           "hidden": false
+        },
+        {
+          "name": "upgrade",
+          "full_path": "plugin upgrade",
+          "about": "Upgrade an installed plugin from a local package directory",
+          "long_about": null,
+          "usage": "Usage: upgrade <PATH>",
+          "aliases": [],
+          "arguments": [
+            {
+              "name": "path",
+              "about": "",
+              "required": true,
+              "default_value": null,
+              "short": null,
+              "long": null,
+              "takes_value": true,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "options": [],
+          "flags": [
+            {
+              "name": "help",
+              "about": "Print help",
+              "required": false,
+              "default_value": null,
+              "short": "h",
+              "long": "help",
+              "takes_value": false,
+              "multiple": false,
+              "possible_values": []
+            }
+          ],
+          "subcommands": [],
+          "hidden": false
         }
       ],
       "hidden": false

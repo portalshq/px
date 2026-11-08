@@ -93,6 +93,19 @@ _arguments "${_arguments_options[@]}" : \
 ':path:_default' \
 && ret=0
 ;;
+(upgrade)
+_arguments "${_arguments_options[@]}" : \
+'-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'--base-dir=[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
+'-v[Enable verbose debug logging]' \
+'--verbose[Enable verbose debug logging]' \
+'(--local)--remote[Resolve repository reads through the configured Lore server (the default)]' \
+'(--remote)--local[Resolve repository reads from an explicitly checked-out local working tree]' \
+'-h[Print help]' \
+'--help[Print help]' \
+':path:_default' \
+&& ret=0
+;;
 (uninstall)
 _arguments "${_arguments_options[@]}" : \
 '-d+[Base directory for repository repositories. Defaults to \$PX_DIR, or ~/.px if unset]:BASE_DIR:_files' \
@@ -195,6 +208,10 @@ _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
 (install)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(upgrade)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
@@ -1279,6 +1296,10 @@ _arguments "${_arguments_options[@]}" : \
 _arguments "${_arguments_options[@]}" : \
 && ret=0
 ;;
+(upgrade)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
 (uninstall)
 _arguments "${_arguments_options[@]}" : \
 && ret=0
@@ -2046,6 +2067,7 @@ _px__subcmd__help__subcmd__plugin_commands() {
 'list:List installed plugins' \
 'info:Show an installed plugin manifest' \
 'install:Install a plugin from a local directory or a URL with a BLAKE3 checksum' \
+'upgrade:Upgrade an installed plugin from a local package directory' \
 'uninstall:Uninstall a plugin' \
 'enable:Enable an installed plugin' \
 'disable:Disable an installed plugin' \
@@ -2099,6 +2121,11 @@ _px__subcmd__help__subcmd__plugin__subcmd__tools_commands() {
 _px__subcmd__help__subcmd__plugin__subcmd__uninstall_commands() {
     local commands; commands=()
     _describe -t commands 'px help plugin uninstall commands' commands "$@"
+}
+(( $+functions[_px__subcmd__help__subcmd__plugin__subcmd__upgrade_commands] )) ||
+_px__subcmd__help__subcmd__plugin__subcmd__upgrade_commands() {
+    local commands; commands=()
+    _describe -t commands 'px help plugin upgrade commands' commands "$@"
 }
 (( $+functions[_px__subcmd__help__subcmd__presign_commands] )) ||
 _px__subcmd__help__subcmd__presign_commands() {
@@ -2301,6 +2328,7 @@ _px__subcmd__plugin_commands() {
 'list:List installed plugins' \
 'info:Show an installed plugin manifest' \
 'install:Install a plugin from a local directory or a URL with a BLAKE3 checksum' \
+'upgrade:Upgrade an installed plugin from a local package directory' \
 'uninstall:Uninstall a plugin' \
 'enable:Enable an installed plugin' \
 'disable:Disable an installed plugin' \
@@ -2337,6 +2365,7 @@ _px__subcmd__plugin__subcmd__help_commands() {
 'list:List installed plugins' \
 'info:Show an installed plugin manifest' \
 'install:Install a plugin from a local directory or a URL with a BLAKE3 checksum' \
+'upgrade:Upgrade an installed plugin from a local package directory' \
 'uninstall:Uninstall a plugin' \
 'enable:Enable an installed plugin' \
 'disable:Disable an installed plugin' \
@@ -2397,6 +2426,11 @@ _px__subcmd__plugin__subcmd__help__subcmd__uninstall_commands() {
     local commands; commands=()
     _describe -t commands 'px plugin help uninstall commands' commands "$@"
 }
+(( $+functions[_px__subcmd__plugin__subcmd__help__subcmd__upgrade_commands] )) ||
+_px__subcmd__plugin__subcmd__help__subcmd__upgrade_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin help upgrade commands' commands "$@"
+}
 (( $+functions[_px__subcmd__plugin__subcmd__info_commands] )) ||
 _px__subcmd__plugin__subcmd__info_commands() {
     local commands; commands=()
@@ -2421,6 +2455,11 @@ _px__subcmd__plugin__subcmd__tools_commands() {
 _px__subcmd__plugin__subcmd__uninstall_commands() {
     local commands; commands=()
     _describe -t commands 'px plugin uninstall commands' commands "$@"
+}
+(( $+functions[_px__subcmd__plugin__subcmd__upgrade_commands] )) ||
+_px__subcmd__plugin__subcmd__upgrade_commands() {
+    local commands; commands=()
+    _describe -t commands 'px plugin upgrade commands' commands "$@"
 }
 (( $+functions[_px__subcmd__presign_commands] )) ||
 _px__subcmd__presign_commands() {

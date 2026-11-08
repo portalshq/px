@@ -278,6 +278,10 @@ jobs:
               lore_client_artifact_manifest_sha256: $lore_client_artifact_manifest_sha256,
               lore_client_signature_bundle_url: $lore_client_signature_bundle_url}' > release-metadata.json
           cosign sign-blob --yes --bundle release-metadata.sigstore.json release-metadata.json
+      - name: Test signed release installation before publishing
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/test-signed-release-install.py artifacts
       - uses: softprops/action-gh-release@v2
         with:
           overwrite_files: true

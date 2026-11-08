@@ -45,8 +45,8 @@ if (-not (Test-Path $InstallDir)) {
 # Download
 ###############################################################################
 
-$ASSET = "$BINARY_NAME-$TARGET"
-$MCP_ASSET = "$MCP_BINARY_NAME-$TARGET"
+$ASSET = "px-$TARGET.exe"
+$MCP_ASSET = "px-mcp-server-$TARGET.exe"
 
 if ([string]::IsNullOrEmpty($BaseUrl)) {
     if ($Version -eq "latest") {
@@ -78,7 +78,10 @@ New-Item -ItemType Directory -Path $TMP_DIR -Force | Out-Null
 $TMP_FILE = Join-Path $TMP_DIR $ASSET
 $MCP_FILE = Join-Path $TMP_DIR $MCP_ASSET
 $SKILLS_TMP = Join-Path $TMP_DIR $SKILLS_ARCHIVE
+$InstallStarted = $false
+$InstallCommitted = $false
 
+try {
 try {
     # Download px binary
     Invoke-WebRequest -Uri $URL -OutFile $TMP_FILE -UseBasicParsing
@@ -96,6 +99,61 @@ try {
     Write-Error "Error: Failed to download px-mcp-server binary"
     exit 1
 }
+
+# Verify the release workflow's signed checksums before executing or copying
+# any release asset. cosign is deliberately not downloaded by this script.
+if (-not (Get-Command cosign -ErrorAction SilentlyContinue)) {
+    throw "cosign is required to verify the PX release signature"
+}
+$ReleaseBase = $URL.Substring(0, $URL.LastIndexOf('/'))
+$Checksums = Join-Path $TMP_DIR "SHA256SUMS"
+$Signature = Join-Path $TMP_DIR "SHA256SUMS.sigstore.json"
+Invoke-WebRequest -Uri "$ReleaseBase/SHA256SUMS" -OutFile $Checksums -UseBasicParsing
+Invoke-WebRequest -Uri "$ReleaseBase/SHA256SUMS.sigstore.json" -OutFile $Signature -UseBasicParsing
+Invoke-WebRequest -Uri $SKILLS_URL -OutFile $SKILLS_TMP -UseBasicParsing
+$OptimizerArchive = "px-optimizer-$TARGET.tar.gz"
+$Verifier = "px-verify-optimizer-release-$TARGET.exe"
+foreach ($file in @($OptimizerArchive, $Verifier, 'optimizer-release.json', 'manifest.json', 'manifest.sig')) {
+    Invoke-WebRequest -Uri "$ReleaseBase/$file" -OutFile (Join-Path $TMP_DIR $file) -UseBasicParsing
+}
+$identity = '^https://github\.com/portalshq/px/\.github/workflows/cli-release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+if ($Version -ne 'latest') {
+    if ($Version -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') { throw 'Version must be a release tag such as v0.10.0' }
+    $identity = '^https://github\.com/portalshq/px/\.github/workflows/cli-release\.yml@refs/tags/' + [regex]::Escape($Version) + '$'
+}
+& cosign verify-blob --bundle $Signature `
+    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' `
+    --certificate-identity-regexp $identity $Checksums
+if ($LASTEXITCODE -ne 0) { throw "PX release signature verification failed" }
+$ChecksumLines = @(Get-Content -LiteralPath $Checksums)
+foreach ($file in @($ASSET, $MCP_ASSET, $SKILLS_ARCHIVE, $OptimizerArchive, $Verifier, 'optimizer-release.json', 'manifest.json', 'manifest.sig')) {
+    $escaped = [regex]::Escape("./$file")
+    $checksumMatches = @($ChecksumLines | Where-Object { $_ -cmatch "^[0-9a-f]{64}  $escaped$" })
+    if ($checksumMatches.Count -ne 1) { throw "Missing or duplicate checksum for $file" }
+    $expected = $checksumMatches[0].Substring(0, 64)
+    $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $TMP_DIR $file)).Hash.ToLowerInvariant()
+    if ($actual -cne $expected) { throw "Checksum mismatch for $file" }
+}
+& (Join-Path $TMP_DIR $Verifier) (Join-Path $TMP_DIR 'optimizer-release.json') (Join-Path $TMP_DIR 'manifest.json') (Join-Path $TMP_DIR 'manifest.sig') $TARGET (Join-Path $TMP_DIR $OptimizerArchive)
+if ($LASTEXITCODE -ne 0) { throw 'Optimizer release verification failed' }
+$OptimizerDir = Join-Path $TMP_DIR 'optimizer'
+New-Item -ItemType Directory -Path $OptimizerDir | Out-Null
+& tar -xzf (Join-Path $TMP_DIR $OptimizerArchive) -C $OptimizerDir
+if ($LASTEXITCODE -ne 0) { throw 'Optimizer extraction failed' }
+
+$BackupBin = Join-Path $TMP_DIR 'backup/bin'
+$BackupSkills = Join-Path $TMP_DIR 'backup/skills'
+New-Item -ItemType Directory -Path $BackupBin, $BackupSkills -Force | Out-Null
+foreach ($name in @($BINARY_NAME, $MCP_BINARY_NAME)) {
+    $existing = Join-Path $InstallDir $name
+    if (Test-Path -LiteralPath $existing) { Copy-Item -LiteralPath $existing -Destination (Join-Path $BackupBin $name) }
+}
+$SkillRoot = Join-Path $env:USERPROFILE '.agents/skills'
+foreach ($skill in @('ask-px', 'character-reference-sheet', 'px-repo', 'px-resolve', 'px-update')) {
+    $existing = Join-Path $SkillRoot $skill
+    if (Test-Path -LiteralPath $existing) { Copy-Item -LiteralPath $existing -Destination (Join-Path $BackupSkills $skill) -Recurse }
+}
+$InstallStarted = $true
 
 try {
     # Move binaries to install directory
@@ -140,86 +198,9 @@ try {
         New-Item -ItemType Directory -Path $SKILLS_DIR -Force | Out-Null
     }
 
-    # Download skills archive
-    $SKILLS_INSTALLED = $false
-
-    try {
-        Invoke-WebRequest -Uri $SKILLS_URL -OutFile $SKILLS_TMP -UseBasicParsing
-
-        # Extract skills using native PowerShell cmdlet
-        Expand-Archive -Path $SKILLS_TMP -DestinationPath $SKILLS_DIR -Force
-        Write-Host "Skills installed to $SKILLS_DIR"
-        $SKILLS_INSTALLED = $true
-    } catch {
-        Write-Warning "Failed to download skills archive from $SKILLS_URL"
-        Write-Host "Falling back to GitHub raw content..."
-
-        # Fallback: download skills directly from GitHub raw content
-        # Use the appropriate git ref: version tag if specified, otherwise resolve latest tag
-        if ($Version -eq "latest") {
-            # Resolve the actual latest release tag to avoid version mismatch
-            try {
-                $latestResponse = Invoke-WebRequest -Uri "https://api.github.com/repos/${REPO}/releases/latest" -UseBasicParsing
-                $latestTag = ($latestResponse.Content | ConvertFrom-Json).tag_name
-                if ($latestTag) {
-                    $GIT_REF = $latestTag
-                    Write-Host "Resolved latest tag: $GIT_REF"
-                } else {
-                    Write-Warning "Could not resolve latest tag, falling back to main"
-                    $GIT_REF = "main"
-                }
-            } catch {
-                Write-Warning "Could not resolve latest tag, falling back to main"
-                $GIT_REF = "main"
-            }
-        } else {
-            # Add 'v' prefix if not present for git tags
-            if ($Version -match '^\d+\.\d+\.\d+$') {
-                $GIT_REF = "v${Version}"
-            } else {
-                $GIT_REF = $Version
-            }
-        }
-
-        $GITHUB_RAW_BASE = "https://raw.githubusercontent.com/${REPO}/${GIT_REF}/skills"
-
-        # Build skill file paths from PX_SKILLS array
-        $SKILLS_LIST = foreach ($skill in $PX_SKILLS) {
-            "${skill}/SKILL.md"
-        }
-
-        $ALL_SKILLS_DOWNLOADED = $true
-
-        foreach ($skillPath in $SKILLS_LIST) {
-            $skillDir = Join-Path $SKILLS_DIR (Split-Path $skillPath)
-            $skillFile = Join-Path $SKILLS_DIR $skillPath
-
-            if (-not (Test-Path $skillDir)) {
-                New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
-            }
-
-            try {
-                Invoke-WebRequest -Uri "${GITHUB_RAW_BASE}/${skillPath}" -OutFile $skillFile -UseBasicParsing
-                Write-Host "Downloaded: $skillPath"
-            } catch {
-                Write-Host "Failed to download: $skillPath"
-                $ALL_SKILLS_DOWNLOADED = $false
-            }
-        }
-
-        if ($ALL_SKILLS_DOWNLOADED) {
-            Write-Host "Skills installed from GitHub raw content to $SKILLS_DIR"
-            $SKILLS_INSTALLED = $true
-        } else {
-            Write-Error "Error: Failed to download some skills from GitHub"
-        }
-    }
-
-    if (-not $SKILLS_INSTALLED) {
-        Write-Error "Error: Failed to install skills. PX will not work correctly for agents."
-        Write-Error "Please report this issue at https://github.com/portalshq/px/issues"
-        exit 1
-    }
+    # The skills archive was verified together with the binaries above.
+    Expand-Archive -Path $SKILLS_TMP -DestinationPath $SKILLS_DIR -Force
+    Write-Host "Skills installed to $SKILLS_DIR"
 
    ###############################################################################
     # PATH hint
@@ -239,12 +220,34 @@ try {
     ###############################################################################
 
     Write-Host
-    Write-Host "Installed successfully."
-
     & (Join-Path $InstallDir $BINARY_NAME) --version
     if ($LASTEXITCODE -ne 0) { throw "PX version check failed with exit code $LASTEXITCODE" }
     & (Join-Path $InstallDir $MCP_BINARY_NAME) --version
     if ($LASTEXITCODE -ne 0) { throw "PX MCP server version check failed with exit code $LASTEXITCODE" }
+
+    $candidateLine = @(Get-Content -LiteralPath (Join-Path $OptimizerDir 'plugin.yaml') | Where-Object { $_ -match '^version:\s*["'']?([0-9]+\.[0-9]+\.[0-9]+)["'']?\s*$' })
+    if ($candidateLine.Count -ne 1 -or $candidateLine[0] -notmatch '^version:\s*["'']?([0-9]+\.[0-9]+\.[0-9]+)["'']?\s*$') { throw 'Invalid optimizer package version' }
+    $candidateVersion = $Matches[1]
+    $px = Join-Path $InstallDir $BINARY_NAME
+    $installedInfo = & $px plugin info px.optimizer 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $installedVersion = ($installedInfo | ConvertFrom-Json).version
+        if (-not $installedVersion) { throw 'Cannot determine installed optimizer version' }
+        if ($installedVersion -ne $candidateVersion) {
+            & $px plugin upgrade $OptimizerDir
+            if ($LASTEXITCODE -ne 0) { throw 'Optimizer upgrade failed' }
+        }
+    } else {
+        & $px plugin install $OptimizerDir
+        if ($LASTEXITCODE -ne 0) { throw 'Optimizer installation failed' }
+        & $px plugin enable px.optimizer
+        if ($LASTEXITCODE -ne 0) {
+            & $px plugin uninstall px.optimizer
+            throw 'Optimizer enablement failed'
+        }
+    }
+    $InstallCommitted = $true
+    Write-Host "Installed successfully."
 
     if ($env:PX_TELEMETRY -ne "0") {
         try {
@@ -272,6 +275,21 @@ try {
         }
     }
 } finally {
+    if ($InstallStarted -and -not $InstallCommitted) {
+        Write-Warning 'Installation failed; restoring previous PX files.'
+        foreach ($name in @($BINARY_NAME, $MCP_BINARY_NAME)) {
+            $destination = Join-Path $InstallDir $name
+            $backup = Join-Path $BackupBin $name
+            if (Test-Path -LiteralPath $backup) { Copy-Item -LiteralPath $backup -Destination $destination -Force }
+            elseif (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Force }
+        }
+        foreach ($skill in @('ask-px', 'character-reference-sheet', 'px-repo', 'px-resolve', 'px-update')) {
+            $destination = Join-Path $SkillRoot $skill
+            $backup = Join-Path $BackupSkills $skill
+            if (Test-Path -LiteralPath $destination) { Remove-Item -LiteralPath $destination -Recurse -Force }
+            if (Test-Path -LiteralPath $backup) { New-Item -ItemType Directory -Path $SkillRoot -Force | Out-Null; Copy-Item -LiteralPath $backup -Destination $destination -Recurse }
+        }
+    }
     # Cleanup
     Remove-Item -Path $TMP_DIR -Recurse -Force -ErrorAction SilentlyContinue
 }

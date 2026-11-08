@@ -29,6 +29,8 @@ require chmod
 require uname
 require mktemp
 require unzip
+require cosign
+require shasum
 
 ###############################################################################
 # Detect platform
@@ -113,9 +115,32 @@ fi
 TMP_DIR="$(mktemp -d)"
 TMP_FILE="$TMP_DIR/$ASSET"
 MCP_FILE="$TMP_DIR/$MCP_ASSET"
+INSTALL_STARTED=false
+INSTALL_COMMITTED=false
 
 cleanup() {
-    # Only cleanup temp directory, not installed binaries
+    local restore_failed=false
+    if [[ "$INSTALL_STARTED" == true && "$INSTALL_COMMITTED" == false ]]; then
+        echo 'Installation failed; restoring previous PX files.' >&2
+        for name in "$BINARY_NAME" "$MCP_BINARY_NAME"; do
+            if [[ -f "$TMP_DIR/backup/bin/$name" ]]; then
+                cp -p "$TMP_DIR/backup/bin/$name" "$INSTALL_DIR/$name" || restore_failed=true
+            else
+                rm -f "$INSTALL_DIR/$name" || restore_failed=true
+            fi
+        done
+        for skill in ask-px character-reference-sheet px-repo px-resolve px-update; do
+            rm -rf "$HOME/.agents/skills/$skill" || restore_failed=true
+            if [[ -d "$TMP_DIR/backup/skills/$skill" ]]; then
+                mkdir -p "$HOME/.agents/skills"
+                cp -R "$TMP_DIR/backup/skills/$skill" "$HOME/.agents/skills/$skill" || restore_failed=true
+            fi
+        done
+    fi
+    if [[ "$restore_failed" == true ]]; then
+        echo "Could not fully restore the previous installation; backups remain in $TMP_DIR/backup" >&2
+        return
+    fi
     rm -rf "$TMP_DIR"
 }
 
@@ -147,6 +172,47 @@ curl \
 }
 
 chmod +x "$MCP_FILE"
+
+# A release asset must not be executed or installed until the release
+# workflow's signature and the checksum for every downloaded asset pass.
+RELEASE_BASE="${URL%/*}"
+SKILLS_TMP="$TMP_DIR/$SKILLS_ARCHIVE"
+OPTIMIZER_ARCHIVE="px-optimizer-${TARGET}.tar.gz"
+VERIFIER="px-verify-optimizer-release-${TARGET}"
+for file in SHA256SUMS SHA256SUMS.sigstore.json "$SKILLS_ARCHIVE" "$OPTIMIZER_ARCHIVE" "$VERIFIER" optimizer-release.json manifest.json manifest.sig; do
+    curl --fail --location --silent --show-error "$RELEASE_BASE/$file" --output "$TMP_DIR/$file"
+done
+identity='^https://github\.com/portalshq/px/\.github/workflows/cli-release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+if [[ "$VERSION" != latest ]]; then
+    [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Error: VERSION must be a release tag such as v0.10.0' >&2; exit 1; }
+    escaped_version="${VERSION//./\\.}"
+    identity="^https://github\\.com/portalshq/px/\\.github/workflows/cli-release\\.yml@refs/tags/${escaped_version}$"
+fi
+cosign verify-blob --bundle "$TMP_DIR/SHA256SUMS.sigstore.json" \
+    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+    --certificate-identity-regexp "$identity" \
+    "$TMP_DIR/SHA256SUMS" >/dev/null
+for file in "$ASSET" "$MCP_ASSET" "$SKILLS_ARCHIVE" "$OPTIMIZER_ARCHIVE" "$VERIFIER" optimizer-release.json manifest.json manifest.sig; do
+    expected="$(awk -v name="./$file" '$2 == name {print $1; n++} END {if (n != 1) exit 1}' "$TMP_DIR/SHA256SUMS")" || {
+        echo "Error: missing or duplicate checksum for $file" >&2; exit 1;
+    }
+    [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || { echo "Error: invalid checksum for $file" >&2; exit 1; }
+    actual="$(shasum -a 256 "$TMP_DIR/$file" | awk '{print $1}')"
+    [[ "$actual" == "$expected" ]] || { echo "Error: checksum mismatch for $file" >&2; exit 1; }
+done
+chmod +x "$TMP_DIR/$VERIFIER"
+"$TMP_DIR/$VERIFIER" "$TMP_DIR/optimizer-release.json" "$TMP_DIR/manifest.json" "$TMP_DIR/manifest.sig" "$TARGET" "$TMP_DIR/$OPTIMIZER_ARCHIVE"
+mkdir "$TMP_DIR/optimizer"
+tar -xzf "$TMP_DIR/$OPTIMIZER_ARCHIVE" -C "$TMP_DIR/optimizer"
+
+mkdir -p "$TMP_DIR/backup/bin" "$TMP_DIR/backup/skills"
+for name in "$BINARY_NAME" "$MCP_BINARY_NAME"; do
+    if [[ -f "$INSTALL_DIR/$name" ]]; then cp -p "$INSTALL_DIR/$name" "$TMP_DIR/backup/bin/$name"; fi
+done
+for skill in ask-px character-reference-sheet px-repo px-resolve px-update; do
+    if [[ -d "$HOME/.agents/skills/$skill" ]]; then cp -R "$HOME/.agents/skills/$skill" "$TMP_DIR/backup/skills/$skill"; fi
+done
+INSTALL_STARTED=true
 
 mv -f "$TMP_FILE" "$INSTALL_DIR/$BINARY_NAME" || {
     echo "Error: Failed to install px binary"
@@ -199,103 +265,9 @@ if ! mkdir -p "$SKILLS_DIR"; then
     exit 1
 fi
 
-# Download skills archive
-if [[ -n "$BASE_URL" ]]; then
-    SKILLS_URL="${BASE_URL%/}/${SKILLS_ARCHIVE}"
-elif [[ "$VERSION" == "latest" ]]; then
-    SKILLS_URL="https://github.com/${REPO}/releases/latest/download/${SKILLS_ARCHIVE}"
-else
-    SKILLS_URL="https://github.com/${REPO}/releases/download/${VERSION}/${SKILLS_ARCHIVE}"
-fi
-
-SKILLS_TMP="$TMP_DIR/$SKILLS_ARCHIVE"
-
-SKILLS_INSTALLED=false
-
-# Try release archive first
-if curl \
-    --fail \
-    --location \
-    --progress-bar \
-    "$SKILLS_URL" \
-    --output "$SKILLS_TMP"; then
-    # Extract skills to the skills directory
-    if command -v unzip >/dev/null 2>&1; then
-        unzip -q "$SKILLS_TMP" -d "$SKILLS_DIR"
-        echo "Skills installed to $SKILLS_DIR"
-        SKILLS_INSTALLED=true
-    else
-        echo "Error: unzip is required to extract skills"
-        exit 1
-    fi
-else
-    echo "Warning: Failed to download skills archive from $SKILLS_URL"
-    echo "Falling back to GitHub raw content..."
-
-    # Fallback: download skills directly from GitHub raw content
-    # Use the appropriate git ref: version tag if specified, otherwise resolve latest tag
-    if [[ "$VERSION" == "latest" ]]; then
-        # Resolve the actual latest release tag to avoid version mismatch
-        LATEST_TAG=$(curl --silent --location "https://api.github.com/repos/${REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1')
-        if [[ -n "$LATEST_TAG" ]]; then
-            GIT_REF="$LATEST_TAG"
-            echo "Resolved latest tag: $GIT_REF"
-        else
-            echo "Warning: Could not resolve latest tag, falling back to main"
-            GIT_REF="main"
-        fi
-    else
-        # Add 'v' prefix if not present for git tags
-        if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            GIT_REF="v${VERSION}"
-        else
-            GIT_REF="$VERSION"
-        fi
-    fi
-
-    GITHUB_RAW_BASE="https://raw.githubusercontent.com/${REPO}/${GIT_REF}/skills"
-
-    # Build skill file paths from PX_SKILLS array
-    SKILLS_LIST=()
-    for skill in "${PX_SKILLS[@]}"; do
-        SKILLS_LIST+=("${skill}/SKILL.md")
-    done
-
-    ALL_SKILLS_DOWNLOADED=true
-
-    for skill_path in "${SKILLS_LIST[@]}"; do
-        skill_dir="$SKILLS_DIR/$(dirname "$skill_path")"
-        skill_file="$SKILLS_DIR/$skill_path"
-
-        mkdir -p "$skill_dir"
-
-        if curl \
-            --fail \
-            --location \
-            --silent \
-            --show-error \
-            "${GITHUB_RAW_BASE}/${skill_path}" \
-            --output "$skill_file"; then
-            echo "Downloaded: $skill_path"
-        else
-            echo "Failed to download: $skill_path"
-            ALL_SKILLS_DOWNLOADED=false
-        fi
-    done
-
-    if [[ "$ALL_SKILLS_DOWNLOADED" == "true" ]]; then
-        echo "Skills installed from GitHub raw content to $SKILLS_DIR"
-        SKILLS_INSTALLED=true
-    else
-        echo "Error: Failed to download some skills from GitHub"
-    fi
-fi
-
-if [[ "$SKILLS_INSTALLED" == "false" ]]; then
-    echo "Error: Failed to install skills. PX will not work correctly for agents."
-    echo "Please report this issue at https://github.com/portalshq/px/issues"
-    exit 1
-fi
+# The archive was verified together with the binaries above.
+unzip -q "$SKILLS_TMP" -d "$SKILLS_DIR"
+echo "Skills installed to $SKILLS_DIR"
 
 ###############################################################################
 # PATH hint
@@ -318,10 +290,26 @@ fi
 ###############################################################################
 
 echo
-echo "Installed successfully."
-
 "$INSTALL_DIR/$BINARY_NAME" --version
 "$INSTALL_DIR/$MCP_BINARY_NAME" --version
+
+candidate_version="$(awk '$1 == "version:" {print $2; exit}' "$TMP_DIR/optimizer/plugin.yaml" | tr -d '\"\047')"
+[[ "$candidate_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid optimizer package version' >&2; exit 1; }
+if installed_info="$("$INSTALL_DIR/$BINARY_NAME" plugin info px.optimizer 2>/dev/null)"; then
+    installed_version="$(printf '%s\n' "$installed_info" | sed -n 's/^[[:space:]]*"version": "\([^"]*\)".*/\1/p')"
+    [[ -n "$installed_version" ]] || { echo 'Cannot determine installed optimizer version' >&2; exit 1; }
+    if [[ "$installed_version" != "$candidate_version" ]]; then
+        "$INSTALL_DIR/$BINARY_NAME" plugin upgrade "$TMP_DIR/optimizer"
+    fi
+else
+    "$INSTALL_DIR/$BINARY_NAME" plugin install "$TMP_DIR/optimizer"
+    if ! "$INSTALL_DIR/$BINARY_NAME" plugin enable px.optimizer; then
+        "$INSTALL_DIR/$BINARY_NAME" plugin uninstall px.optimizer || true
+        exit 1
+    fi
+fi
+INSTALL_COMMITTED=true
+echo "Installed successfully."
 
 ###############################################################################
 # Anonymous successful-install count

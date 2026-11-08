@@ -95,8 +95,34 @@ jobs:
           --exclude px-sdk-py
           --exclude px-sdk-ts
 
+  installer-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Exercise Unix installer verification and rollback
+        if: runner.os != 'Windows'
+        shell: bash
+        run: python3 -m unittest scripts.tests.test_signed_install -v
+      - name: Check and exercise Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/install.ps1), [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count) { $parseErrors | ForEach-Object { Write-Error $_ }; exit 1 }
+          python -m unittest scripts.tests.test_signed_install_windows -v
+
   build:
-    needs: [test, optimizer-release-readiness]
+    needs: [test, installer-tests, optimizer-release-readiness]
     strategy:
       fail-fast: false
       matrix:
@@ -192,7 +218,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash -n scripts/install.sh
-      - run: pwsh -NoProfile -Command "Test-Path scripts/install.ps1 | ForEach-Object { if (\$_) { pwsh -NoProfile -File scripts/install.ps1 -WhatIf } }"
       - uses: actions/download-artifact@v4
         with:
           path: artifacts

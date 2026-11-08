@@ -69,7 +69,7 @@ function Set-AtomicFile([string]$Source, [string]$Destination) {
     $temporary = Join-Path $parent (".px-new-" + [Guid]::NewGuid().ToString("N"))
     Copy-Item -LiteralPath $Source -Destination $temporary
     if (Test-Path -LiteralPath $Destination) {
-        [System.IO.File]::Replace($temporary, $Destination, $null)
+        [System.IO.File]::Move($temporary, $Destination, $true)
     } else {
         [System.IO.File]::Move($temporary, $Destination)
     }

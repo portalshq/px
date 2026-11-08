@@ -7,6 +7,8 @@ The caller must verify the archive's release signature and hash first.
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -49,7 +51,45 @@ def main():
                 raise RuntimeError(f'MCP optimizer request failed: {reply}')
             if request['id'] == 1 and 'px_optimize_adapters' not in [tool['name'] for tool in reply['result']['tools']]:
                 raise RuntimeError('MCP optimizer tool is missing')
-    print('Verified installed optimizer CLI and MCP invocation')
+        # Exercise upgrade and rollback with the real package in the isolated
+        # registry. The modified candidate is a local test fixture; it is not a
+        # signed release and is never installed outside this temporary home.
+        candidate = root / 'candidate'
+        shutil.copytree(package, candidate)
+        manifest_path = candidate / 'plugin.yaml'
+        manifest = manifest_path.read_text()
+        match = re.search(r'^version:\s*([0-9]+)\.([0-9]+)\.([0-9]+)\s*$', manifest, re.MULTILINE)
+        if not match:
+            raise ValueError('unexpected optimizer version format')
+        major, minor, patch = map(int, match.groups())
+        original = f'{major}.{minor}.{patch}'
+        newer = f'{major}.{minor}.{patch + 1}'
+        newest = f'{major}.{minor}.{patch + 2}'
+        manifest = manifest.replace(f'version: {original}', f'version: {newer}', 1)
+        if 'skills: [skills/px-optimize]' not in manifest:
+            raise ValueError('unexpected optimizer skill declaration')
+        manifest = manifest.replace('skills: [skills/px-optimize]', 'skills: [skills/px-optimize, skills/px-conflict-test]', 1)
+        manifest_path.write_text(manifest)
+        (candidate / 'skills/px-conflict-test').mkdir()
+        (candidate / 'skills/px-conflict-test/SKILL.md').write_text('plugin fixture')
+        user_skill = home / '.agents/skills/px-conflict-test'
+        user_skill.mkdir(parents=True)
+        (user_skill / 'SKILL.md').write_text('user data')
+        failed = subprocess.run([str(px), 'plugin', 'upgrade', str(candidate)], env=env, capture_output=True, text=True)
+        if failed.returncode == 0 or (user_skill / 'SKILL.md').read_text() != 'user data':
+            raise RuntimeError('upgrade did not preserve the conflicting user skill')
+        registry = json.loads(subprocess.check_output([str(px), 'plugin', 'list'], env=env, text=True))
+        if registry['installed']['px.optimizer']['version'] != original or not registry['installed']['px.optimizer']['enabled']:
+            raise RuntimeError('failed upgrade did not restore the previous optimizer')
+        shutil.rmtree(user_skill)
+        subprocess.run([str(px), 'plugin', 'upgrade', str(candidate)], env=env, check=True, stdout=subprocess.DEVNULL)
+        subprocess.run([str(px), 'plugin', 'disable', 'px.optimizer'], env=env, check=True, stdout=subprocess.DEVNULL)
+        manifest_path.write_text(manifest.replace(f'version: {newer}', f'version: {newest}', 1))
+        subprocess.run([str(px), 'plugin', 'upgrade', str(candidate)], env=env, check=True, stdout=subprocess.DEVNULL)
+        registry = json.loads(subprocess.check_output([str(px), 'plugin', 'list'], env=env, text=True))
+        if registry['installed']['px.optimizer']['version'] != newest or registry['installed']['px.optimizer']['enabled']:
+            raise RuntimeError('upgrade did not preserve the disabled state')
+    print('Verified optimizer CLI, MCP, upgrade, rollback, and disabled state')
 
 
 if __name__ == '__main__':

@@ -38,7 +38,7 @@ px://toystory/prop/andy-hat
 curl -fsSL https://portals.works/api/px/download | bash
 ```
 
-The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The website command records one download per browser profile with a random ID. After a successful install, the installer sends a separate anonymous install count. Run `export PX_TELEMETRY=0` before installation to opt out of install counting. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+The signed-release installer requires `cosign` on your PATH. It verifies the release workflow's signature and checksums before installing the `px` CLI, `px-mcp-server`, agent skills, and bundled optimizer. It preserves a previously disabled optimizer when upgrading. The installer writes the verified payload and install intent to `~/.px/installer-transaction` before replacing anything, then applies the binaries, skills, and optimizer in repeatable steps. If it is interrupted, ordinary PX commands stop with a recovery message; rerun the installer to re-verify the saved signed payload and finish the same update. A per-user lock prevents two installers from racing. The initial script itself is fetched over HTTPS by the one-liner; it cannot verify its own signature before it executes. Signed optimizer bundles are available only once a PX release has passed the release checks. The website command records one download per browser profile with a random ID. After a successful install, the installer sends a separate anonymous install count. Run `export PX_TELEMETRY=0` before installation to opt out of install counting. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
 
 **Windows PowerShell**
 
@@ -505,9 +505,21 @@ Inside sandboxes, use the MCP tools for all PX operations. Direct `px` CLI comma
 
 ---
 
+## Plugins and optimizer
+
+The free `px.optimizer` plugin assembles pinned project context, runs a host-completed critic, and compiles generation prompts through a DSPy state runtime. The head agent sends the exact prompt to the generation model, then records outputs with `px record`.
+
+Use `px plugin list`, `info`, `enable`, `disable`, and `doctor` to manage installed packages. See the [plugin overview](docs/authored/plugins/overview.md). Optimizer distribution is being migrated to a separately versioned release.
+
+## Training
+
+The development-side training plugin is maintained separately from PX. Training requires a reviewed dataset, an approved spending limit, and the plugin’s own development environment.
+
+---
+
 
 # PX CLI Reference
-The `px` command-line interface (v0.10.0) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
+The `px` command-line interface (v0.10.1) provides tools for creating, resolving, and managing narrative resources using the PX protocol.
 
 
 ## Command Overview
@@ -527,15 +539,18 @@ The `px` command-line interface (v0.10.0) provides tools for creating, resolving
 | [\`px history\`](docs/generated/commands/history.md) | View commit history for an entity or repository file |
 | [\`px init\`](docs/generated/commands/init.md) | Initialize a repository repository and/or configure the backend provider |
 | [\`px install\`](docs/generated/commands/install.md) | Install required dependencies |
+| [\`px license\`](docs/generated/commands/license.md) | Manage offline plugin entitlement tokens |
 | [\`px list\`](docs/generated/commands/list.md) | List repositories or entities within a repository |
 | [\`px merge\`](docs/generated/commands/merge.md) | Three-way merge of JSON/YAML values |
+| [\`px plugin\`](docs/generated/commands/plugin.md) | Manage PX plugins |
 | [\`px presign\`](docs/generated/commands/presign.md) | Create a time-limited public URL for a committed representation |
 | [\`px pull\`](docs/generated/commands/pull.md) | Clone or pull PX manifests from a remote (representation files stay remote) |
 | [\`px push\`](docs/generated/commands/push.md) | Push the current branch to its configured upstream remote |
+| [\`px record\`](docs/generated/commands/record.md) | Record generated outputs, their exact prompt, and provenance together |
 | [\`px remote\`](docs/generated/commands/remote.md) | Manage remotes on a repository |
 | [\`px resolve\`](docs/generated/commands/resolve.md) | Resolve a PX URI to its manifest or a subtree |
 | [\`px revert\`](docs/generated/commands/revert.md) | Revert a commit by hash (undoes all changes in that commit) |
-| [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest or commit types |
+| [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest, commit, or plugin types |
 | [\`px set\`](docs/generated/commands/set.md) | Set one or more properties on an entity manifest |
 | [\`px status\`](docs/generated/commands/status.md) | Show system status, or working-tree status for one repository |
 | [\`px switch\`](docs/generated/commands/switch.md) | Switch to a branch |
@@ -675,15 +690,18 @@ Complete reference for all `px` CLI commands.
 | [\`px history\`](docs/generated/commands/history.md) | View commit history for an entity or repository file |
 | [\`px init\`](docs/generated/commands/init.md) | Initialize a repository repository and/or configure the backend provider |
 | [\`px install\`](docs/generated/commands/install.md) | Install required dependencies |
+| [\`px license\`](docs/generated/commands/license.md) | Manage offline plugin entitlement tokens |
 | [\`px list\`](docs/generated/commands/list.md) | List repositories or entities within a repository |
 | [\`px merge\`](docs/generated/commands/merge.md) | Three-way merge of JSON/YAML values |
+| [\`px plugin\`](docs/generated/commands/plugin.md) | Manage PX plugins |
 | [\`px presign\`](docs/generated/commands/presign.md) | Create a time-limited public URL for a committed representation |
 | [\`px pull\`](docs/generated/commands/pull.md) | Clone or pull PX manifests from a remote (representation files stay remote) |
 | [\`px push\`](docs/generated/commands/push.md) | Push the current branch to its configured upstream remote |
+| [\`px record\`](docs/generated/commands/record.md) | Record generated outputs, their exact prompt, and provenance together |
 | [\`px remote\`](docs/generated/commands/remote.md) | Manage remotes on a repository |
 | [\`px resolve\`](docs/generated/commands/resolve.md) | Resolve a PX URI to its manifest or a subtree |
 | [\`px revert\`](docs/generated/commands/revert.md) | Revert a commit by hash (undoes all changes in that commit) |
-| [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest or commit types |
+| [\`px schema\`](docs/generated/commands/schema.md) | Print a JSON Schema for manifest, commit, or plugin types |
 | [\`px set\`](docs/generated/commands/set.md) | Set one or more properties on an entity manifest |
 | [\`px status\`](docs/generated/commands/status.md) | Show system status, or working-tree status for one repository |
 | [\`px switch\`](docs/generated/commands/switch.md) | Switch to a branch |
@@ -721,7 +739,7 @@ This is a v0 prototype. APIs and formats may change.
 
 ## License
 
-MIT
+[PolyForm Shield 1.0.0](../../LICENSE) (`PolyForm-Shield-1.0.0`). Previously published MIT releases remain MIT.
 
 
 ---
@@ -732,4 +750,4 @@ This is a v0 prototype. APIs and formats may change.
 
 ## License
 
-MIT
+[PolyForm Shield 1.0.0](LICENSE) (`PolyForm-Shield-1.0.0`). Previously published MIT releases remain MIT.

@@ -1,0 +1,24 @@
+name: optimizer-access-check
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/optimizer-access-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-private-repository-access:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify scoped release read access
+        env:
+          GH_TOKEN: ${{ secrets.PX_OPTIMIZER_RELEASE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo 'Missing optimizer release read credential.' >&2; exit 1; }
+          test "$(gh api repos/portalshq/px-plugins --jq .private)" = true
+          gh api repos/portalshq/px-plugins/releases --jq 'length' >/dev/null

@@ -7,6 +7,45 @@ on:
 permissions:
   contents: read
 jobs:
+  optimizer-release-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Require reviewed optimizer release pin
+        run: |
+          test -s optimizer-release.json || { echo 'A reviewed signed optimizer release pin is required before releasing PX.' >&2; exit 1; }
+      - name: Download exact private optimizer release
+        env:
+          GH_TOKEN: ${{ secrets.PX_OPTIMIZER_RELEASE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo 'Missing private release read credential.' >&2; exit 1; }
+          tag="$(python3 -c 'import json; print(json.load(open("optimizer-release.json"))["release_id"])')"
+          [[ "$tag" =~ ^optimizer-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid optimizer release tag.' >&2; exit 1; }
+          mkdir -p optimizer-release
+          gh release download "$tag" --repo portalshq/px-plugins --dir optimizer-release --pattern 'manifest.json' --pattern 'manifest.sig' --pattern 'px-optimizer-*.tar.gz'
+          expected='aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc'
+          test "$(find optimizer-release -maxdepth 1 -type f | wc -l | tr -d ' ')" = 7 || { echo 'Unexpected or missing release assets.' >&2; exit 1; }
+          for target in $expected; do
+            test -s "optimizer-release/px-optimizer-$target.tar.gz" || { echo 'Missing optimizer target.' >&2; exit 1; }
+          done
+      - name: Verify every signed optimizer archive
+        run: |
+          set -euo pipefail
+          cargo build --locked -p px-plugin --bin px-verify-optimizer-release
+          for target in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc; do
+            target/debug/px-verify-optimizer-release optimizer-release.json optimizer-release/manifest.json optimizer-release/manifest.sig "$target" "optimizer-release/px-optimizer-$target.tar.gz"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-optimizer-release
+          path: |
+            optimizer-release.json
+            optimizer-release/manifest.json
+            optimizer-release/manifest.sig
+            optimizer-release/*.tar.gz
+          if-no-files-found: error
   lint:
     runs-on: ubuntu-latest
 
@@ -51,8 +90,34 @@ jobs:
           --exclude px-sdk-py
           --exclude px-sdk-ts
 
+  installer-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Exercise Unix installer verification and rollback
+        if: runner.os != 'Windows'
+        shell: bash
+        run: python3 -m unittest scripts.tests.test_signed_install -v
+      - name: Check and exercise Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/install.ps1), [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count) { $parseErrors | ForEach-Object { Write-Error $_ }; exit 1 }
+          python -m unittest scripts.tests.test_signed_install_windows -v
+
   build:
-    needs: test
+    needs: [test, installer-tests, optimizer-release-readiness]
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +130,7 @@ jobs:
             target: aarch64-unknown-linux-gnu
             bin: px
             mcp_bin: px-mcp-server
-          - os: macos-15
+          - os: macos-15-intel
             target: x86_64-apple-darwin
             bin: px
             mcp_bin: px-mcp-server
@@ -90,7 +155,12 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --locked --release --target ${{ matrix.target }} --bin px --bin px-mcp-server
+        run: cargo build --locked --release --target ${{ matrix.target }} --bin px --bin px-mcp-server --bin px-verify-optimizer-release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-optimizer-release
+          path: optimizer-release
 
       - name: Prepare binary
         shell: bash
@@ -110,6 +180,15 @@ jobs:
           cp \
             "target/${{ matrix.target }}/release/${{ matrix.mcp_bin }}" \
             "artifacts/${MCP_NAME}"
+          VERIFY_NAME="px-verify-optimizer-release"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then VERIFY_NAME="${VERIFY_NAME}.exe"; fi
+          "target/${{ matrix.target }}/release/${VERIFY_NAME}" \
+            optimizer-release/optimizer-release.json optimizer-release/optimizer-release/manifest.json \
+            optimizer-release/optimizer-release/manifest.sig "${{ matrix.target }}" \
+            "optimizer-release/optimizer-release/px-optimizer-${{ matrix.target }}.tar.gz"
+          cp "target/${{ matrix.target }}/release/${VERIFY_NAME}" "artifacts/px-verify-optimizer-release-${{ matrix.target }}${VERIFY_NAME#px-verify-optimizer-release}"
+          cp "optimizer-release/optimizer-release/px-optimizer-${{ matrix.target }}.tar.gz" artifacts/
+          cp optimizer-release/optimizer-release.json optimizer-release/optimizer-release/manifest.json optimizer-release/optimizer-release/manifest.sig artifacts/
 
       - name: Package skills (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -134,11 +213,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: bash -n scripts/install.sh
-      - run: pwsh -NoProfile -Command "Test-Path scripts/install.ps1 | ForEach-Object { if (\$_) { pwsh -NoProfile -File scripts/install.ps1 -WhatIf } }"
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+          pattern: px-*
       - run: |
           cp scripts/install.sh artifacts/install.sh
           chmod +x artifacts/install.sh
@@ -194,6 +273,10 @@ jobs:
               lore_client_artifact_manifest_sha256: $lore_client_artifact_manifest_sha256,
               lore_client_signature_bundle_url: $lore_client_signature_bundle_url}' > release-metadata.json
           cosign sign-blob --yes --bundle release-metadata.sigstore.json release-metadata.json
+      - name: Test signed release installation before publishing
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/test-signed-release-install.py artifacts
       - uses: softprops/action-gh-release@v2
         with:
           overwrite_files: true

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Lore version detection and compatibility checking
 //!
 //! Provides utilities to detect installed Lore CLI/server versions and

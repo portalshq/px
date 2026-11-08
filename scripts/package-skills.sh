@@ -9,6 +9,8 @@ SKILLS_DIR="$ROOT_DIR/skills"
 OUTPUT_DIR="$ROOT_DIR/target/skills-archive"
 OUTPUT_FILE="$OUTPUT_DIR/px-skills.zip"
 
+# Plugin skills are packaged with their plugin.
+
 # Get current git ref for consistency
 if git rev-parse --git-dir >/dev/null 2>&1; then
     GIT_REF=$(git rev-parse --abbrev-ref HEAD)

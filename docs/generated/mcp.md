@@ -1,7 +1,7 @@
 ---
 generated: "true"
 generator: px-docgen
-version: 0.10.0
+version: 0.10.1
 source: mcp
 ---
 
@@ -29,11 +29,25 @@ MCP tools exposed by `px-mcp-server`. Agents MUST use these tools; the `px` CLI 
 | [\`px\_history\`](docs/generated/mcp/px\_history.md) | View commit history for an entity or repository file |
 | [\`px\_init\`](docs/generated/mcp/px\_init.md) | Initialize a repository repository and/or configure the backend provider |
 | [\`px\_install\`](docs/generated/mcp/px\_install.md) | Install required dependencies |
+| [\`px\_license\_add\`](docs/generated/mcp/px\_license\_add.md) | Verify and add a token file using a pinned issuer key |
+| [\`px\_license\_remove\`](docs/generated/mcp/px\_license\_remove.md) | Remove a locally stored entitlement |
+| [\`px\_license\_status\`](docs/generated/mcp/px\_license\_status.md) | Show locally stored entitlement status |
+| [\`px\_license\`](docs/generated/mcp/px\_license.md) | Manage offline plugin entitlement tokens |
 | [\`px\_list\`](docs/generated/mcp/px\_list.md) | List repositories or entities within a repository |
 | [\`px\_merge\`](docs/generated/mcp/px\_merge.md) | Three-way merge of JSON/YAML values |
+| [\`px\_plugin\_disable\`](docs/generated/mcp/px\_plugin\_disable.md) | Disable an installed plugin |
+| [\`px\_plugin\_doctor\`](docs/generated/mcp/px\_plugin\_doctor.md) | Show plugin eligibility and exclusions |
+| [\`px\_plugin\_enable\`](docs/generated/mcp/px\_plugin\_enable.md) | Enable an installed plugin |
+| [\`px\_plugin\_info\`](docs/generated/mcp/px\_plugin\_info.md) | Show an installed plugin manifest |
+| [\`px\_plugin\_install\`](docs/generated/mcp/px\_plugin\_install.md) | Install a plugin from a local directory or a URL with a BLAKE3 checksum |
+| [\`px\_plugin\_list\`](docs/generated/mcp/px\_plugin\_list.md) | List installed plugins |
+| [\`px\_plugin\_uninstall\`](docs/generated/mcp/px\_plugin\_uninstall.md) | Uninstall a plugin |
+| [\`px\_plugin\_upgrade\`](docs/generated/mcp/px\_plugin\_upgrade.md) | Upgrade an installed plugin from a local package directory |
+| [\`px\_plugin\`](docs/generated/mcp/px\_plugin.md) | Manage PX plugins |
 | [\`px\_presign\`](docs/generated/mcp/px\_presign.md) | Create a time-limited public URL for a committed representation |
 | [\`px\_pull\`](docs/generated/mcp/px\_pull.md) | Clone or pull PX manifests from a remote (representation files stay remote) |
 | [\`px\_push\`](docs/generated/mcp/px\_push.md) | Push the current branch to its configured upstream remote |
+| [\`px\_record\`](docs/generated/mcp/px\_record.md) | Record generated outputs, their exact prompt, and provenance together |
 | [\`px\_remote\_add\`](docs/generated/mcp/px\_remote\_add.md) | Add a remote to a repository repository |
 | [\`px\_remote\_ls\`](docs/generated/mcp/px\_remote\_ls.md) | List remotes on a repository repository |
 | [\`px\_remote\_rm\`](docs/generated/mcp/px\_remote\_rm.md) | Remove a remote from a repository repository |
@@ -41,7 +55,7 @@ MCP tools exposed by `px-mcp-server`. Agents MUST use these tools; the `px` CLI 
 | [\`px\_remote\`](docs/generated/mcp/px\_remote.md) | Manage remotes on a repository |
 | [\`px\_resolve\`](docs/generated/mcp/px\_resolve.md) | Resolve a PX URI to its manifest or a subtree |
 | [\`px\_revert\`](docs/generated/mcp/px\_revert.md) | Revert a commit by hash (undoes all changes in that commit) |
-| [\`px\_schema\`](docs/generated/mcp/px\_schema.md) | Print a JSON Schema for manifest or commit types |
+| [\`px\_schema\`](docs/generated/mcp/px\_schema.md) | Print a JSON Schema for manifest, commit, or plugin types |
 | [\`px\_set\`](docs/generated/mcp/px\_set.md) | Set one or more properties on an entity manifest |
 | [\`px\_status\`](docs/generated/mcp/px\_status.md) | Show system status, or working-tree status for one repository |
 | [\`px\_switch\`](docs/generated/mcp/px\_switch.md) | Switch to a branch |

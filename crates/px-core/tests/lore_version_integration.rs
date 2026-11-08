@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Integration tests for Lore server version pinning.
 //!
 //! These tests enforce the contract that PX requires an **exact** version

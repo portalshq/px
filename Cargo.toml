@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/px-core",
+    "crates/px-plugin",
     "crates/px-cli",
     "crates/px-mcp-server",
     "crates/px-docgen",
@@ -14,9 +15,9 @@ members = [
 ]
 
 [workspace.package]
-version = "0.10.0"
+version = "0.10.1"
 edition = "2024"
-license = "MIT"
+license = "PolyForm-Shield-1.0.0"
 authors = ["Cinematic Canvas <team@cinematiccanvas.com>"]
 
 [workspace.dependencies]

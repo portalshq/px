@@ -1,0 +1,46 @@
+Record generated outputs, their exact prompt, and provenance together
+
+Usage: px record [OPTIONS] --branch <BRANCH> --output <OUTPUT> --prompt <PROMPT> <URI>
+
+Arguments:
+  <URI>  PX entity URI
+
+Options:
+      --branch <BRANCH>
+          Branch currently checked out in the repository
+  -d, --base-dir <BASE_DIR>
+          Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]
+      --output <OUTPUT>
+          Output in KEY=PATH form. Repeat for multiple outputs
+  -v, --verbose
+          Enable verbose debug logging
+      --prompt <PROMPT>
+          Exact prompt text sent to the generation model
+      --remote
+          Resolve repository reads through the configured Lore server (the default)
+      --local
+          Resolve repository reads from an explicitly checked-out local working tree
+      --negative-prompt <NEGATIVE_PROMPT>
+          Negative prompt, if used
+      --provider <PROVIDER>
+          Provider reported by the generation tool
+      --model <MODEL>
+          Model identifier reported by the generation tool
+      --parameters <PARAMETERS>
+          JSON object of generation parameters actually used [default: {}]
+      --model-parameters <MODEL_PARAMETERS>
+          JSON object of non-default model parameters [default: {}]
+      --input-refs <INPUT_REFS>
+          JSON array of input references with URI, key, hash, and commit [default: []]
+      --job-id <JOB_ID>
+          Generation job identifier, if returned by the provider
+      --provenance-json <PROVENANCE_JSON>
+          JSON optimizer or workflow provenance fragment
+      --replace
+          Replace existing output representations
+  -m, --message <MESSAGE>
+          Commit message
+  -a, --author <AUTHOR>
+          Author identifier [default: px]
+  -h, --help
+          Print help

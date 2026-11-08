@@ -1,0 +1,56 @@
+name: optimizer-package-smoke
+
+on:
+  pull_request:
+    paths:
+      - 'optimizer-release.json'
+      - 'scripts/test-optimizer-package.py'
+      - '.github/workflows/optimizer-package-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: macos-15-intel, target: x86_64-apple-darwin}
+          - {os: macos-latest, target: aarch64-apple-darwin}
+          - {os: ubuntu-latest, target: x86_64-unknown-linux-gnu}
+          - {os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu}
+          - {os: windows-latest, target: x86_64-pc-windows-msvc}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install target
+        run: rustup target add ${{ matrix.target }}
+      - name: Download pinned private release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.PX_OPTIMIZER_RELEASE_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$(python -c 'import json; print(json.load(open("optimizer-release.json"))["release_id"])')"
+          [[ "$tag" =~ ^optimizer-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          mkdir release-assets
+          gh release download "$tag" --repo portalshq/px-plugins --dir release-assets --pattern manifest.json --pattern manifest.sig --pattern 'px-optimizer-${{ matrix.target }}.tar.gz'
+      - name: Build PX and verify archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --target '${{ matrix.target }}' --bin px --bin px-mcp-server --bin px-verify-optimizer-release
+          suffix=''
+          if [[ '${{ runner.os }}' == Windows ]]; then suffix='.exe'; fi
+          base="target/${{ matrix.target }}/debug"
+          "$base/px-verify-optimizer-release$suffix" optimizer-release.json release-assets/manifest.json release-assets/manifest.sig '${{ matrix.target }}' 'release-assets/px-optimizer-${{ matrix.target }}.tar.gz'
+          python scripts/test-optimizer-package.py 'release-assets/px-optimizer-${{ matrix.target }}.tar.gz' "$base/px$suffix" "$base/px-mcp-server$suffix"

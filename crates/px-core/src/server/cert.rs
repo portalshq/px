@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Certificate generation for Lore QUIC server
 //!
 //! Uses rcgen to generate self-signed certificates compatible with Lore's QUIC endpoint.

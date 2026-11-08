@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Cross-platform process locking mechanism
 //!
 //! Ensures only one local Lore daemon is started per PX home directory

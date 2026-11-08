@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! PX doctor diagnostics and repair
 //!
 //! Performs comprehensive diagnostics on the PX SDK environment and

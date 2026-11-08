@@ -64,11 +64,17 @@ _px_generated() {
             px,install)
                 cmd="px__subcmd__install"
                 ;;
+            px,license)
+                cmd="px__subcmd__license"
+                ;;
             px,list)
                 cmd="px__subcmd__list"
                 ;;
             px,merge)
                 cmd="px__subcmd__merge"
+                ;;
+            px,plugin)
+                cmd="px__subcmd__plugin"
                 ;;
             px,presign)
                 cmd="px__subcmd__presign"
@@ -81,6 +87,12 @@ _px_generated() {
                 ;;
             px,query)
                 cmd="px__subcmd__query"
+                ;;
+            px,record)
+                cmd="px__subcmd__record"
+                ;;
+            px,record-feedback)
+                cmd="px__subcmd__record__subcmd__feedback"
                 ;;
             px,remote)
                 cmd="px__subcmd__remote"
@@ -232,11 +244,17 @@ _px_generated() {
             px__subcmd__help,install)
                 cmd="px__subcmd__help__subcmd__install"
                 ;;
+            px__subcmd__help,license)
+                cmd="px__subcmd__help__subcmd__license"
+                ;;
             px__subcmd__help,list)
                 cmd="px__subcmd__help__subcmd__list"
                 ;;
             px__subcmd__help,merge)
                 cmd="px__subcmd__help__subcmd__merge"
+                ;;
+            px__subcmd__help,plugin)
+                cmd="px__subcmd__help__subcmd__plugin"
                 ;;
             px__subcmd__help,presign)
                 cmd="px__subcmd__help__subcmd__presign"
@@ -249,6 +267,12 @@ _px_generated() {
                 ;;
             px__subcmd__help,query)
                 cmd="px__subcmd__help__subcmd__query"
+                ;;
+            px__subcmd__help,record)
+                cmd="px__subcmd__help__subcmd__record"
+                ;;
+            px__subcmd__help,record-feedback)
+                cmd="px__subcmd__help__subcmd__record__subcmd__feedback"
                 ;;
             px__subcmd__help,remote)
                 cmd="px__subcmd__help__subcmd__remote"
@@ -307,6 +331,45 @@ _px_generated() {
             px__subcmd__help__subcmd__configure,status)
                 cmd="px__subcmd__help__subcmd__configure__subcmd__status"
                 ;;
+            px__subcmd__help__subcmd__license,add)
+                cmd="px__subcmd__help__subcmd__license__subcmd__add"
+                ;;
+            px__subcmd__help__subcmd__license,remove)
+                cmd="px__subcmd__help__subcmd__license__subcmd__remove"
+                ;;
+            px__subcmd__help__subcmd__license,status)
+                cmd="px__subcmd__help__subcmd__license__subcmd__status"
+                ;;
+            px__subcmd__help__subcmd__plugin,call)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__call"
+                ;;
+            px__subcmd__help__subcmd__plugin,disable)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__disable"
+                ;;
+            px__subcmd__help__subcmd__plugin,doctor)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__doctor"
+                ;;
+            px__subcmd__help__subcmd__plugin,enable)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__enable"
+                ;;
+            px__subcmd__help__subcmd__plugin,info)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__info"
+                ;;
+            px__subcmd__help__subcmd__plugin,install)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__install"
+                ;;
+            px__subcmd__help__subcmd__plugin,list)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__list"
+                ;;
+            px__subcmd__help__subcmd__plugin,tools)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__tools"
+                ;;
+            px__subcmd__help__subcmd__plugin,uninstall)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__uninstall"
+                ;;
+            px__subcmd__help__subcmd__plugin,upgrade)
+                cmd="px__subcmd__help__subcmd__plugin__subcmd__upgrade"
+                ;;
             px__subcmd__help__subcmd__remote,add)
                 cmd="px__subcmd__help__subcmd__remote__subcmd__add"
                 ;;
@@ -318,6 +381,96 @@ _px_generated() {
                 ;;
             px__subcmd__help__subcmd__remote,set)
                 cmd="px__subcmd__help__subcmd__remote__subcmd__set"
+                ;;
+            px__subcmd__license,add)
+                cmd="px__subcmd__license__subcmd__add"
+                ;;
+            px__subcmd__license,help)
+                cmd="px__subcmd__license__subcmd__help"
+                ;;
+            px__subcmd__license,remove)
+                cmd="px__subcmd__license__subcmd__remove"
+                ;;
+            px__subcmd__license,status)
+                cmd="px__subcmd__license__subcmd__status"
+                ;;
+            px__subcmd__license__subcmd__help,add)
+                cmd="px__subcmd__license__subcmd__help__subcmd__add"
+                ;;
+            px__subcmd__license__subcmd__help,help)
+                cmd="px__subcmd__license__subcmd__help__subcmd__help"
+                ;;
+            px__subcmd__license__subcmd__help,remove)
+                cmd="px__subcmd__license__subcmd__help__subcmd__remove"
+                ;;
+            px__subcmd__license__subcmd__help,status)
+                cmd="px__subcmd__license__subcmd__help__subcmd__status"
+                ;;
+            px__subcmd__plugin,call)
+                cmd="px__subcmd__plugin__subcmd__call"
+                ;;
+            px__subcmd__plugin,disable)
+                cmd="px__subcmd__plugin__subcmd__disable"
+                ;;
+            px__subcmd__plugin,doctor)
+                cmd="px__subcmd__plugin__subcmd__doctor"
+                ;;
+            px__subcmd__plugin,enable)
+                cmd="px__subcmd__plugin__subcmd__enable"
+                ;;
+            px__subcmd__plugin,help)
+                cmd="px__subcmd__plugin__subcmd__help"
+                ;;
+            px__subcmd__plugin,info)
+                cmd="px__subcmd__plugin__subcmd__info"
+                ;;
+            px__subcmd__plugin,install)
+                cmd="px__subcmd__plugin__subcmd__install"
+                ;;
+            px__subcmd__plugin,list)
+                cmd="px__subcmd__plugin__subcmd__list"
+                ;;
+            px__subcmd__plugin,tools)
+                cmd="px__subcmd__plugin__subcmd__tools"
+                ;;
+            px__subcmd__plugin,uninstall)
+                cmd="px__subcmd__plugin__subcmd__uninstall"
+                ;;
+            px__subcmd__plugin,upgrade)
+                cmd="px__subcmd__plugin__subcmd__upgrade"
+                ;;
+            px__subcmd__plugin__subcmd__help,call)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__call"
+                ;;
+            px__subcmd__plugin__subcmd__help,disable)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__disable"
+                ;;
+            px__subcmd__plugin__subcmd__help,doctor)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__doctor"
+                ;;
+            px__subcmd__plugin__subcmd__help,enable)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__enable"
+                ;;
+            px__subcmd__plugin__subcmd__help,help)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__help"
+                ;;
+            px__subcmd__plugin__subcmd__help,info)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__info"
+                ;;
+            px__subcmd__plugin__subcmd__help,install)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__install"
+                ;;
+            px__subcmd__plugin__subcmd__help,list)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__list"
+                ;;
+            px__subcmd__plugin__subcmd__help,tools)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__tools"
+                ;;
+            px__subcmd__plugin__subcmd__help,uninstall)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__uninstall"
+                ;;
+            px__subcmd__plugin__subcmd__help,upgrade)
+                cmd="px__subcmd__plugin__subcmd__help__subcmd__upgrade"
                 ;;
             px__subcmd__remote,add)
                 cmd="px__subcmd__remote__subcmd__add"
@@ -356,7 +509,7 @@ _px_generated() {
 
     case "${cmd}" in
         px)
-            opts="-d -v -h -V --base-dir --verbose --remote --local --help --version auth install init configure choose backend doctor status sync create resolve presign query commit history list branch set unset add revert pull push remote sign verify switch head validate schema diff merge content-hash help"
+            opts="-d -v -h -V --base-dir --verbose --remote --local --help --version plugin license auth install init configure choose backend doctor status sync create resolve presign query commit record record-feedback history list branch set unset add revert pull push remote sign verify switch head validate schema diff merge content-hash help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1138,7 +1291,7 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__help)
-            opts="auth install init configure choose backend doctor status sync create resolve presign query commit history list branch set unset add revert pull push remote sign verify switch head validate schema diff merge content-hash help"
+            opts="plugin license auth install init configure choose backend doctor status sync create resolve presign query commit record record-feedback history list branch set unset add revert pull push remote sign verify switch head validate schema diff merge content-hash help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -1473,6 +1626,62 @@ _px_generated() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        px__subcmd__help__subcmd__license)
+            opts="status add remove"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__license__subcmd__add)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__license__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__license__subcmd__status)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         px__subcmd__help__subcmd__list)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
@@ -1490,6 +1699,160 @@ _px_generated() {
         px__subcmd__help__subcmd__merge)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin)
+            opts="list info install upgrade uninstall enable disable doctor tools call"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__call)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__disable)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__doctor)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__enable)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__info)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__install)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__list)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__tools)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__uninstall)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__plugin__subcmd__upgrade)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
@@ -1544,6 +1907,34 @@ _px_generated() {
             return 0
             ;;
         px__subcmd__help__subcmd__query)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__record)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__help__subcmd__record__subcmd__feedback)
             opts=""
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -1871,6 +2262,164 @@ _px_generated() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
+        px__subcmd__license)
+            opts="-d -v -h --base-dir --verbose --remote --local --help status add remove help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__add)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__help)
+            opts="status add remove help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__help__subcmd__add)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__help__subcmd__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__help__subcmd__remove)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__help__subcmd__status)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__remove)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__license__subcmd__status)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
         px__subcmd__list)
             opts="-t -d -v -h --entity-type --base-dir --verbose --remote --local --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
@@ -1916,6 +2465,436 @@ _px_generated() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin)
+            opts="-d -v -h --base-dir --verbose --remote --local --help list info install upgrade uninstall enable disable doctor tools call help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__call)
+            opts="-d -v -h --input --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --input)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__disable)
+            opts="-d -v -h --repo --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__doctor)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__enable)
+            opts="-d -v -h --repo --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --repo)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help)
+            opts="list info install upgrade uninstall enable disable doctor tools call help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__call)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__disable)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__doctor)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__enable)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__help)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__info)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__install)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__list)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__tools)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__uninstall)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__help__subcmd__upgrade)
+            opts=""
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 4 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__info)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__install)
+            opts="-d -v -h --blake3 --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --blake3)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__list)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__tools)
+            opts="-d -v -h --format --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --format)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__uninstall)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__plugin__subcmd__upgrade)
+            opts="-d -v -h --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
                 --base-dir)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -2045,6 +3024,114 @@ _px_generated() {
                     return 0
                     ;;
                 -f)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__record)
+            opts="-m -a -d -v -h --branch --output --prompt --negative-prompt --provider --model --parameters --model-parameters --input-refs --job-id --provenance-json --replace --message --author --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --branch)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --output)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --prompt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --negative-prompt)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --provider)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --model)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --parameters)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --model-parameters)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --input-refs)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --job-id)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --provenance-json)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --message)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -m)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --author)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -a)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --base-dir)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                -d)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        px__subcmd__record__subcmd__feedback)
+            opts="-d -v -h --input --base-dir --verbose --remote --local --help"
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
+                --input)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

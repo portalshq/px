@@ -20,4 +20,6 @@ tokio = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+px-cli = { package = "portalshq-px-cli", path = "../px-cli" }
+clap = { workspace = true }
 tempfile = { workspace = true }

@@ -24,4 +24,4 @@ This is a v0 prototype. APIs and formats may change.
 
 ## License
 
-MIT
+[PolyForm Shield 1.0.0](../../LICENSE) (`PolyForm-Shield-1.0.0`). Previously published MIT releases remain MIT.

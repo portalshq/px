@@ -296,8 +296,12 @@ fn annotations(full_path: &str, is_parent: bool) -> Value {
             | "diff"
             | "content-hash"
     );
-    let read_only = read_only || full_path == "configure status";
-    let destructive = matches!(base, "delete" | "revert");
+    let read_only = read_only
+        || matches!(
+            full_path,
+            "configure status" | "plugin list" | "plugin info" | "plugin doctor" | "license status"
+        );
+    let destructive = matches!(base, "delete" | "revert") || full_path == "plugin uninstall";
     json!({
         "readOnlyHint": is_parent || read_only,
         "destructiveHint": !is_parent && destructive,

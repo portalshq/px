@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Digital Creations
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: PolyForm-Shield-1.0.0
 //! Lore server process management
 //!
 //! Cross-platform detached process launch and lifecycle management for Lore server.
@@ -424,9 +424,15 @@ fn tokenize_cmdline(cmdline: &str) -> Vec<String> {
             (Some(q), c) if c == q => quote = None,
             (Some('\''), c) => current.push(c),
             (_, '\\') => {
-                if let Some(&next) = chars.peek() {
+                if let Some(&next) = chars
+                    .peek()
+                    .filter(|c| c.is_whitespace() || **c == '"' || **c == '\'')
+                {
                     current.push(next);
                     chars.next();
+                } else {
+                    // Windows paths use backslashes as separators, not shell escapes.
+                    current.push('\\');
                 }
             }
             (None, '"' | '\'') => quote = Some(ch),
@@ -533,6 +539,10 @@ mod tests {
         );
         assert_eq!(extract_config_dir("loreserver --verbose"), None);
         assert_eq!(extract_config_dir("other --config"), None);
+        assert_eq!(
+            extract_config_dir(r"loreserver --config C:\Users\test\lore"),
+            Some(r"C:\Users\test\lore".into())
+        );
     }
 
     #[test]
@@ -576,6 +586,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_cmdline_has_config_dir_matches_equivalent_paths() {
         // Canonicalization must unify symlinked spellings of the same dir.
         let temp_dir = TempDir::new().unwrap();

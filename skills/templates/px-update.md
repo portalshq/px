@@ -16,6 +16,13 @@ Use this skill whenever existing PX entity content changes, especially during it
 5. Pin the saved revision with `px_head(repository, branch)` and resolve using that returned `commit` alone. Mutation summaries may show PX metadata IDs; do not treat those as Lore commit selectors. Verify representations, prompt text, metadata, and hashes. A push failure means the revision is local only: report the recovery command and retry only when the underlying issue is resolved.
 6. Promote the verified revision only after explicit user acceptance, to the resolved target branch. Verify the target's hashes match the accepted revision. Otherwise keep iterating on the revision branch.
 
+For generated outputs, use `px_record` with the explicit revision branch, each
+output as `KEY=PATH`, the exact prompt, the parameters actually used, and a
+JSON array of input references containing `uri`, `key`, `hash`, and `commit`.
+The command resolves each input at its pinned commit and verifies its hash.
+After recording, pin the revision with `px_head` and verify the committed
+metadata and representations as described above.
+
 {{include docs/authored/workflows/provenance.md}}
 
 ## When to Apply
@@ -45,6 +52,8 @@ For creating or first resolving entities, use `px-resolve`. For repository-level
 {{include docs/generated/mcp/px_resolve.md}}
 
 {{include docs/generated/mcp/px_add.md}}
+
+{{include docs/generated/mcp/px_record.md}}
 
 {{include docs/generated/mcp/px_set.md}}
 

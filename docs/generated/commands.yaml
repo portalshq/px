@@ -1,5 +1,5 @@
 generator: px-docgen
-version: "0.10.0"
+version: "0.10.1"
 commands:
   - name: "add"
     full_path: "add"
@@ -285,11 +285,52 @@ commands:
     hidden: false
     arguments:
       - name: "target"
-        about: "Target to install (e.g., \"lore\" or \"mcp\")"
+        about: "Target to install: \"lore\", \"mcp\", or \"uv\""
         required: true
     flags:
       - name: "help"
         about: "Print help"
+  - name: "license"
+    full_path: "license"
+    about: "Manage offline plugin entitlement tokens"
+    usage: "Usage: license <COMMAND>"
+    hidden: false
+    flags:
+      - name: "help"
+        about: "Print help"
+    subcommands:
+      - name: "add"
+        full_path: "license add"
+        about: "Verify and add a token file using a pinned issuer key"
+        usage: "Usage: add <TOKEN_FILE>"
+        hidden: false
+        arguments:
+          - name: "token_file"
+            about: ""
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "remove"
+        full_path: "license remove"
+        about: "Remove a locally stored entitlement"
+        usage: "Usage: remove <ID>"
+        hidden: false
+        arguments:
+          - name: "id"
+            about: ""
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "status"
+        full_path: "license status"
+        about: "Show locally stored entitlement status"
+        usage: "Usage: status"
+        hidden: false
+        flags:
+          - name: "help"
+            about: "Print help"
   - name: "list"
     full_path: "list"
     about: "List repositories or entities within a repository"
@@ -327,6 +368,112 @@ commands:
     flags:
       - name: "help"
         about: "Print help"
+  - name: "plugin"
+    full_path: "plugin"
+    about: "Manage PX plugins"
+    usage: "Usage: plugin <COMMAND>"
+    hidden: false
+    flags:
+      - name: "help"
+        about: "Print help"
+    subcommands:
+      - name: "disable"
+        full_path: "plugin disable"
+        about: "Disable an installed plugin"
+        usage: "Usage: disable [OPTIONS] <ID>"
+        hidden: false
+        arguments:
+          - name: "id"
+            about: ""
+            required: true
+        options:
+          - name: "repo"
+            about: ""
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "doctor"
+        full_path: "plugin doctor"
+        about: "Show plugin eligibility and exclusions"
+        usage: "Usage: doctor"
+        hidden: false
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "enable"
+        full_path: "plugin enable"
+        about: "Enable an installed plugin"
+        usage: "Usage: enable [OPTIONS] <ID>"
+        hidden: false
+        arguments:
+          - name: "id"
+            about: ""
+            required: true
+        options:
+          - name: "repo"
+            about: ""
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "info"
+        full_path: "plugin info"
+        about: "Show an installed plugin manifest"
+        usage: "Usage: info <ID>"
+        hidden: false
+        arguments:
+          - name: "id"
+            about: ""
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "install"
+        full_path: "plugin install"
+        about: "Install a plugin from a local directory or a URL with a BLAKE3 checksum"
+        usage: "Usage: install [OPTIONS] <PATH>"
+        hidden: false
+        arguments:
+          - name: "path"
+            about: ""
+            required: true
+        options:
+          - name: "blake3"
+            about: ""
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "list"
+        full_path: "plugin list"
+        about: "List installed plugins"
+        usage: "Usage: list"
+        hidden: false
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "uninstall"
+        full_path: "plugin uninstall"
+        about: "Uninstall a plugin"
+        usage: "Usage: uninstall <ID>"
+        hidden: false
+        arguments:
+          - name: "id"
+            about: ""
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
+      - name: "upgrade"
+        full_path: "plugin upgrade"
+        about: "Upgrade an installed plugin from a local package directory"
+        usage: "Usage: upgrade <PATH>"
+        hidden: false
+        arguments:
+          - name: "path"
+            about: ""
+            required: true
+        flags:
+          - name: "help"
+            about: "Print help"
   - name: "presign"
     full_path: "presign"
     about: "Create a time-limited public URL for a committed representation"
@@ -540,6 +687,51 @@ commands:
         about: "Force push even if branch already exists on remote (bypass fast-forward check)"
       - name: "help"
         about: "Print help (see more with '--help')"
+  - name: "record"
+    full_path: "record"
+    about: "Record generated outputs, their exact prompt, and provenance together"
+    usage: "Usage: record [OPTIONS] --branch <BRANCH> --output <OUTPUT> --prompt <PROMPT> <URI>"
+    hidden: false
+    arguments:
+      - name: "uri"
+        about: "PX entity URI"
+        required: true
+    options:
+      - name: "branch"
+        about: "Branch currently checked out in the repository"
+      - name: "output"
+        about: "Output in KEY=PATH form. Repeat for multiple outputs"
+      - name: "prompt"
+        about: "Exact prompt text sent to the generation model"
+      - name: "negative_prompt"
+        about: "Negative prompt, if used"
+      - name: "provider"
+        about: "Provider reported by the generation tool"
+      - name: "model"
+        about: "Model identifier reported by the generation tool"
+      - name: "parameters"
+        about: "JSON object of generation parameters actually used"
+        default: "{}"
+      - name: "model_parameters"
+        about: "JSON object of non-default model parameters"
+        default: "{}"
+      - name: "input_refs"
+        about: "JSON array of input references with URI, key, hash, and commit"
+        default: "[]"
+      - name: "job_id"
+        about: "Generation job identifier, if returned by the provider"
+      - name: "provenance_json"
+        about: "JSON optimizer or workflow provenance fragment"
+      - name: "message"
+        about: "Commit message"
+      - name: "author"
+        about: "Author identifier"
+        default: "px"
+    flags:
+      - name: "replace"
+        about: "Replace existing output representations"
+      - name: "help"
+        about: "Print help"
   - name: "remote"
     full_path: "remote"
     about: "Manage remotes on a repository"
@@ -660,12 +852,12 @@ commands:
         about: "Print help"
   - name: "schema"
     full_path: "schema"
-    about: "Print a JSON Schema for manifest or commit types"
+    about: "Print a JSON Schema for manifest, commit, or plugin types"
     usage: "Usage: schema [OPTIONS] <NAME>"
     hidden: false
     arguments:
       - name: "name"
-        about: "Schema name: 'manifest' or 'commit'"
+        about: "Schema name: 'manifest', 'commit', or 'plugin'"
         required: true
     options:
       - name: "format"

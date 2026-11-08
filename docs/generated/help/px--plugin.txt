@@ -1,0 +1,21 @@
+Manage PX plugins
+
+Usage: px plugin [OPTIONS] <COMMAND>
+
+Commands:
+  list       List installed plugins
+  info       Show an installed plugin manifest
+  install    Install a plugin from a local directory or a URL with a BLAKE3 checksum
+  upgrade    Upgrade an installed plugin from a local package directory
+  uninstall  Uninstall a plugin
+  enable     Enable an installed plugin
+  disable    Disable an installed plugin
+  doctor     Show plugin eligibility and exclusions
+  help       Print this message or the help of the given subcommand(s)
+
+Options:
+  -d, --base-dir <BASE_DIR>  Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]
+  -v, --verbose              Enable verbose debug logging
+      --remote               Resolve repository reads through the configured Lore server (the default)
+      --local                Resolve repository reads from an explicitly checked-out local working tree
+  -h, --help                 Print help

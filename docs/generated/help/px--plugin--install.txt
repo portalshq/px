@@ -1,0 +1,14 @@
+Install a plugin from a local directory or a URL with a BLAKE3 checksum
+
+Usage: px plugin install [OPTIONS] <PATH>
+
+Arguments:
+  <PATH>  
+
+Options:
+      --blake3 <BLAKE3>      
+  -d, --base-dir <BASE_DIR>  Base directory for repository repositories. Defaults to $PX_DIR, or ~/.px if unset [env: PX_DIR=]
+  -v, --verbose              Enable verbose debug logging
+      --remote               Resolve repository reads through the configured Lore server (the default)
+      --local                Resolve repository reads from an explicitly checked-out local working tree
+  -h, --help                 Print help

@@ -1,7 +1,7 @@
 ---
 generated: "true"
 generator: px-docgen
-version: 0.10.0
+version: 0.10.1
 source: mcp
 ---
 
@@ -14,5 +14,5 @@ Install required dependencies
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| target | string | Yes |  | Target to install (e.g., "lore" or "mcp") |
+| target | string | Yes |  | Target to install: "lore", "mcp", or "uv" |
 

@@ -28,7 +28,7 @@ use px_cli::{
 };
 use px_core::{
     commit::Change,
-    manifest::Representation,
+    mutation::{self, StageOutcome},
     provider::{ProviderFactory, ProviderManager, ProviderType},
     repository::Repository,
     resolver::{PresignOptions, ResolveOptions, ResolveResult, ResolveSource, Resolver},
@@ -40,6 +40,11 @@ use px_core::{
 use std::io::{self, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+
+mod feedback_cmd;
+mod license_cmd;
+mod plugin_cmd;
+mod record_cmd;
 
 /// Expand a path, resolving a leading `~` to the user's home directory.
 /// Supports both Unix (HOME) and Windows (USERPROFILE) environments.
@@ -179,7 +184,20 @@ fn run_cli() -> Result<()> {
     std::fs::create_dir_all(&base_dir)
         .with_context(|| format!("failed to create base directory '{}'", base_dir.display()))?;
 
+    // If an installer was force-killed between replacing PX binaries, skills,
+    // and the optimizer, prevent the mixed installation from being used until
+    // the signed installer resumes it. The installer sets this private
+    // process marker only while replaying its idempotent transaction.
+    if base_dir.join("installer-transaction/STATE").exists()
+        && std::env::var_os("PX_INSTALL_TRANSACTION").as_deref() != Some(std::ffi::OsStr::new("1"))
+    {
+        anyhow::bail!(
+            "a PX installation was interrupted; rerun the signed PX installer to finish it"
+        );
+    }
+
     let result = match cli.command {
+        Commands::Plugin { cmd } => plugin_cmd::run(&base_dir, cmd),
         Commands::Auth { cmd } => cmd_auth(cmd, &base_dir),
         Commands::Init {
             repository,
@@ -197,6 +215,7 @@ fn run_cli() -> Result<()> {
             remote.as_deref(),
             reset,
         ),
+        Commands::License { cmd } => license_cmd::run(&base_dir, cmd),
         Commands::Install { target } => cmd_install(&base_dir, &target),
         Commands::Configure { args } => cmd_configure(&base_dir, args),
         Commands::Choose { cmd } => {
@@ -317,6 +336,43 @@ fn run_cli() -> Result<()> {
             message.as_deref(),
             &author,
         ),
+        Commands::Record {
+            uri,
+            branch,
+            output,
+            prompt,
+            negative_prompt,
+            provider,
+            model,
+            parameters,
+            model_parameters,
+            input_refs,
+            job_id,
+            provenance_json,
+            replace,
+            message,
+            author,
+        } => record_cmd::run(
+            &base_dir,
+            record_cmd::Arguments {
+                uri,
+                branch,
+                output,
+                prompt,
+                negative_prompt,
+                provider,
+                model,
+                parameters,
+                model_parameters,
+                input_refs,
+                job_id,
+                provenance_json,
+                replace,
+                message,
+                author,
+            },
+        ),
+        Commands::RecordFeedback { input } => feedback_cmd::run(&base_dir, &input),
         Commands::Revert {
             repository,
             commit,
@@ -776,8 +832,21 @@ fn cmd_init_universe(base_dir: &Path, repository: &str, remote: Option<&str>) ->
     }
 }
 
-fn cmd_install(_base_dir: &Path, target: &str) -> Result<()> {
+fn cmd_install(base_dir: &Path, target: &str) -> Result<()> {
     match target {
+        "uv" => {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()?;
+            let mut installer = px_plugin::uv::UvInstaller::new(base_dir);
+            if let Some(path) = std::env::var_os("PX_UV_PATH") {
+                installer = installer.with_override(path.into());
+            }
+            let path = runtime
+                .block_on(installer.ensure())
+                .map_err(anyhow::Error::msg)?;
+            println!("{}", serde_json::json!({"uv":path,"available":true}));
+        }
         "lore" => {
             let installer = LoreInstaller::new(None);
             emit("Installing Lore CLI and server...");
@@ -792,7 +861,10 @@ fn cmd_install(_base_dir: &Path, target: &str) -> Result<()> {
             emit("To use with Codex, add to your config:");
             emit(r#"  "mcpServers": { "px": { "command": "px-mcp-server" } }"#);
         }
-        _ => anyhow::bail!("Unknown target '{}'. Available: 'lore', 'mcp'", target),
+        _ => anyhow::bail!(
+            "Unknown target '{}'. Available: 'lore', 'mcp', 'uv'",
+            target
+        ),
     }
     Ok(())
 }
@@ -2505,21 +2577,11 @@ fn parse_entity_uri(input: &str) -> Result<PxUri> {
 }
 
 fn yaml_from_json_or_string(value: &str) -> serde_yaml::Value {
-    serde_json::from_str::<serde_json::Value>(value)
-        .ok()
-        .and_then(|value| serde_yaml::to_value(value).ok())
-        .unwrap_or_else(|| serde_yaml::Value::String(value.to_string()))
+    mutation::yaml_from_json_or_string(value)
 }
 
 fn normalized_manifest_path(key: &str) -> String {
-    if matches!(
-        key.split('.').next(),
-        Some("properties" | "references" | "representations" | "provenance" | "metadata")
-    ) {
-        key.to_string()
-    } else {
-        format!("properties.{key}")
-    }
+    mutation::normalized_manifest_path(key)
 }
 
 fn set_manifest_value(
@@ -2527,45 +2589,11 @@ fn set_manifest_value(
     key: &str,
     value: serde_yaml::Value,
 ) -> Result<()> {
-    let path = normalized_manifest_path(key);
-    let mut document = serde_json::to_value(&*manifest)?;
-    let mut current = document
-        .as_object_mut()
-        .context("manifest must be an object")?;
-    let parts: Vec<_> = path.split('.').collect();
-    for part in &parts[..parts.len() - 1] {
-        current = current
-            .entry((*part).to_string())
-            .or_insert_with(|| serde_json::json!({}))
-            .as_object_mut()
-            .with_context(|| format!("'{part}' is not an object"))?;
-    }
-    current.insert(
-        parts.last().unwrap().to_string(),
-        serde_json::to_value(value)?,
-    );
-    *manifest = serde_json::from_value(document).context("invalid manifest update")?;
-    Ok(())
+    mutation::set_manifest_value(manifest, key, value).map_err(Into::into)
 }
 
 fn unset_manifest_value(manifest: &mut px_core::manifest::Manifest, key: &str) -> Result<()> {
-    let path = normalized_manifest_path(key);
-    let mut document = serde_json::to_value(&*manifest)?;
-    let mut current = document
-        .as_object_mut()
-        .context("manifest must be an object")?;
-    let parts: Vec<_> = path.split('.').collect();
-    for part in &parts[..parts.len() - 1] {
-        current = current
-            .get_mut(*part)
-            .and_then(serde_json::Value::as_object_mut)
-            .ok_or_else(|| anyhow::anyhow!("key not found: {key}"))?;
-    }
-    if current.remove(*parts.last().unwrap()).is_none() {
-        anyhow::bail!("key not found: {key}");
-    }
-    *manifest = serde_json::from_value(document).context("invalid manifest update")?;
-    Ok(())
+    mutation::unset_manifest_value(manifest, key).map_err(Into::into)
 }
 
 fn cmd_set(
@@ -2668,52 +2696,18 @@ fn cmd_add_repr(
         .read_manifest(&uri.entity_type, &uri.entity_id)
         .context("failed to read manifest")?;
 
-    // Compute content hash
-    let hash = px_core::ContentHash::from_file(file)
-        .context(format!("failed to hash file '{}'", file.display()))?;
-    if let Some(existing) = manifest.representations.get(key) {
-        if existing.hash == hash.as_str() {
-            return Ok(());
-        }
-        if !replace {
-            anyhow::bail!(
-                "representation '{key}' already exists with different content; pass --replace to overwrite"
-            );
-        }
-    }
-
-    // Copy file to repository and stage it for commit
-    // Lore stores files in the immutable store when they're committed
-    let entity_dir = repo
-        .root
-        .join(uri.entity_type.to_string())
-        .join(&uri.entity_id);
-    std::fs::create_dir_all(&entity_dir).context(format!(
-        "failed to create entity directory '{}'",
-        entity_dir.display()
-    ))?;
-
-    let asset_filename = format!("{}.{}", key, format);
-    let asset_path = entity_dir.join(&asset_filename);
-    std::fs::copy(file, &asset_path).context(format!(
-        "failed to copy asset file to '{}'",
-        asset_path.display()
-    ))?;
-
-    // Store content hash directly (Lore's immutable store is content-addressed)
-    let repr = Representation {
-        hash: hash.as_str().to_string(),
-        format: format.to_string(),
-        uri: Some(asset_filename), // Store relative path to the asset file
-        tier: None,
+    let changes = match mutation::stage_add_representation(
+        &repo,
+        &mut manifest,
+        &uri,
+        key,
+        file,
+        format,
+        replace,
+    )? {
+        StageOutcome::Unchanged => return Ok(()),
+        StageOutcome::Staged(change) => vec![change],
     };
-
-    manifest.set_representation(key, repr);
-    let changes = vec![Change::set(
-        &format!("representations.{key}"),
-        None,
-        hash.as_str().to_string(),
-    )];
 
     let message = message
         .map(str::to_string)
@@ -2876,7 +2870,10 @@ fn cmd_schema(name: &str, format: &str) -> Result<()> {
     let schema = match name {
         "manifest" => px_core::schema::manifest_schema(),
         "commit" => px_core::schema::commit_schema(),
-        _ => anyhow::bail!("Unknown schema '{name}'. Available: 'manifest', 'commit'"),
+        "plugin" => {
+            serde_json::to_value(schemars::schema_for!(px_plugin::manifest::PluginManifest))?
+        }
+        _ => anyhow::bail!("Unknown schema '{name}'. Available: 'manifest', 'commit', 'plugin'"),
     };
 
     let fmt = resolve_output_format(format);

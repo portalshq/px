@@ -31,6 +31,18 @@ and representation arguments, file lookup, configuration, and SDK examples.
 
 ---
 
+## Plugins and optimizer
+
+The free `px.optimizer` plugin assembles pinned project context, runs a host-completed critic, and compiles generation prompts through a DSPy state runtime. The head agent sends the exact prompt to the generation model, then records outputs with `px record`.
+
+Use `px plugin list`, `info`, `enable`, `disable`, and `doctor` to manage installed packages. See the [plugin overview](docs/authored/plugins/overview.md). Optimizer distribution is being migrated to a separately versioned release.
+
+## Training
+
+The development-side training plugin is maintained separately from PX. Training requires a reviewed dataset, an approved spending limit, and the plugin’s own development environment.
+
+---
+
 {{include docs/generated/cli.md}}
 
 ---
@@ -53,4 +65,4 @@ This is a v0 prototype. APIs and formats may change.
 
 ## License
 
-{{license}}
+[PolyForm Shield 1.0.0](LICENSE) (`{{license}}`). Previously published MIT releases remain MIT.

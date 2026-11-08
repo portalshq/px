@@ -1,0 +1,7 @@
+{
+  "manifest_blake3": "blake3:59298885bc09ce956a05b96bfece8689d9918cfe54d3a3947f243e12062bba82",
+  "plugin_id": "px.optimizer",
+  "public_key": "98d6340e5437028aefc0f0326bdb4901b6453cb19ed14cc5777ec8901744f174",
+  "release_id": "optimizer-v0.1.0",
+  "version": "0.1.0"
+}

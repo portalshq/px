@@ -5,6 +5,33 @@ use predicates::prelude::*;
 
 #[cfg(not(target_os = "windows"))]
 #[test]
+fn cli_refuses_to_run_until_interrupted_installer_resumes() {
+    use std::fs;
+    let root = tempfile::tempdir().unwrap();
+    fs::create_dir_all(root.path().join("installer-transaction")).unwrap();
+    fs::write(
+        root.path().join("installer-transaction/STATE"),
+        "px-installer-transaction-v1\n",
+    )
+    .unwrap();
+    Command::new(assert_cmd::cargo::cargo_bin!("px"))
+        .arg("--base-dir")
+        .arg(root.path())
+        .args(["plugin", "list"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("rerun the signed PX installer"));
+    Command::new(assert_cmd::cargo::cargo_bin!("px"))
+        .arg("--base-dir")
+        .arg(root.path())
+        .env("PX_INSTALL_TRANSACTION", "1")
+        .args(["plugin", "list"])
+        .assert()
+        .success();
+}
+
+#[cfg(not(target_os = "windows"))]
+#[test]
 fn interrupted_initial_install_is_recovered_before_retry() {
     use std::fs;
     let root = tempfile::tempdir().unwrap();

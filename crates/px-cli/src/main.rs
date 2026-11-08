@@ -184,6 +184,18 @@ fn run_cli() -> Result<()> {
     std::fs::create_dir_all(&base_dir)
         .with_context(|| format!("failed to create base directory '{}'", base_dir.display()))?;
 
+    // If an installer was force-killed between replacing PX binaries, skills,
+    // and the optimizer, prevent the mixed installation from being used until
+    // the signed installer resumes it. The installer sets this private
+    // process marker only while replaying its idempotent transaction.
+    if base_dir.join("installer-transaction/STATE").exists()
+        && std::env::var_os("PX_INSTALL_TRANSACTION").as_deref() != Some(std::ffi::OsStr::new("1"))
+    {
+        anyhow::bail!(
+            "a PX installation was interrupted; rerun the signed PX installer to finish it"
+        );
+    }
+
     let result = match cli.command {
         Commands::Plugin { cmd } => plugin_cmd::run(&base_dir, cmd),
         Commands::Auth { cmd } => cmd_auth(cmd, &base_dir),

@@ -46,11 +46,6 @@ jobs:
             optimizer-release/manifest.sig
             optimizer-release/*.tar.gz
           if-no-files-found: error
-      - name: Guard incomplete release integration
-        run: |
-          echo 'Real signed installer and interruption-recovery verification is not yet complete; refusing to release PX.' >&2
-          exit 1
-
   lint:
     runs-on: ubuntu-latest
 

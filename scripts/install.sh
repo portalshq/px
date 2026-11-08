@@ -86,6 +86,7 @@ elif [[ ! -w "$INSTALL_DIR" ]]; then
     INSTALL_DIR="$HOME/.local/bin"
     mkdir -p "$INSTALL_DIR"
 fi
+INSTALL_DIR="$(cd "$INSTALL_DIR" && pwd -P)"
 
 ###############################################################################
 # Download
@@ -112,162 +113,167 @@ if [[ "${PX_TELEMETRY:-1}" != "0" ]]; then
     echo "Anonymous install counting is enabled. Set PX_TELEMETRY=0 to disable it."
 fi
 
-TMP_DIR="$(mktemp -d)"
+PX_HOME="$HOME/.px"
+mkdir -p "$PX_HOME"
+export PX_DIR="$PX_HOME"
+TXN_DIR="$PX_HOME/installer-transaction"
+COMPLETED_DIR="$TXN_DIR.completed"
+LOCK_DIR="$PX_HOME/installer.lock"
+OPTIMIZER_ARCHIVE="px-optimizer-$TARGET.tar.gz"
+VERIFIER="px-verify-optimizer-release-$TARGET"
+
+acquire_installer_lock() {
+    if mkdir "$LOCK_DIR" 2>/dev/null; then printf '%s\n' "$$" > "$LOCK_DIR/pid"; return; fi
+    local owner command_line
+    owner="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
+    if [[ "$owner" =~ ^[0-9]+$ ]] && kill -0 "$owner" 2>/dev/null; then
+        command_line="$(ps -p "$owner" -o command= 2>/dev/null || true)"
+        if [[ "$command_line" == *"scripts/install.sh"* ]]; then
+            echo 'Another PX installation is already running.' >&2
+            return 1
+        fi
+    fi
+    rm -rf "$LOCK_DIR"
+    mkdir "$LOCK_DIR" || { echo 'Could not acquire the PX installer lock.' >&2; return 1; }
+    printf '%s\n' "$$" > "$LOCK_DIR/pid"
+}
+
+release_installer_lock() {
+    if [[ "$(cat "$LOCK_DIR/pid" 2>/dev/null || true)" == "$$" ]]; then rm -rf "$LOCK_DIR"; fi
+}
+
+acquire_installer_lock
+
+verify_payload() {
+    local dir="$1" release_version="$2" identity escaped_version file expected actual
+    identity='^https://github\.com/portalshq/px/\.github/workflows/cli-release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+    if [[ "$release_version" != latest ]]; then
+        [[ "$release_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Error: invalid release version in installer state' >&2; return 1; }
+        escaped_version="$(printf '%s' "$release_version" | sed 's/\./\\./g')"
+        identity="^https://github\\.com/portalshq/px/\\.github/workflows/cli-release\\.yml@refs/tags/$escaped_version$"
+    fi
+    cosign verify-blob --bundle "$dir/SHA256SUMS.sigstore.json" \
+        --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+        --certificate-identity-regexp "$identity" "$dir/SHA256SUMS" >/dev/null
+    for file in "$ASSET" "$MCP_ASSET" "$SKILLS_ARCHIVE" "$OPTIMIZER_ARCHIVE" "$VERIFIER" optimizer-release.json manifest.json manifest.sig; do
+        expected="$(awk -v name="./$file" '$2 == name {print $1; n++} END {if (n != 1) exit 1}' "$dir/SHA256SUMS")" || {
+            echo "Error: missing or duplicate checksum for $file" >&2; return 1;
+        }
+        [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || { echo "Error: invalid checksum for $file" >&2; return 1; }
+        actual="$(shasum -a 256 "$dir/$file" | awk '{print $1}')"
+        [[ "$actual" == "$expected" ]] || { echo "Error: checksum mismatch for $file" >&2; return 1; }
+    done
+    chmod +x "$dir/$VERIFIER"
+    "$dir/$VERIFIER" "$dir/optimizer-release.json" "$dir/manifest.json" "$dir/manifest.sig" "$TARGET" "$dir/$OPTIMIZER_ARCHIVE"
+}
+
+atomic_install() {
+    local source="$1" destination="$2" temporary
+    mkdir -p "$(dirname "$destination")"
+    temporary="$(mktemp "$destination.px-new.XXXXXX")"
+    cp -p "$source" "$temporary"
+    chmod +x "$temporary"
+    mv -f "$temporary" "$destination"
+}
+
+apply_transaction() {
+    local dir="$1" target_install_dir="$2" enable_fresh="$3" candidate_version installed_version
+    local skills_dir="$HOME/.agents/skills"
+    export PX_INSTALL_TRANSACTION=1
+    export PX_DIR="$PX_HOME"
+    atomic_install "$dir/$ASSET" "$target_install_dir/$BINARY_NAME"
+    atomic_install "$dir/$MCP_ASSET" "$target_install_dir/$MCP_BINARY_NAME"
+    echo 'Installing agent skills...'
+    mkdir -p "$skills_dir"
+    for skill in ask-px character-reference-sheet px-repo px-resolve px-update; do rm -rf "$skills_dir/$skill"; done
+    unzip -q -o "$dir/$SKILLS_ARCHIVE" -d "$skills_dir"
+    "$target_install_dir/$BINARY_NAME" --version
+    "$target_install_dir/$MCP_BINARY_NAME" --version
+    candidate_version="$(awk '$1 == "version:" {print $2; exit}' "$dir/optimizer/plugin.yaml" | tr -d '"\047')"
+    [[ "$candidate_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid optimizer package version' >&2; return 1; }
+    if installed_info="$("$target_install_dir/$BINARY_NAME" plugin info px.optimizer 2>/dev/null)"; then
+        installed_version="$(printf '%s\n' "$installed_info" | sed -n 's/^[[:space:]]*"version": "\([^"]*\)".*/\1/p')"
+        [[ -n "$installed_version" ]] || { echo 'Cannot determine installed optimizer version' >&2; return 1; }
+        if [[ "$installed_version" != "$candidate_version" ]]; then
+            "$target_install_dir/$BINARY_NAME" plugin upgrade "$dir/optimizer"
+        fi
+    else
+        "$target_install_dir/$BINARY_NAME" plugin install "$dir/optimizer"
+    fi
+    # New installs become enabled, including a retry after interruption.
+    # Plugin upgrades keep the previous enabled/disabled setting.
+    if [[ "$enable_fresh" == true ]]; then "$target_install_dir/$BINARY_NAME" plugin enable px.optimizer; fi
+    "$target_install_dir/$BINARY_NAME" plugin info px.optimizer >/dev/null
+}
+
+finish_transaction() {
+    local dir="$1" completed="$1.completed"
+    [[ ! -e "$completed" ]] || rm -rf "$completed"
+    sync
+    mv "$dir" "$completed"
+    sync
+    rm -rf "$completed"
+}
+
+resume_transaction() {
+    # A completed directory is only garbage left by a force-kill during
+    # cleanup. Its atomic rename is the commit point.
+    [[ ! -e "$COMPLETED_DIR" ]] || rm -rf "$COMPLETED_DIR"
+    [[ -d "$TXN_DIR" ]] || return 0
+    [[ -f "$TXN_DIR/STATE" && -f "$TXN_DIR/install-dir" && -f "$TXN_DIR/enable-fresh" && -f "$TXN_DIR/release-version" ]] || {
+        echo "Error: incomplete installer transaction at $TXN_DIR; keep it for recovery and rerun the installer." >&2; return 1;
+    }
+    local target_install_dir release_version enable_fresh
+    IFS= read -r target_install_dir < "$TXN_DIR/install-dir"
+    IFS= read -r release_version < "$TXN_DIR/release-version"
+    IFS= read -r enable_fresh < "$TXN_DIR/enable-fresh"
+    [[ -n "$target_install_dir" && "$target_install_dir" == "$INSTALL_DIR" && ( "$enable_fresh" == true || "$enable_fresh" == false ) ]] || {
+        echo "Error: resume with the same install directory ($INSTALL_DIR) used by the interrupted installation." >&2; return 1;
+    }
+    echo "Resuming verified PX installation from $TXN_DIR"
+    verify_payload "$TXN_DIR" "$release_version"
+    rm -rf "$TXN_DIR/optimizer"
+    mkdir "$TXN_DIR/optimizer"
+    tar -xzf "$TXN_DIR/$OPTIMIZER_ARCHIVE" -C "$TXN_DIR/optimizer"
+    apply_transaction "$TXN_DIR" "$target_install_dir" "$enable_fresh"
+    finish_transaction "$TXN_DIR"
+}
+
+resume_transaction
+TMP_DIR="$(mktemp -d "$PX_HOME/.installer-staging.XXXXXX")"
+cleanup() {
+    if [[ -n "$TMP_DIR" && -d "$TMP_DIR" && "$TMP_DIR" != "$TXN_DIR" ]]; then rm -rf "$TMP_DIR"; fi
+    release_installer_lock
+}
+trap cleanup EXIT
 TMP_FILE="$TMP_DIR/$ASSET"
 MCP_FILE="$TMP_DIR/$MCP_ASSET"
-INSTALL_STARTED=false
-INSTALL_COMMITTED=false
-
-cleanup() {
-    local restore_failed=false
-    if [[ "$INSTALL_STARTED" == true && "$INSTALL_COMMITTED" == false ]]; then
-        echo 'Installation failed; restoring previous PX files.' >&2
-        for name in "$BINARY_NAME" "$MCP_BINARY_NAME"; do
-            if [[ -f "$TMP_DIR/backup/bin/$name" ]]; then
-                cp -p "$TMP_DIR/backup/bin/$name" "$INSTALL_DIR/$name" || restore_failed=true
-            else
-                rm -f "$INSTALL_DIR/$name" || restore_failed=true
-            fi
-        done
-        for skill in ask-px character-reference-sheet px-repo px-resolve px-update; do
-            rm -rf "$HOME/.agents/skills/$skill" || restore_failed=true
-            if [[ -d "$TMP_DIR/backup/skills/$skill" ]]; then
-                mkdir -p "$HOME/.agents/skills"
-                cp -R "$TMP_DIR/backup/skills/$skill" "$HOME/.agents/skills/$skill" || restore_failed=true
-            fi
-        done
-    fi
-    if [[ "$restore_failed" == true ]]; then
-        echo "Could not fully restore the previous installation; backups remain in $TMP_DIR/backup" >&2
-        return
-    fi
-    rm -rf "$TMP_DIR"
-}
-
-trap cleanup EXIT
-
-curl \
-    --fail \
-    --location \
-    --progress-bar \
-    "$URL" \
-    --output "$TMP_FILE" || {
-    echo "Error: Failed to download px binary"
-    exit 1
-}
-
+curl --fail --location --progress-bar "$URL" --output "$TMP_FILE" || { echo 'Error: Failed to download px binary'; exit 1; }
 chmod +x "$TMP_FILE"
-
-echo
-echo "Installing ${MCP_BINARY_NAME}..."
-
-curl \
-    --fail \
-    --location \
-    --progress-bar \
-    "$MCP_URL" \
-    --output "$MCP_FILE" || {
-    echo "Error: Failed to download px-mcp-server binary"
-    exit 1
-}
-
+echo "Downloading $MCP_BINARY_NAME..."
+curl --fail --location --progress-bar "$MCP_URL" --output "$MCP_FILE" || { echo 'Error: Failed to download px-mcp-server binary'; exit 1; }
 chmod +x "$MCP_FILE"
-
-# A release asset must not be executed or installed until the release
-# workflow's signature and the checksum for every downloaded asset pass.
-RELEASE_BASE="${URL%/*}"
-SKILLS_TMP="$TMP_DIR/$SKILLS_ARCHIVE"
-OPTIMIZER_ARCHIVE="px-optimizer-${TARGET}.tar.gz"
-VERIFIER="px-verify-optimizer-release-${TARGET}"
+RELEASE_BASE="$(dirname "$URL")"
 for file in SHA256SUMS SHA256SUMS.sigstore.json "$SKILLS_ARCHIVE" "$OPTIMIZER_ARCHIVE" "$VERIFIER" optimizer-release.json manifest.json manifest.sig; do
     curl --fail --location --silent --show-error "$RELEASE_BASE/$file" --output "$TMP_DIR/$file"
 done
-identity='^https://github\.com/portalshq/px/\.github/workflows/cli-release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
-if [[ "$VERSION" != latest ]]; then
-    [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Error: VERSION must be a release tag such as v0.10.0' >&2; exit 1; }
-    escaped_version="${VERSION//./\\.}"
-    identity="^https://github\\.com/portalshq/px/\\.github/workflows/cli-release\\.yml@refs/tags/${escaped_version}$"
-fi
-cosign verify-blob --bundle "$TMP_DIR/SHA256SUMS.sigstore.json" \
-    --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-    --certificate-identity-regexp "$identity" \
-    "$TMP_DIR/SHA256SUMS" >/dev/null
-for file in "$ASSET" "$MCP_ASSET" "$SKILLS_ARCHIVE" "$OPTIMIZER_ARCHIVE" "$VERIFIER" optimizer-release.json manifest.json manifest.sig; do
-    expected="$(awk -v name="./$file" '$2 == name {print $1; n++} END {if (n != 1) exit 1}' "$TMP_DIR/SHA256SUMS")" || {
-        echo "Error: missing or duplicate checksum for $file" >&2; exit 1;
-    }
-    [[ "$expected" =~ ^[a-f0-9]{64}$ ]] || { echo "Error: invalid checksum for $file" >&2; exit 1; }
-    actual="$(shasum -a 256 "$TMP_DIR/$file" | awk '{print $1}')"
-    [[ "$actual" == "$expected" ]] || { echo "Error: checksum mismatch for $file" >&2; exit 1; }
-done
-chmod +x "$TMP_DIR/$VERIFIER"
-"$TMP_DIR/$VERIFIER" "$TMP_DIR/optimizer-release.json" "$TMP_DIR/manifest.json" "$TMP_DIR/manifest.sig" "$TARGET" "$TMP_DIR/$OPTIMIZER_ARCHIVE"
+verify_payload "$TMP_DIR" "$VERSION"
 mkdir "$TMP_DIR/optimizer"
 tar -xzf "$TMP_DIR/$OPTIMIZER_ARCHIVE" -C "$TMP_DIR/optimizer"
 
-mkdir -p "$TMP_DIR/backup/bin" "$TMP_DIR/backup/skills"
-for name in "$BINARY_NAME" "$MCP_BINARY_NAME"; do
-    if [[ -f "$INSTALL_DIR/$name" ]]; then cp -p "$INSTALL_DIR/$name" "$TMP_DIR/backup/bin/$name"; fi
-done
-for skill in ask-px character-reference-sheet px-repo px-resolve px-update; do
-    if [[ -d "$HOME/.agents/skills/$skill" ]]; then cp -R "$HOME/.agents/skills/$skill" "$TMP_DIR/backup/skills/$skill"; fi
-done
-INSTALL_STARTED=true
-
-mv -f "$TMP_FILE" "$INSTALL_DIR/$BINARY_NAME" || {
-    echo "Error: Failed to install px binary"
-    exit 1
-}
-
-mv -f "$MCP_FILE" "$INSTALL_DIR/$MCP_BINARY_NAME" || {
-    echo "Error: Failed to install px-mcp-server binary"
-    exit 1
-}
-
-###############################################################################
-# Install skills
-###############################################################################
-
-echo
-echo "Installing agent skills..."
-
-# Determine skills directory
-if [[ "$OS" == "Darwin" || "$OS" == "Linux" ]]; then
-    SKILLS_DIR="$HOME/.agents/skills"
-else
-    # Windows
-    SKILLS_DIR="$USERPROFILE/.agents/skills"
-fi
-
-# Define px-specific skills
-PX_SKILLS=(
-    "ask-px"
-    "character-reference-sheet"
-    "px-repo"
-    "px-resolve"
-    "px-update"
-)
-
-# Clean only px-specific skills to avoid stale/previous versions
-# Preserve any custom skills the user may have installed
-if [[ -d "$SKILLS_DIR" ]]; then
-    echo "Cleaning existing px skills..."
-    for skill in "${PX_SKILLS[@]}"; do
-        if [[ -d "$SKILLS_DIR/$skill" ]]; then
-            rm -rf "$SKILLS_DIR/$skill"
-        fi
-    done
-fi
-
-# Create skills directory
-if ! mkdir -p "$SKILLS_DIR"; then
-    echo "Error: Failed to create skills directory"
-    exit 1
-fi
-
-# The archive was verified together with the binaries above.
-unzip -q "$SKILLS_TMP" -d "$SKILLS_DIR"
-echo "Skills installed to $SKILLS_DIR"
+enable_fresh=true
+if "$INSTALL_DIR/$BINARY_NAME" plugin info px.optimizer >/dev/null 2>&1; then enable_fresh=false; fi
+printf '%s\n' "$INSTALL_DIR" > "$TMP_DIR/install-dir"
+printf '%s\n' "$enable_fresh" > "$TMP_DIR/enable-fresh"
+printf '%s\n' "$VERSION" > "$TMP_DIR/release-version"
+printf 'px-installer-transaction-v1\n' > "$TMP_DIR/STATE"
+sync
+mv "$TMP_DIR" "$TXN_DIR"
+sync
+TMP_DIR="$TXN_DIR"
+apply_transaction "$TXN_DIR" "$INSTALL_DIR" "$enable_fresh"
+finish_transaction "$TXN_DIR"
+TMP_DIR=""
 
 ###############################################################################
 # PATH hint
@@ -289,26 +295,6 @@ fi
 # Verify
 ###############################################################################
 
-echo
-"$INSTALL_DIR/$BINARY_NAME" --version
-"$INSTALL_DIR/$MCP_BINARY_NAME" --version
-
-candidate_version="$(awk '$1 == "version:" {print $2; exit}' "$TMP_DIR/optimizer/plugin.yaml" | tr -d '\"\047')"
-[[ "$candidate_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid optimizer package version' >&2; exit 1; }
-if installed_info="$("$INSTALL_DIR/$BINARY_NAME" plugin info px.optimizer 2>/dev/null)"; then
-    installed_version="$(printf '%s\n' "$installed_info" | sed -n 's/^[[:space:]]*"version": "\([^"]*\)".*/\1/p')"
-    [[ -n "$installed_version" ]] || { echo 'Cannot determine installed optimizer version' >&2; exit 1; }
-    if [[ "$installed_version" != "$candidate_version" ]]; then
-        "$INSTALL_DIR/$BINARY_NAME" plugin upgrade "$TMP_DIR/optimizer"
-    fi
-else
-    "$INSTALL_DIR/$BINARY_NAME" plugin install "$TMP_DIR/optimizer"
-    if ! "$INSTALL_DIR/$BINARY_NAME" plugin enable px.optimizer; then
-        "$INSTALL_DIR/$BINARY_NAME" plugin uninstall px.optimizer || true
-        exit 1
-    fi
-fi
-INSTALL_COMMITTED=true
 echo "Installed successfully."
 
 ###############################################################################

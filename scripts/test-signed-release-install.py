@@ -10,6 +10,7 @@ import http.server
 import json
 import os
 from pathlib import Path
+import platform
 import shutil
 import subprocess
 import sys
@@ -55,7 +56,16 @@ def main():
             if registry['installed']['px.optimizer']['enabled']:
                 raise RuntimeError('reinstall re-enabled the explicitly disabled optimizer')
             before = hashlib.sha256(px.read_bytes()).digest()
-            package = assets / 'px-optimizer-x86_64-unknown-linux-gnu.tar.gz'
+            targets = {
+                ('Darwin', 'arm64'): 'aarch64-apple-darwin',
+                ('Darwin', 'x86_64'): 'x86_64-apple-darwin',
+                ('Linux', 'aarch64'): 'aarch64-unknown-linux-gnu',
+                ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu',
+            }
+            target = targets.get((platform.system(), platform.machine()))
+            if target is None:
+                raise RuntimeError('unsupported release-test platform')
+            package = assets / f'px-optimizer-{target}.tar.gz'
             with package.open('ab') as handle:
                 handle.write(b'tampered')
             if install_once().returncode == 0 or hashlib.sha256(px.read_bytes()).digest() != before:

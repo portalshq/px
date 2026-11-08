@@ -25,6 +25,11 @@ jobs:
           [[ "$tag" =~ ^optimizer-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Invalid optimizer release tag.' >&2; exit 1; }
           mkdir -p optimizer-release
           gh release download "$tag" --repo portalshq/px-plugins --dir optimizer-release --pattern 'manifest.json' --pattern 'manifest.sig' --pattern 'px-optimizer-*.tar.gz'
+          expected='aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc'
+          test "$(find optimizer-release -maxdepth 1 -type f | wc -l | tr -d ' ')" = 7 || { echo 'Unexpected or missing release assets.' >&2; exit 1; }
+          for target in $expected; do
+            test -s "optimizer-release/px-optimizer-$target.tar.gz" || { echo 'Missing optimizer target.' >&2; exit 1; }
+          done
       - name: Verify every signed optimizer archive
         run: |
           set -euo pipefail
@@ -32,6 +37,15 @@ jobs:
           for target in aarch64-apple-darwin x86_64-apple-darwin x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc; do
             target/debug/px-verify-optimizer-release optimizer-release.json optimizer-release/manifest.json optimizer-release/manifest.sig "$target" "optimizer-release/px-optimizer-$target.tar.gz"
           done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-optimizer-release
+          path: |
+            optimizer-release.json
+            optimizer-release/manifest.json
+            optimizer-release/manifest.sig
+            optimizer-release/*.tar.gz
+          if-no-files-found: error
       - name: Guard incomplete release integration
         run: |
           echo 'Verified optimizer bundle assembly and installer upgrades are not yet integrated; refusing to release PX.' >&2
@@ -120,7 +134,12 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build
-        run: cargo build --locked --release --target ${{ matrix.target }} --bin px --bin px-mcp-server
+        run: cargo build --locked --release --target ${{ matrix.target }} --bin px --bin px-mcp-server --bin px-verify-optimizer-release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-optimizer-release
+          path: optimizer-release
 
       - name: Prepare binary
         shell: bash
@@ -140,6 +159,15 @@ jobs:
           cp \
             "target/${{ matrix.target }}/release/${{ matrix.mcp_bin }}" \
             "artifacts/${MCP_NAME}"
+          VERIFY_NAME="px-verify-optimizer-release"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then VERIFY_NAME="${VERIFY_NAME}.exe"; fi
+          "target/${{ matrix.target }}/release/${VERIFY_NAME}" \
+            optimizer-release/optimizer-release.json optimizer-release/optimizer-release/manifest.json \
+            optimizer-release/optimizer-release/manifest.sig "${{ matrix.target }}" \
+            "optimizer-release/optimizer-release/px-optimizer-${{ matrix.target }}.tar.gz"
+          cp "target/${{ matrix.target }}/release/${VERIFY_NAME}" "artifacts/px-verify-optimizer-release-${{ matrix.target }}${VERIFY_NAME#px-verify-optimizer-release}"
+          cp "optimizer-release/optimizer-release/px-optimizer-${{ matrix.target }}.tar.gz" artifacts/
+          cp optimizer-release/optimizer-release.json optimizer-release/optimizer-release/manifest.json optimizer-release/optimizer-release/manifest.sig artifacts/
 
       - name: Package skills (Linux only)
         if: matrix.os == 'ubuntu-latest'
@@ -169,6 +197,7 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+          pattern: px-*
       - run: |
           cp scripts/install.sh artifacts/install.sh
           chmod +x artifacts/install.sh

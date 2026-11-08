@@ -207,5 +207,31 @@ mod tests {
             )
             .is_err()
         );
+        for (field, value) in [
+            ("plugin_id", serde_json::json!("example.wrong")),
+            ("version", serde_json::json!("9.0.0")),
+            ("release_id", serde_json::json!("optimizer-v9.0.0")),
+            ("protocol_version", serde_json::json!(2)),
+        ] {
+            let mut altered: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            altered[field] = value;
+            let altered = serde_json::to_vec(&altered).unwrap();
+            let altered_pin = ReleasePin {
+                plugin_id: incomplete_pin.plugin_id.clone(),
+                version: incomplete_pin.version.clone(),
+                release_id: incomplete_pin.release_id.clone(),
+                manifest_blake3: format!("blake3:{}", blake3::hash(&altered).to_hex()),
+                public_key: incomplete_pin.public_key.clone(),
+            };
+            assert!(
+                verify_manifest(
+                    &altered,
+                    &hex::encode(key.sign(&altered).to_bytes()),
+                    &altered_pin,
+                    "0.10.0"
+                )
+                .is_err()
+            );
+        }
     }
 }

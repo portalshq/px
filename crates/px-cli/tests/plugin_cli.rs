@@ -3,6 +3,8 @@ use predicates::prelude::*;
 
 #[cfg(any(
     all(target_os = "macos", target_arch = "aarch64"),
+    all(target_os = "macos", target_arch = "x86_64"),
+    all(target_os = "linux", target_arch = "aarch64"),
     all(target_os = "linux", target_arch = "x86_64")
 ))]
 #[test]
@@ -49,6 +51,8 @@ fn upgrade_preserves_disabled_state_and_recovers_an_interrupted_switch() {
 
 #[cfg(any(
     all(target_os = "macos", target_arch = "aarch64"),
+    all(target_os = "macos", target_arch = "x86_64"),
+    all(target_os = "linux", target_arch = "aarch64"),
     all(target_os = "linux", target_arch = "x86_64")
 ))]
 #[test]
@@ -111,6 +115,7 @@ fn upgrade_rolls_back_when_a_skill_belongs_to_the_user() {
     );
 }
 
+#[cfg(not(target_os = "windows"))]
 #[test]
 fn installs_enables_disables_and_uninstalls_local_plugin() {
     let home = tempfile::tempdir().unwrap();
@@ -199,6 +204,7 @@ fn installs_enables_disables_and_uninstalls_local_plugin() {
         .stdout(predicate::str::contains("PluginManifest"));
 }
 
+#[cfg(not(target_os = "windows"))]
 #[test]
 fn repository_enable_disable_updates_pins_and_preserves_other_configuration() {
     let home = tempfile::tempdir().unwrap();

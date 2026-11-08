@@ -576,6 +576,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn test_cmdline_has_config_dir_matches_equivalent_paths() {
         // Canonicalization must unify symlinked spellings of the same dir.
         let temp_dir = TempDir::new().unwrap();

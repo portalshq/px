@@ -1,4 +1,6 @@
+#[cfg(not(target_os = "windows"))]
 use assert_cmd::Command;
+#[cfg(not(target_os = "windows"))]
 use predicates::prelude::*;
 
 #[cfg(any(

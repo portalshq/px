@@ -3,6 +3,32 @@ use assert_cmd::Command;
 #[cfg(not(target_os = "windows"))]
 use predicates::prelude::*;
 
+#[cfg(not(target_os = "windows"))]
+#[test]
+fn interrupted_initial_install_is_recovered_before_retry() {
+    use std::fs;
+    let root = tempfile::tempdir().unwrap();
+    let source =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/plugins/hello");
+    let orphan = root.path().join("plugins/example.hello/0.1.0");
+    fs::create_dir_all(&orphan).unwrap();
+    fs::write(orphan.join("partial"), b"incomplete install").unwrap();
+    fs::write(
+        root.path().join("plugins/install-pending.yaml"),
+        "id: example.hello\nversion: 0.1.0\n",
+    )
+    .unwrap();
+    Command::new(assert_cmd::cargo::cargo_bin!("px"))
+        .arg("--base-dir")
+        .arg(root.path())
+        .args(["plugin", "install", source.to_str().unwrap()])
+        .assert()
+        .success();
+    assert!(orphan.join("plugin.yaml").is_file());
+    assert!(!orphan.join("partial").exists());
+    assert!(!root.path().join("plugins/install-pending.yaml").exists());
+}
+
 #[cfg(any(
     all(target_os = "macos", target_arch = "aarch64"),
     all(target_os = "macos", target_arch = "x86_64"),

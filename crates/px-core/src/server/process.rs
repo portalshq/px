@@ -424,9 +424,15 @@ fn tokenize_cmdline(cmdline: &str) -> Vec<String> {
             (Some(q), c) if c == q => quote = None,
             (Some('\''), c) => current.push(c),
             (_, '\\') => {
-                if let Some(&next) = chars.peek() {
+                if let Some(&next) = chars
+                    .peek()
+                    .filter(|c| c.is_whitespace() || **c == '"' || **c == '\'')
+                {
                     current.push(next);
                     chars.next();
+                } else {
+                    // Windows paths use backslashes as separators, not shell escapes.
+                    current.push('\\');
                 }
             }
             (None, '"' | '\'') => quote = Some(ch),
@@ -533,6 +539,10 @@ mod tests {
         );
         assert_eq!(extract_config_dir("loreserver --verbose"), None);
         assert_eq!(extract_config_dir("other --config"), None);
+        assert_eq!(
+            extract_config_dir(r"loreserver --config C:\Users\test\lore"),
+            Some(r"C:\Users\test\lore".into())
+        );
     }
 
     #[test]

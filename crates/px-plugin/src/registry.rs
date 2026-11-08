@@ -38,6 +38,12 @@ pub struct PendingUpgrade {
     pub target_version: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PendingInstall {
+    pub id: String,
+    pub version: String,
+}
+
 pub struct Store {
     root: PathBuf,
 }
@@ -107,6 +113,7 @@ impl Store {
         fs::create_dir_all(&self.root)?;
         let mut temp = tempfile::NamedTempFile::new_in(&self.root)?;
         temp.write_all(serde_yaml::to_string(registry)?.as_bytes())?;
+        temp.as_file().sync_all()?;
         temp.persist(self.root.join("registry.yaml"))
             .map_err(|e| e.error)?;
         Ok(())
@@ -152,6 +159,17 @@ impl Store {
                 "plugin version already exists on disk".into(),
             ));
         }
+        let pending = PendingInstall {
+            id: manifest.id.clone(),
+            version: manifest.version.clone(),
+        };
+        let journal_path = self.root.join("install-pending.yaml");
+        let mut journal = tempfile::NamedTempFile::new_in(&self.root)?;
+        journal.write_all(serde_yaml::to_string(&pending)?.as_bytes())?;
+        journal.as_file().sync_all()?;
+        journal
+            .persist_noclobber(&journal_path)
+            .map_err(|e| e.error)?;
         fs::rename(temp.path(), &destination)?;
         registry.installed.insert(
             manifest.id.clone(),
@@ -162,10 +180,50 @@ impl Store {
             },
         );
         if let Err(error) = self.save(&registry) {
-            let _ = fs::remove_dir_all(&destination);
+            // Keep the journal if cleanup fails, so the next CLI call can
+            // safely finish recovery rather than stranding the version.
+            if fs::remove_dir_all(&destination).is_ok() {
+                let _ = fs::remove_file(&journal_path);
+            }
             return Err(error);
         }
+        fs::remove_file(journal_path)?;
         Ok(manifest)
+    }
+
+    /// Finish or undo a first installation interrupted before its registry
+    /// update. Call while holding the registry lock.
+    pub fn recover_pending_install(&self) -> Result<(), RegistryError> {
+        let path = self.root.join("install-pending.yaml");
+        let pending: PendingInstall = match fs::read(&path) {
+            Ok(bytes) => serde_yaml::from_slice(&bytes)?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(e) => return Err(e.into()),
+        };
+        let destination = self.plugin_dir(&pending.id, &pending.version)?;
+        let registry = self.load()?;
+        match registry.installed.get(&pending.id) {
+            Some(entry) if entry.version == pending.version => {
+                self.manifest(&pending.id)?;
+            }
+            Some(_) => {
+                return Err(RegistryError::Invalid(
+                    "registry changed during install recovery".into(),
+                ));
+            }
+            None => match fs::symlink_metadata(&destination) {
+                Ok(metadata) if metadata.file_type().is_dir() => fs::remove_dir_all(&destination)?,
+                Ok(_) => {
+                    return Err(RegistryError::Invalid(
+                        "install recovery path is not a directory".into(),
+                    ));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
+                Err(e) => return Err(e.into()),
+            },
+        }
+        fs::remove_file(path)?;
+        Ok(())
     }
 
     /// Stage and validate a new version before switching the registry. The
@@ -442,6 +500,33 @@ fn copy_tree(source: &Path, target: &Path, python: bool, root: bool) -> Result<(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn interrupted_first_install_recovers_without_removing_committed_plugin() {
+        let home = tempfile::tempdir().unwrap();
+        let store = Store::new(&home.path().join("px"));
+        let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/plugins/hello");
+        let destination = store.plugin_dir("example.hello", "0.1.0").unwrap();
+        fs::create_dir_all(&destination).unwrap();
+        copy_tree(&source, &destination, false, true).unwrap();
+        let journal = store.root.join("install-pending.yaml");
+        let pending = PendingInstall {
+            id: "example.hello".into(),
+            version: "0.1.0".into(),
+        };
+        fs::write(&journal, serde_yaml::to_string(&pending).unwrap()).unwrap();
+        store.recover_pending_install().unwrap();
+        assert!(!destination.exists());
+        assert!(!journal.exists());
+        store.install_directory(&source).unwrap();
+        fs::write(&journal, serde_yaml::to_string(&pending).unwrap()).unwrap();
+        store.recover_pending_install().unwrap();
+        assert!(destination.is_dir());
+        assert_eq!(
+            store.load().unwrap().installed["example.hello"].version,
+            "0.1.0"
+        );
+        assert!(!journal.exists());
+    }
     #[test]
     fn upgrade_validates_before_switch_and_preserves_disabled_state() {
         let home = tempfile::tempdir().unwrap();

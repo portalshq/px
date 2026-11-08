@@ -162,6 +162,7 @@ fn platform() -> Option<&'static str> {
 pub fn run(base_dir: &Path, cmd: PluginCmd) -> Result<()> {
     let store = Store::new(base_dir);
     let _lock = store.acquire_lock()?;
+    store.recover_pending_install()?;
     recover_upgrade(&store)?;
     match cmd {
         PluginCmd::List => println!("{}", serde_json::to_string_pretty(&store.load()?)?),

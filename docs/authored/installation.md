@@ -6,7 +6,7 @@
 curl -fsSL https://portals.works/api/px/download | bash
 ```
 
-The one-liner installs the `px` CLI, the bundled `px-mcp-server`, and the agent skills to `~/.agents/skills`. The website command records one download per browser profile with a random ID. After a successful install, the installer sends a separate anonymous install count. Run `export PX_TELEMETRY=0` before installation to opt out of install counting. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
+The signed-release installer requires `cosign` on your PATH. It verifies the release workflow's signature and checksums before installing the `px` CLI, `px-mcp-server`, agent skills, and bundled optimizer. It preserves a previously disabled optimizer when upgrading. The initial script itself is fetched over HTTPS by the one-liner; it cannot verify its own signature before it executes. Signed optimizer bundles are available only once a PX release has passed the release checks. The website command records one download per browser profile with a random ID. After a successful install, the installer sends a separate anonymous install count. Run `export PX_TELEMETRY=0` before installation to opt out of install counting. The MCP server is dormant by default; agent clients start it on demand over stdio so sandboxed agents can use PX through host-side CLI proxy calls.
 
 **Windows PowerShell**
 
